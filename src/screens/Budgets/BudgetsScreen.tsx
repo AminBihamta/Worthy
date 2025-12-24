@@ -45,7 +45,7 @@ export default function BudgetsScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <View className="mb-5">
         <SegmentedControl
@@ -68,23 +68,23 @@ export default function BudgetsScreen() {
           return (
             <Card key={budget.id} className="mb-4">
               <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-base font-semibold text-app-text dark:text-app-text-dark">
+                <Text className="text-base font-display text-app-text dark:text-app-text-dark">
                   {budget.name}
                 </Text>
                 <Text
-                  className={`text-sm font-semibold ${
+                  className={`text-sm font-emphasis ${
                     overspent ? 'text-app-danger' : 'text-app-muted dark:text-app-muted-dark'
                   }`}
                 >
                   {formatSigned(budget.spent, 'USD')} / {formatSigned(budget.limit, 'USD')}
                 </Text>
               </View>
-              <View className="h-2 rounded-full bg-app-border dark:bg-app-border-dark overflow-hidden">
+              <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden">
                 <View
                   className="h-2 rounded-full"
                   style={{
                     width: `${progress * 100}%`,
-                    backgroundColor: overspent ? '#D64545' : budget.color,
+                    backgroundColor: overspent ? '#EF4444' : budget.color,
                   }}
                 />
               </View>

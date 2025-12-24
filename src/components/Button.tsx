@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useColorScheme } from 'nativewind';
 
 const variants = {
   primary: 'bg-app-brand dark:bg-app-brand-dark',
@@ -27,12 +28,18 @@ export function Button({
   title: string;
   onPress: () => void | Promise<void>;
   variant?: keyof typeof variants;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | ((color: string) => React.ReactNode);
   disabled?: boolean;
 }) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const iconColor =
+    variant === 'primary' || variant === 'danger' ? '#FFFFFF' : isDark ? '#F5F7FA' : '#101114';
+  const renderedIcon = typeof icon === 'function' ? icon(iconColor) : icon;
+
   return (
     <Pressable
-      className={`flex-row items-center justify-center rounded-xl px-4 py-3 ${variants[variant]} ${
+      className={`flex-row items-center justify-center rounded-full px-5 py-3 ${variants[variant]} ${
         disabled ? 'opacity-40' : ''
       }`}
       onPress={async () => {
@@ -41,8 +48,8 @@ export function Button({
         await onPress();
       }}
     >
-      {icon ? <View className="mr-2">{icon}</View> : null}
-      <Text className={`text-base font-semibold ${textVariants[variant]}`}>{title}</Text>
+      {renderedIcon ? <View className="mr-2">{renderedIcon}</View> : null}
+      <Text className={`text-sm font-emphasis ${textVariants[variant]}`}>{title}</Text>
     </Pressable>
   );
 }

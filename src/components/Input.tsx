@@ -18,15 +18,17 @@ export function Input({
 }) {
   return (
     <View className="mb-4">
-      <Text className="text-sm text-app-muted dark:text-app-muted-dark mb-2">{label}</Text>
+      <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
+        {label}
+      </Text>
       <TextInput
-        className={`rounded-xl border border-app-border dark:border-app-border-dark bg-white dark:bg-app-surface-dark px-4 py-3 text-base text-app-text dark:text-app-text-dark ${
-          multiline ? 'h-24' : ''
+        className={`rounded-2xl border border-transparent bg-app-soft dark:bg-app-soft-dark px-4 py-3 text-base text-app-text dark:text-app-text-dark ${
+          multiline ? 'h-28' : ''
         }`}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#9AA0A6"
+        placeholderTextColor="#A2A7AF"
         keyboardType={keyboardType}
         multiline={multiline}
       />

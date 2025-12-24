@@ -91,7 +91,7 @@ export default function AddEditIncomeScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <Input label="Source" value={source} onChangeText={setSource} placeholder="e.g. Salary" />
       <Input
@@ -127,7 +127,9 @@ export default function AddEditIncomeScreen() {
 
       {!editingId ? (
         <View className="mb-6">
-          <Text className="text-sm text-app-muted dark:text-app-muted-dark mb-2">Recurring</Text>
+          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
+            Recurring
+          </Text>
           <Button
             title={recurring ? 'Monthly recurring enabled' : 'Enable monthly recurring'}
             variant={recurring ? 'primary' : 'secondary'}

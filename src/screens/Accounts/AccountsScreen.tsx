@@ -24,7 +24,7 @@ export default function AccountsScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       {accounts.length === 0 ? (
         <EmptyState title="No accounts" subtitle="Create your first account to start tracking." />
@@ -41,7 +41,7 @@ export default function AccountsScreen() {
               }}
             >
               <Card>
-                <Text className="text-base font-semibold text-app-text dark:text-app-text-dark">
+                <Text className="text-base font-display text-app-text dark:text-app-text-dark">
                   {account.name}
                 </Text>
                 <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">

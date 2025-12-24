@@ -45,7 +45,7 @@ export default function RecurringScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       {rules.length === 0 ? (
         <EmptyState
@@ -55,7 +55,7 @@ export default function RecurringScreen() {
       ) : (
         rules.map((rule) => (
           <Card key={rule.id} className="mb-4">
-            <Text className="text-base font-semibold text-app-text dark:text-app-text-dark">
+            <Text className="text-base font-display text-app-text dark:text-app-text-dark">
               {titles[rule.id] ?? 'Recurring item'}
             </Text>
             <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">

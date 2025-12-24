@@ -1,20 +1,46 @@
 import '../global.css';
-import React, { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Text, TextInput, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  useFonts,
+} from '@expo-google-fonts/manrope';
 import RootNavigator from './navigation/RootNavigator';
 import { DatabaseProvider, useDatabaseStatus } from './db/provider';
 import { useSettingsStore } from './state/useSettingsStore';
 import { getNavigationTheme } from './theme/navigation';
 
 function AppContent() {
+  const [fontsLoaded] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+  });
   const { ready, error } = useDatabaseStatus();
   const { hydrate, themeMode, loaded } = useSettingsStore();
   const { colorScheme, setColorScheme } = useColorScheme();
+  const didSetFonts = useRef(false);
+
+  useEffect(() => {
+    if (!fontsLoaded || didSetFonts.current) return;
+    Text.defaultProps = Text.defaultProps || {};
+    Text.defaultProps.style = [{ fontFamily: 'Manrope_400Regular' }, Text.defaultProps.style];
+    TextInput.defaultProps = TextInput.defaultProps || {};
+    TextInput.defaultProps.style = [
+      { fontFamily: 'Manrope_400Regular' },
+      TextInput.defaultProps.style,
+    ];
+    didSetFonts.current = true;
+  }, [fontsLoaded]);
 
   useEffect(() => {
     if (ready) {
@@ -29,7 +55,7 @@ function AppContent() {
 
   const resolvedScheme = themeMode === 'system' ? (colorScheme ?? 'light') : themeMode;
 
-  if (!ready) {
+  if (!ready || !fontsLoaded) {
     return (
       <View className="flex-1 bg-app-bg dark:bg-app-bg-dark items-center justify-center">
         <Text className="text-sm text-app-muted dark:text-app-muted-dark">Preparing Worthy...</Text>

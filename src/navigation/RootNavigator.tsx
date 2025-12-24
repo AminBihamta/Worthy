@@ -165,11 +165,20 @@ export default function RootNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: isDark ? '#151A1A' : '#FFFFFF',
-          borderTopColor: isDark ? '#2C3333' : '#E6E4DF',
+          backgroundColor: isDark ? '#15171C' : '#FFFFFF',
+          borderTopColor: isDark ? '#262A33' : '#E7E5E0',
+          height: 76,
         },
-        tabBarActiveTintColor: isDark ? '#4EC3B5' : '#2F6F62',
-        tabBarInactiveTintColor: isDark ? '#A6ADB5' : '#6B6F76',
+        tabBarActiveTintColor: isDark ? '#F5F7FA' : '#101114',
+        tabBarInactiveTintColor: isDark ? '#9AA2AE' : '#8D929B',
+        tabBarLabelStyle: {
+          fontFamily: 'Manrope_500Medium',
+          fontSize: 11,
+          marginBottom: 6,
+        },
+        tabBarIconStyle: {
+          marginTop: 6,
+        },
       }}
     >
       <Tab.Screen

@@ -53,7 +53,7 @@ export default function AddEditAccountScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <Input label="Name" value={name} onChangeText={setName} placeholder="e.g. Cash" />
       <SelectField

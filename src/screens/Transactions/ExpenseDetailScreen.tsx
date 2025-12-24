@@ -42,10 +42,10 @@ export default function ExpenseDetailScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <Card className="mb-4">
-        <Text className="text-2xl font-semibold text-app-text dark:text-app-text-dark">
+        <Text className="text-2xl font-display text-app-text dark:text-app-text-dark">
           {formatSigned(-expense.amount_minor, expense.account_currency)}
         </Text>
         <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
@@ -64,18 +64,24 @@ export default function ExpenseDetailScreen() {
       </Card>
 
       <Card className="mb-4">
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark">Category</Text>
-        <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mt-1">
+        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+          Category
+        </Text>
+        <Text className="text-base font-display text-app-text dark:text-app-text-dark mt-1">
           {expense.category_name}
         </Text>
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-4">Account</Text>
-        <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mt-1">
+        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mt-4">
+          Account
+        </Text>
+        <Text className="text-base font-display text-app-text dark:text-app-text-dark mt-1">
           {expense.account_name}
         </Text>
       </Card>
 
       <Card>
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark">Notes</Text>
+        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+          Notes
+        </Text>
         <Text className="text-base text-app-text dark:text-app-text-dark mt-1">
           {expense.notes ? expense.notes : 'No notes'}
         </Text>

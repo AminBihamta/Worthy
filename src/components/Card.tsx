@@ -10,7 +10,7 @@ export function Card({
 }) {
   return (
     <View
-      className={`rounded-2xl border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-4 ${className}`}
+      className={`rounded-3xl border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-5 ${className}`}
     >
       {children}
     </View>

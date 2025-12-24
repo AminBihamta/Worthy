@@ -27,10 +27,10 @@ function RightAction({
     <Animated.View style={[{ width: 80, justifyContent: 'center', alignItems: 'center' }, style]}>
       <Pressable
         onPress={onPress}
-        className="h-12 w-16 items-center justify-center rounded-xl"
+        className="h-11 w-16 items-center justify-center rounded-full"
         style={{ backgroundColor: color }}
       >
-        <Text className="text-xs font-semibold text-white">{label}</Text>
+        <Text className="text-xs font-emphasis text-white">{label}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -50,10 +50,10 @@ export function SwipeableRow({
       renderRightActions={(progress) => (
         <View className="flex-row items-center pr-2">
           {onEdit ? (
-            <RightAction progress={progress} label="Edit" color="#2F6F62" onPress={onEdit} />
+            <RightAction progress={progress} label="Edit" color="#101114" onPress={onEdit} />
           ) : null}
           {onDelete ? (
-            <RightAction progress={progress} label="Delete" color="#D64545" onPress={onDelete} />
+            <RightAction progress={progress} label="Delete" color="#EF4444" onPress={onDelete} />
           ) : null}
         </View>
       )}

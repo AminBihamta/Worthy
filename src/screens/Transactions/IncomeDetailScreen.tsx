@@ -31,10 +31,10 @@ export default function IncomeDetailScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <Card className="mb-4">
-        <Text className="text-2xl font-semibold text-app-text dark:text-app-text-dark">
+        <Text className="text-2xl font-display text-app-text dark:text-app-text-dark">
           {formatSigned(income.amount_minor, income.account_currency)}
         </Text>
         <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
@@ -46,18 +46,24 @@ export default function IncomeDetailScreen() {
       </Card>
 
       <Card className="mb-4">
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark">Account</Text>
-        <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mt-1">
+        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+          Account
+        </Text>
+        <Text className="text-base font-display text-app-text dark:text-app-text-dark mt-1">
           {income.account_name}
         </Text>
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-4">Hours worked</Text>
-        <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mt-1">
+        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mt-4">
+          Hours worked
+        </Text>
+        <Text className="text-base font-display text-app-text dark:text-app-text-dark mt-1">
           {income.hours_worked ?? 'Not provided'}
         </Text>
       </Card>
 
       <Card>
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark">Notes</Text>
+        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+          Notes
+        </Text>
         <Text className="text-base text-app-text dark:text-app-text-dark mt-1">
           {income.notes ? income.notes : 'No notes'}
         </Text>

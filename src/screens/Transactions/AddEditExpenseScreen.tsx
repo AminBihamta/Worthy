@@ -105,7 +105,7 @@ export default function AddEditExpenseScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <Input
         label="Title"
@@ -146,7 +146,7 @@ export default function AddEditExpenseScreen() {
       />
 
       <View className="mb-6">
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark mb-2">
+        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
           Worth it slider
         </Text>
         <Slider
@@ -154,9 +154,9 @@ export default function AddEditExpenseScreen() {
           minimumValue={0}
           maximumValue={100}
           step={1}
-          minimumTrackTintColor="#2F6F62"
-          maximumTrackTintColor="#E6E4DF"
-          thumbTintColor="#2F6F62"
+          minimumTrackTintColor="#101114"
+          maximumTrackTintColor="#E7E5E0"
+          thumbTintColor="#101114"
           onValueChange={setSliderValue}
         />
         <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-2">
@@ -172,7 +172,9 @@ export default function AddEditExpenseScreen() {
 
       {!editingId ? (
         <View className="mb-6">
-          <Text className="text-sm text-app-muted dark:text-app-muted-dark mb-2">Recurring</Text>
+          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
+            Recurring
+          </Text>
           <Button
             title={recurring ? 'Monthly recurring enabled' : 'Enable monthly recurring'}
             variant={recurring ? 'primary' : 'secondary'}

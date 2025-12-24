@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { FlashList } from '@shopify/flash-list';
 import { Feather } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
 import {
   listTransactions,
   TransactionRow as Transaction,
@@ -20,6 +21,8 @@ import { formatLifeCost } from '../../utils/lifeCost';
 export default function TransactionsScreen() {
   const navigation = useNavigation();
   const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const [rows, setRows] = useState<Transaction[]>([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
 
@@ -53,11 +56,11 @@ export default function TransactionsScreen() {
       <FlashList
         data={rows}
         estimatedItemSize={96}
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerStyle={{ padding: 24 }}
         ListHeaderComponent={
           hourlyRateMinor ? null : (
             <View className="mb-4">
-              <View className="rounded-2xl border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-4">
+              <View className="rounded-3xl border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-4">
                 <Text className="text-sm text-app-text dark:text-app-text-dark">
                   Set a fixed hourly rate in Settings to unlock life cost details.
                 </Text>
@@ -109,8 +112,8 @@ export default function TransactionsScreen() {
         className="absolute bottom-6 left-6 h-14 px-4 rounded-full bg-app-surface dark:bg-app-surface-dark border border-app-border dark:border-app-border-dark flex-row items-center"
         onPress={() => navigation.navigate('ReceiptInbox' as never)}
       >
-        <Feather name="camera" size={18} color="#2F6F62" />
-        <Text className="ml-2 text-sm font-semibold text-app-text dark:text-app-text-dark">
+        <Feather name="camera" size={18} color={isDark ? '#F5F7FA' : '#101114'} />
+        <Text className="ml-2 text-sm font-emphasis text-app-text dark:text-app-text-dark">
           Receipts
         </Text>
       </Pressable>

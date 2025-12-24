@@ -88,11 +88,11 @@ export default function ReceiptInboxScreen() {
 
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
+      <ScrollView contentContainerStyle={{ padding: 24 }}>
         <Button
           title="Quick add receipt"
           onPress={handleCapture}
-          icon={<Feather name="camera" size={16} color="#FFFFFF" />}
+          icon={(color) => <Feather name="camera" size={16} color={color} />}
         />
         <View className="mt-6">
           {receipts.length === 0 ? (
@@ -111,7 +111,7 @@ export default function ReceiptInboxScreen() {
                   </View>
                   <Image
                     source={{ uri: item.image_uri }}
-                    style={{ width: '100%', height: 180, borderRadius: 16 }}
+                    style={{ width: '100%', height: 180, borderRadius: 24 }}
                     resizeMode="cover"
                   />
                   <View className="flex-row items-center justify-between mt-4">
@@ -134,13 +134,13 @@ export default function ReceiptInboxScreen() {
       </ScrollView>
 
       {selected.size > 0 ? (
-        <View className="absolute bottom-6 left-6 right-6 rounded-2xl border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-4 flex-row items-center justify-between">
+        <View className="absolute bottom-6 left-6 right-6 rounded-3xl border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-4 flex-row items-center justify-between">
           <Text className="text-sm text-app-text dark:text-app-text-dark">
             {selected.size} selected
           </Text>
           <View className="flex-row items-center">
             <Pressable className="mr-4" onPress={handleBatchDone}>
-              <Text className="text-sm text-app-brand">Mark done</Text>
+              <Text className="text-sm text-app-success">Mark done</Text>
             </Pressable>
             <Pressable onPress={handleBatchDelete}>
               <Text className="text-sm text-app-danger">Delete</Text>

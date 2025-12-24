@@ -77,7 +77,7 @@ export default function InsightsScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <View className="mb-6">
         <SegmentedControl
@@ -93,15 +93,15 @@ export default function InsightsScreen() {
 
       <Animated.View entering={FadeInUp.duration(300)}>
         <Card className="mb-5">
-          <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mb-3">
+          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
             Expenses over time
           </Text>
           <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#6B6F76' } }} />
-            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: '#6B6F76' } }} />
+            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
+            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
             <VictoryLine
               data={expenseSeries}
-              style={{ data: { stroke: '#D64545', strokeWidth: 2 } }}
+              style={{ data: { stroke: '#EF4444', strokeWidth: 2 } }}
             />
           </VictoryChart>
         </Card>
@@ -109,15 +109,15 @@ export default function InsightsScreen() {
 
       <Animated.View entering={FadeInUp.duration(350)}>
         <Card className="mb-5">
-          <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mb-3">
+          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
             Income over time
           </Text>
           <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#6B6F76' } }} />
-            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: '#6B6F76' } }} />
+            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
+            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
             <VictoryLine
               data={incomeSeries}
-              style={{ data: { stroke: '#2F6F62', strokeWidth: 2 } }}
+              style={{ data: { stroke: '#2CB67D', strokeWidth: 2 } }}
             />
           </VictoryChart>
         </Card>
@@ -125,7 +125,7 @@ export default function InsightsScreen() {
 
       <Animated.View entering={FadeInUp.duration(400)}>
         <Card className="mb-5">
-          <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mb-3">
+          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
             Spending by category
           </Text>
           {categorySpend.length === 0 ? (
@@ -140,7 +140,7 @@ export default function InsightsScreen() {
               colorScale={categorySpend.map((row) => row.category_color)}
               innerRadius={60}
               labelRadius={90}
-              style={{ labels: { fontSize: 10, fill: '#6B6F76' } }}
+              style={{ labels: { fontSize: 10, fill: '#8D929B' } }}
             />
           )}
         </Card>
@@ -148,7 +148,7 @@ export default function InsightsScreen() {
 
       <Animated.View entering={FadeInUp.duration(450)}>
         <Card className="mb-5">
-          <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mb-3">
+          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
             Regret vs worth-it
           </Text>
           {regretByCategory.length === 0 ? (
@@ -157,15 +157,15 @@ export default function InsightsScreen() {
             </Text>
           ) : (
             <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-              <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#6B6F76' } }} />
+              <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
               <VictoryAxis
                 dependentAxis
                 domain={[0, 100]}
-                style={{ tickLabels: { fontSize: 10, fill: '#6B6F76' } }}
+                style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }}
               />
               <VictoryBar
                 data={regretByCategory.map((row) => ({ x: row.category_name, y: row.avg_regret }))}
-                style={{ data: { fill: '#EFA640' } }}
+                style={{ data: { fill: '#FFB347' } }}
               />
             </VictoryChart>
           )}
@@ -181,7 +181,7 @@ export default function InsightsScreen() {
 
       <Animated.View entering={FadeInUp.duration(500)}>
         <Card>
-          <Text className="text-base font-semibold text-app-text dark:text-app-text-dark mb-3">
+          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
             Life cost by category
           </Text>
           {hourlyRateMinor ? (

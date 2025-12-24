@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
 import {
   listCategories,
   reorderCategories,
@@ -14,6 +15,8 @@ import { EmptyState } from '../../components/EmptyState';
 
 export default function CategoriesScreen() {
   const navigation = useNavigation();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const [categories, setCategories] = useState<Awaited<ReturnType<typeof listCategories>>>([]);
 
   const load = useCallback(() => {
@@ -40,7 +43,7 @@ export default function CategoriesScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       {categories.length === 0 ? (
         <EmptyState title="No categories" subtitle="Add a category to organize spending." />
@@ -58,7 +61,7 @@ export default function CategoriesScreen() {
             >
               <Card className="flex-row items-center justify-between">
                 <View>
-                  <Text className="text-base font-semibold text-app-text dark:text-app-text-dark">
+                  <Text className="text-base font-display text-app-text dark:text-app-text-dark">
                     {category.name}
                   </Text>
                   <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
@@ -74,7 +77,7 @@ export default function CategoriesScreen() {
                     <Feather
                       name="chevron-up"
                       size={18}
-                      color={index === 0 ? '#B0B0B0' : '#2F6F62'}
+                      color={index === 0 ? '#A2A7AF' : isDark ? '#F5F7FA' : '#101114'}
                     />
                   </Pressable>
                   <Pressable
@@ -85,7 +88,9 @@ export default function CategoriesScreen() {
                     <Feather
                       name="chevron-down"
                       size={18}
-                      color={index === categories.length - 1 ? '#B0B0B0' : '#2F6F62'}
+                      color={
+                        index === categories.length - 1 ? '#A2A7AF' : isDark ? '#F5F7FA' : '#101114'
+                      }
                     />
                   </Pressable>
                 </View>

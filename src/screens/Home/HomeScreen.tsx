@@ -57,66 +57,87 @@ export default function HomeScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <View className="mb-6">
-        <Text className="text-3xl font-semibold text-app-text dark:text-app-text-dark">
+        <Text className="text-2xl font-display text-app-text dark:text-app-text-dark">
           Welcome back
         </Text>
         <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-2">
-          Track your money with intention.
+          Here is a clean snapshot of this month.
         </Text>
       </View>
 
-      <View className="flex-row gap-4 mb-6">
-        <Card className="flex-1">
-          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-            Spent this month
-          </Text>
-          <AnimatedNumber
-            value={formatSigned(-summary.spent, 'USD')}
-            className="text-2xl font-semibold text-app-danger mt-2"
+      <Card className="mb-6">
+        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+          Available this month
+        </Text>
+        <AnimatedNumber
+          value={formatSigned(summary.income - summary.spent, 'USD')}
+          className="text-3xl font-display text-app-text dark:text-app-text-dark mt-2"
+        />
+        <View className="flex-row items-center justify-between mt-4">
+          <View>
+            <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+              Spent
+            </Text>
+            <Text className="text-base font-display text-app-danger mt-1">
+              {formatSigned(summary.spent, 'USD')}
+            </Text>
+          </View>
+          <View>
+            <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+              Income
+            </Text>
+            <Text className="text-base font-display text-app-success mt-1">
+              {formatSigned(summary.income, 'USD')}
+            </Text>
+          </View>
+        </View>
+        <View className="flex-row gap-2 mt-5">
+          <Button
+            title="Add expense"
+            onPress={() => navigation.navigate('AddExpense' as never)}
+            icon={(color) => <Feather name="minus-circle" size={16} color={color} />}
           />
-        </Card>
-        <Card className="flex-1">
-          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-            Income this month
-          </Text>
-          <AnimatedNumber
-            value={formatSigned(summary.income, 'USD')}
-            className="text-2xl font-semibold text-app-brand mt-2"
+          <Button
+            title="Add income"
+            variant="secondary"
+            onPress={() => navigation.navigate('AddIncome' as never)}
+            icon={(color) => <Feather name="plus-circle" size={16} color={color} />}
           />
-        </Card>
-      </View>
+        </View>
+      </Card>
 
       <SectionHeader
-        title="Quick add"
+        title="Quick actions"
         action={
           <Button
             title="Receipt"
             variant="secondary"
             onPress={() => navigation.navigate('ReceiptInbox' as never)}
-            icon={<Feather name="camera" size={16} color="#2F6F62" />}
+            icon={(color) => <Feather name="camera" size={16} color={color} />}
           />
         }
       />
       <View className="flex-row gap-3 mb-8">
         <Button
-          title="Expense"
-          onPress={() => navigation.navigate('AddExpense' as never)}
-          icon={<Feather name="minus-circle" size={16} color="#FFFFFF" />}
-        />
-        <Button
-          title="Income"
-          variant="secondary"
-          onPress={() => navigation.navigate('AddIncome' as never)}
-          icon={<Feather name="plus-circle" size={16} color="#2F6F62" />}
-        />
-        <Button
           title="Transfer"
           variant="secondary"
           onPress={() => navigation.navigate('AddTransfer' as never)}
-          icon={<Feather name="repeat" size={16} color="#2F6F62" />}
+          icon={(color) => <Feather name="repeat" size={16} color={color} />}
+        />
+        <Button
+          title="Accounts"
+          variant="secondary"
+          onPress={() => navigation.navigate('Accounts' as never)}
+          icon={(color) => <Feather name="credit-card" size={16} color={color} />}
+        />
+        <Button
+          title="Categories"
+          variant="secondary"
+          onPress={() => navigation.navigate('Categories' as never)}
+          icon={(color) => <Feather name="grid" size={16} color={color} />}
         />
       </View>
 
@@ -142,14 +163,14 @@ export default function HomeScreen() {
             return (
               <Card key={budget.id} className="mb-3">
                 <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-base font-semibold text-app-text dark:text-app-text-dark">
+                  <Text className="text-base font-display text-app-text dark:text-app-text-dark">
                     {budget.name}
                   </Text>
                   <Text className="text-sm text-app-muted dark:text-app-muted-dark">
                     {formatSigned(budget.spent, 'USD')} / {formatSigned(budget.limit, 'USD')}
                   </Text>
                 </View>
-                <View className="h-2 rounded-full bg-app-border dark:bg-app-border-dark overflow-hidden">
+                <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden">
                   <View
                     className="h-2 rounded-full"
                     style={{ width: `${progress * 100}%`, backgroundColor: budget.color }}

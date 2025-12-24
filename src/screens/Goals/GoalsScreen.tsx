@@ -49,7 +49,7 @@ export default function GoalsScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 20 }}
+      contentContainerStyle={{ padding: 24 }}
     >
       <SectionHeader
         title="Savings buckets"
@@ -73,13 +73,13 @@ export default function GoalsScreen() {
             : 0;
           return (
             <Card key={bucket.id} className="mb-4">
-              <Text className="text-base font-semibold text-app-text dark:text-app-text-dark">
+              <Text className="text-base font-display text-app-text dark:text-app-text-dark">
                 {bucket.name}
               </Text>
               <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
                 {bucket.category_name}
               </Text>
-              <Text className="text-xl font-semibold text-app-text dark:text-app-text-dark mt-3">
+              <Text className="text-xl font-display text-app-text dark:text-app-text-dark mt-3">
                 {formatSigned(bucket.saved_minor, 'USD')}
               </Text>
               {bucket.target_amount_minor ? (
@@ -88,7 +88,7 @@ export default function GoalsScreen() {
                 </Text>
               ) : null}
               {bucket.target_amount_minor ? (
-                <View className="h-2 rounded-full bg-app-border dark:bg-app-border-dark overflow-hidden mt-3">
+                <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden mt-3">
                   <View
                     className="h-2 rounded-full"
                     style={{ width: `${progress * 100}%`, backgroundColor: bucket.category_color }}
@@ -129,7 +129,7 @@ export default function GoalsScreen() {
             : false;
           return (
             <Card key={item.id} className="mb-4">
-              <Text className="text-base font-semibold text-app-text dark:text-app-text-dark">
+              <Text className="text-base font-display text-app-text dark:text-app-text-dark">
                 {item.title}
               </Text>
               <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
@@ -144,7 +144,7 @@ export default function GoalsScreen() {
                 Saved {formatSigned(item.saved_minor, 'USD')}
               </Text>
               <Text
-                className={`text-xs mt-2 ${affordable ? 'text-app-brand' : 'text-app-muted dark:text-app-muted-dark'}`}
+                className={`text-xs mt-2 ${affordable ? 'text-app-success' : 'text-app-muted dark:text-app-muted-dark'}`}
               >
                 {affordable ? 'Affordable now' : 'Keep saving to unlock'}
               </Text>
@@ -157,7 +157,7 @@ export default function GoalsScreen() {
         <View className="flex-1 bg-black/40 justify-end">
           <View className="rounded-t-3xl bg-app-card dark:bg-app-card-dark p-6">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-semibold text-app-text dark:text-app-text-dark">
+              <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
                 Add contribution
               </Text>
               <Pressable onPress={() => setModalVisible(false)}>
