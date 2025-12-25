@@ -1,7 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { VictoryAxis, VictoryBar, VictoryChart, VictoryLine, VictoryPie } from 'victory-native';
+import {
+  VictoryAxis,
+  VictoryBar,
+  VictoryChart,
+  VictoryLine,
+  VictoryPie,
+} from '../../components/charts/victory';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Card } from '../../components/Card';
 import { SegmentedControl } from '../../components/SegmentedControl';

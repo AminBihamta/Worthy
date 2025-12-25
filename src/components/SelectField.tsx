@@ -48,26 +48,28 @@ export function SelectField({
                 <Feather name="x" size={20} color="#8D929B" />
               </Pressable>
             </View>
-            <ScrollView className="space-y-2">
-              {options.map((option) => (
-                <Pressable
-                  key={option.value}
-                  className="rounded-2xl border border-app-border dark:border-app-border-dark px-4 py-3"
-                  onPress={() => {
-                    onChange(option.value);
-                    setVisible(false);
-                  }}
-                >
-                  <Text className="text-base font-emphasis text-app-text dark:text-app-text-dark">
-                    {option.label}
-                  </Text>
-                  {option.subtitle ? (
-                    <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
-                      {option.subtitle}
+            <ScrollView contentContainerStyle={{ paddingBottom: 8 }}>
+              <View className="gap-3">
+                {options.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    className="rounded-2xl border border-app-border dark:border-app-border-dark px-4 py-3"
+                    onPress={() => {
+                      onChange(option.value);
+                      setVisible(false);
+                    }}
+                  >
+                    <Text className="text-base font-emphasis text-app-text dark:text-app-text-dark">
+                      {option.label}
                     </Text>
-                  ) : null}
-                </Pressable>
-              ))}
+                    {option.subtitle ? (
+                      <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
+                        {option.subtitle}
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                ))}
+              </View>
             </ScrollView>
           </View>
         </View>

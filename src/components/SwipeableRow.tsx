@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
 function RightAction({
@@ -46,7 +46,7 @@ export function SwipeableRow({
   onEdit?: () => void;
 }) {
   return (
-    <Swipeable
+    <ReanimatedSwipeable
       renderRightActions={(progress) => (
         <View className="flex-row items-center pr-2">
           {onEdit ? (
@@ -59,6 +59,6 @@ export function SwipeableRow({
       )}
     >
       {children}
-    </Swipeable>
+    </ReanimatedSwipeable>
   );
 }

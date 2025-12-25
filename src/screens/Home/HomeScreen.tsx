@@ -4,12 +4,15 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { PressableScale } from '../../components/PressableScale';
 import { SectionHeader } from '../../components/SectionHeader';
 import { AnimatedNumber } from '../../components/AnimatedNumber';
+import { getEffectiveHourlyRate } from '../../db/repositories/analytics';
 import { listBudgets } from '../../db/repositories/budgets';
 import { getExpenseTotals, sumExpensesByCategory } from '../../db/repositories/expenses';
 import { getIncomeTotals } from '../../db/repositories/incomes';
 import { listTransactions } from '../../db/repositories/transactions';
+import { useSettingsStore } from '../../state/useSettingsStore';
 import { formatSigned } from '../../utils/money';
 import { getPeriodRange } from '../../utils/period';
 import { TransactionRow } from '../../components/TransactionRow';
@@ -17,11 +20,13 @@ import { formatShortDate } from '../../utils/time';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
   const [summary, setSummary] = useState({ spent: 0, income: 0 });
   const [budgets, setBudgets] = useState<
     { id: string; name: string; spent: number; limit: number; color: string }[]
   >([]);
   const [recent, setRecent] = useState<Awaited<ReturnType<typeof listTransactions>>>([]);
+  const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
 
   const load = useCallback(() => {
     const now = new Date();
@@ -32,7 +37,8 @@ export default function HomeScreen() {
       listBudgets(),
       sumExpensesByCategory(range.start, range.end),
       listTransactions({ limit: 5 }),
-    ]).then(([spent, income, budgetsRows, spentByCategory, recentRows]) => {
+      getEffectiveHourlyRate(),
+    ]).then(([spent, income, budgetsRows, spentByCategory, recentRows, hourly]) => {
       setSummary({ spent, income });
       const spentMap = new Map(spentByCategory.map((row) => [row.category_id, row.total_minor]));
       setBudgets(
@@ -45,8 +51,10 @@ export default function HomeScreen() {
         })),
       );
       setRecent(recentRows);
+      const fallback = fixedHourlyRateMinor > 0 ? fixedHourlyRateMinor : null;
+      setHourlyRateMinor(hourly.hourly_rate_minor ?? fallback);
     });
-  }, []);
+  }, [fixedHourlyRateMinor]);
 
   useFocusEffect(
     useCallback(() => {
@@ -55,10 +63,8 @@ export default function HomeScreen() {
   );
 
   return (
-    <ScrollView
-      className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24 }}
-    >
+    <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
+      <ScrollView className="flex-1" contentContainerStyle={{ padding: 24, paddingBottom: 200 }}>
       <View className="mb-6">
         <Text className="text-2xl font-display text-app-text dark:text-app-text-dark">
           Welcome back
@@ -93,19 +99,6 @@ export default function HomeScreen() {
               {formatSigned(summary.income, 'USD')}
             </Text>
           </View>
-        </View>
-        <View className="flex-row gap-2 mt-5">
-          <Button
-            title="Add expense"
-            onPress={() => navigation.navigate('AddExpense' as never)}
-            icon={(color) => <Feather name="minus-circle" size={16} color={color} />}
-          />
-          <Button
-            title="Add income"
-            variant="secondary"
-            onPress={() => navigation.navigate('AddIncome' as never)}
-            icon={(color) => <Feather name="plus-circle" size={16} color={color} />}
-          />
         </View>
       </Card>
 
@@ -182,7 +175,17 @@ export default function HomeScreen() {
         )}
       </View>
 
-      <SectionHeader title="Recent activity" />
+      <SectionHeader
+        title="Recent activity"
+        action={
+          <PressableScale
+            onPress={() => navigation.navigate('TransactionsStack' as never)}
+            haptic
+          >
+            <Text className="text-sm font-emphasis text-app-accent">View all</Text>
+          </PressableScale>
+        }
+      />
       <View className="gap-3">
         {recent.length === 0 ? (
           <Card>
@@ -195,6 +198,16 @@ export default function HomeScreen() {
             <View key={item.id}>
               <TransactionRow
                 transaction={item}
+                dateLabel={formatShortDate(item.date_ts)}
+                lifeCost={
+                  item.type === 'expense' && hourlyRateMinor
+                    ? `${(
+                        Math.abs(item.amount_minor) /
+                        hourlyRateMinor /
+                        (hoursPerDay > 0 ? hoursPerDay : 8)
+                      ).toFixed(1)}d`
+                    : null
+                }
                 onPress={() => {
                   if (item.type === 'expense') {
                     navigation.navigate(
@@ -209,13 +222,26 @@ export default function HomeScreen() {
                   }
                 }}
               />
-              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
-                {formatShortDate(item.date_ts)}
-              </Text>
             </View>
           ))
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+      <View
+        className="absolute left-6 right-6 flex-row items-center justify-between"
+        style={{ bottom: 20 }}
+      >
+        <PressableScale onPress={() => navigation.navigate('AddIncome' as never)} haptic>
+          <View className="h-16 w-16 rounded-full items-center justify-center bg-app-brand shadow-lg">
+            <Feather name="plus" size={26} color="#FFFFFF" />
+          </View>
+        </PressableScale>
+        <PressableScale onPress={() => navigation.navigate('AddExpense' as never)} haptic>
+          <View className="h-16 w-16 rounded-full items-center justify-center bg-app-accent shadow-lg">
+            <Feather name="minus" size={26} color="#FFFFFF" />
+          </View>
+        </PressableScale>
+      </View>
+    </View>
   );
 }

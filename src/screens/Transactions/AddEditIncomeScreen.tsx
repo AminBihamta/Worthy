@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { addMonths } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears } from 'date-fns';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { SelectField } from '../../components/SelectField';
@@ -22,7 +22,9 @@ export default function AddEditIncomeScreen() {
   const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
   const [hoursWorked, setHoursWorked] = useState('');
   const [notes, setNotes] = useState('');
-  const [recurring, setRecurring] = useState(false);
+  const [recurrence, setRecurrence] = useState<
+    'off' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'
+  >('off');
 
   const [accounts, setAccounts] = useState<{ id: string; name: string; currency: string }[]>([]);
 
@@ -76,12 +78,32 @@ export default function AddEditIncomeScreen() {
       notes,
     });
 
-    if (recurring) {
+    if (recurrence !== 'off') {
+      const rruleText =
+        recurrence === 'daily'
+          ? 'FREQ=DAILY;INTERVAL=1'
+          : recurrence === 'weekly'
+            ? 'FREQ=WEEKLY;INTERVAL=1'
+            : recurrence === 'biweekly'
+              ? 'FREQ=WEEKLY;INTERVAL=2'
+              : recurrence === 'yearly'
+                ? 'FREQ=YEARLY;INTERVAL=1'
+                : 'FREQ=MONTHLY;INTERVAL=1';
+      const nextRun =
+        recurrence === 'daily'
+          ? addDays(new Date(finalDateTs), 1).getTime()
+          : recurrence === 'weekly'
+            ? addWeeks(new Date(finalDateTs), 1).getTime()
+            : recurrence === 'biweekly'
+              ? addWeeks(new Date(finalDateTs), 2).getTime()
+              : recurrence === 'yearly'
+                ? addYears(new Date(finalDateTs), 1).getTime()
+                : addMonths(new Date(finalDateTs), 1).getTime();
       await createRecurringRule({
         entity_type: 'income',
         entity_id: id,
-        rrule_text: 'FREQ=MONTHLY;INTERVAL=1',
-        next_run_ts: addMonths(new Date(finalDateTs), 1).getTime(),
+        rrule_text: rruleText,
+        next_run_ts: nextRun,
       });
     }
 
@@ -130,10 +152,18 @@ export default function AddEditIncomeScreen() {
           <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
             Recurring
           </Text>
-          <Button
-            title={recurring ? 'Monthly recurring enabled' : 'Enable monthly recurring'}
-            variant={recurring ? 'primary' : 'secondary'}
-            onPress={() => setRecurring((value) => !value)}
+          <SelectField
+            label="Frequency"
+            value={recurrence}
+            options={[
+              { label: 'Off', value: 'off' },
+              { label: 'Daily', value: 'daily' },
+              { label: 'Weekly', value: 'weekly' },
+              { label: 'Biweekly', value: 'biweekly' },
+              { label: 'Monthly', value: 'monthly' },
+              { label: 'Yearly', value: 'yearly' },
+            ]}
+            onChange={(value) => setRecurrence(value as typeof recurrence)}
           />
         </View>
       ) : null}

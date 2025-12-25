@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { listBudgets } from '../../db/repositories/budgets';
+import { archiveBudget, listBudgets } from '../../db/repositories/budgets';
 import { sumExpensesByCategory } from '../../db/repositories/expenses';
 import { getPeriodRange } from '../../utils/period';
 import { Card } from '../../components/Card';
@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { useUIStore } from '../../state/useUIStore';
 import { formatSigned } from '../../utils/money';
+import { SwipeableRow } from '../../components/SwipeableRow';
 
 export default function BudgetsScreen() {
   const navigation = useNavigation();
@@ -66,32 +67,42 @@ export default function BudgetsScreen() {
           const progress = Math.min(1, budget.spent / budget.limit);
           const overspent = budget.spent > budget.limit;
           return (
-            <Card key={budget.id} className="mb-4">
-              <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-base font-display text-app-text dark:text-app-text-dark">
-                  {budget.name}
-                </Text>
-                <Text
-                  className={`text-sm font-emphasis ${
-                    overspent ? 'text-app-danger' : 'text-app-muted dark:text-app-muted-dark'
-                  }`}
-                >
-                  {formatSigned(budget.spent, 'USD')} / {formatSigned(budget.limit, 'USD')}
-                </Text>
-              </View>
-              <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden">
-                <View
-                  className="h-2 rounded-full"
-                  style={{
-                    width: `${progress * 100}%`,
-                    backgroundColor: overspent ? '#EF4444' : budget.color,
-                  }}
-                />
-              </View>
-              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-2">
-                {overspent ? 'Overspent' : `${Math.round(progress * 100)}% used`}
-              </Text>
-            </Card>
+            <View key={budget.id} className="mb-4">
+              <SwipeableRow
+                onEdit={() => navigation.navigate('BudgetForm' as never, { id: budget.id } as never)}
+                onDelete={async () => {
+                  await archiveBudget(budget.id);
+                  load();
+                }}
+              >
+                <Card>
+                  <View className="flex-row items-center justify-between mb-3">
+                    <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                      {budget.name}
+                    </Text>
+                    <Text
+                      className={`text-sm font-emphasis ${
+                        overspent ? 'text-app-danger' : 'text-app-muted dark:text-app-muted-dark'
+                      }`}
+                    >
+                      {formatSigned(budget.spent, 'USD')} / {formatSigned(budget.limit, 'USD')}
+                    </Text>
+                  </View>
+                  <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden">
+                    <View
+                      className="h-2 rounded-full"
+                      style={{
+                        width: `${progress * 100}%`,
+                        backgroundColor: overspent ? '#EF4444' : budget.color,
+                      }}
+                    />
+                  </View>
+                  <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-2">
+                    {overspent ? 'Overspent' : `${Math.round(progress * 100)}% used`}
+                  </Text>
+                </Card>
+              </SwipeableRow>
+            </View>
           );
         })
       )}

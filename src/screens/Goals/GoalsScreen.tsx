@@ -5,10 +5,15 @@ import { Card } from '../../components/Card';
 import { SectionHeader } from '../../components/SectionHeader';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
-import { listSavingsBuckets, addSavingsContribution } from '../../db/repositories/savings';
-import { listWishlistItems } from '../../db/repositories/wishlist';
+import {
+  listSavingsBuckets,
+  addSavingsContribution,
+  archiveSavingsBucket,
+} from '../../db/repositories/savings';
+import { listWishlistItems, archiveWishlistItem } from '../../db/repositories/wishlist';
 import { formatSigned, toMinor } from '../../utils/money';
 import { Input } from '../../components/Input';
+import { SwipeableRow } from '../../components/SwipeableRow';
 
 export default function GoalsScreen() {
   const navigation = useNavigation();
@@ -72,40 +77,53 @@ export default function GoalsScreen() {
             ? Math.min(1, bucket.saved_minor / bucket.target_amount_minor)
             : 0;
           return (
-            <Card key={bucket.id} className="mb-4">
-              <Text className="text-base font-display text-app-text dark:text-app-text-dark">
-                {bucket.name}
-              </Text>
-              <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
-                {bucket.category_name}
-              </Text>
-              <Text className="text-xl font-display text-app-text dark:text-app-text-dark mt-3">
-                {formatSigned(bucket.saved_minor, 'USD')}
-              </Text>
-              {bucket.target_amount_minor ? (
-                <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
-                  Target {formatSigned(bucket.target_amount_minor, 'USD')}
-                </Text>
-              ) : null}
-              {bucket.target_amount_minor ? (
-                <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden mt-3">
-                  <View
-                    className="h-2 rounded-full"
-                    style={{ width: `${progress * 100}%`, backgroundColor: bucket.category_color }}
-                  />
-                </View>
-              ) : null}
-              <View className="mt-4">
-                <Button
-                  title="Add contribution"
-                  variant="secondary"
-                  onPress={() => {
-                    setSelectedBucketId(bucket.id);
-                    setModalVisible(true);
-                  }}
-                />
-              </View>
-            </Card>
+            <View key={bucket.id} className="mb-4">
+              <SwipeableRow
+                onEdit={() => navigation.navigate('BucketForm' as never, { id: bucket.id } as never)}
+                onDelete={async () => {
+                  await archiveSavingsBucket(bucket.id);
+                  load();
+                }}
+              >
+                <Card>
+                  <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                    {bucket.name}
+                  </Text>
+                  <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
+                    {bucket.category_name}
+                  </Text>
+                  <Text className="text-xl font-display text-app-text dark:text-app-text-dark mt-3">
+                    {formatSigned(bucket.saved_minor, 'USD')}
+                  </Text>
+                  {bucket.target_amount_minor ? (
+                    <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
+                      Target {formatSigned(bucket.target_amount_minor, 'USD')}
+                    </Text>
+                  ) : null}
+                  {bucket.target_amount_minor ? (
+                    <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden mt-3">
+                      <View
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${progress * 100}%`,
+                          backgroundColor: bucket.category_color,
+                        }}
+                      />
+                    </View>
+                  ) : null}
+                  <View className="mt-4">
+                    <Button
+                      title="Add contribution"
+                      variant="secondary"
+                      onPress={() => {
+                        setSelectedBucketId(bucket.id);
+                        setModalVisible(true);
+                      }}
+                    />
+                  </View>
+                </Card>
+              </SwipeableRow>
+            </View>
           );
         })
       )}
@@ -128,27 +146,41 @@ export default function GoalsScreen() {
             ? item.saved_minor >= item.target_price_minor
             : false;
           return (
-            <Card key={item.id} className="mb-4">
-              <Text className="text-base font-display text-app-text dark:text-app-text-dark">
-                {item.title}
-              </Text>
-              <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
-                {item.category_name}
-              </Text>
-              {item.target_price_minor ? (
-                <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-3">
-                  Target {formatSigned(item.target_price_minor, 'USD')}
-                </Text>
-              ) : null}
-              <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
-                Saved {formatSigned(item.saved_minor, 'USD')}
-              </Text>
-              <Text
-                className={`text-xs mt-2 ${affordable ? 'text-app-success' : 'text-app-muted dark:text-app-muted-dark'}`}
+            <View key={item.id} className="mb-4">
+              <SwipeableRow
+                onEdit={() =>
+                  navigation.navigate('WishlistForm' as never, { id: item.id } as never)
+                }
+                onDelete={async () => {
+                  await archiveWishlistItem(item.id);
+                  load();
+                }}
               >
-                {affordable ? 'Affordable now' : 'Keep saving to unlock'}
-              </Text>
-            </Card>
+                <Card>
+                  <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                    {item.title}
+                  </Text>
+                  <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
+                    {item.category_name}
+                  </Text>
+                  {item.target_price_minor ? (
+                    <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-3">
+                      Target {formatSigned(item.target_price_minor, 'USD')}
+                    </Text>
+                  ) : null}
+                  <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
+                    Saved {formatSigned(item.saved_minor, 'USD')}
+                  </Text>
+                  <Text
+                    className={`text-xs mt-2 ${
+                      affordable ? 'text-app-success' : 'text-app-muted dark:text-app-muted-dark'
+                    }`}
+                  >
+                    {affordable ? 'Affordable now' : 'Keep saving to unlock'}
+                  </Text>
+                </Card>
+              </SwipeableRow>
+            </View>
           );
         })
       )}

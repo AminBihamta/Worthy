@@ -13,6 +13,19 @@ import { updateReceiptInbox } from '../../db/repositories/receipts';
 import { createRecurringRule } from '../../db/repositories/recurring';
 import { toMinor } from '../../utils/money';
 
+const regretOptions = [
+  { value: 0, label: 'Total regret' },
+  { value: 25, label: 'Mostly regret' },
+  { value: 50, label: 'Mixed feelings' },
+  { value: 75, label: 'Worth it' },
+  { value: 100, label: 'Absolutely worth it' },
+];
+
+const normalizeRegretValue = (value: number) => {
+  const snapped = Math.round(value / 25) * 25;
+  return Math.max(0, Math.min(100, snapped));
+};
+
 export default function AddEditExpenseScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -25,7 +38,7 @@ export default function AddEditExpenseScreen() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
   const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
-  const [sliderValue, setSliderValue] = useState(60);
+  const [sliderValue, setSliderValue] = useState(50);
   const [notes, setNotes] = useState('');
   const [recurring, setRecurring] = useState(false);
 
@@ -50,7 +63,7 @@ export default function AddEditExpenseScreen() {
       setCategoryId(expense.category_id);
       setAccountId(expense.account_id);
       setDateInput(new Date(expense.date_ts).toISOString().slice(0, 10));
-      setSliderValue(expense.slider_0_100);
+      setSliderValue(normalizeRegretValue(expense.slider_0_100));
       setNotes(expense.notes ?? '');
     });
   }, [editingId]);
@@ -147,25 +160,52 @@ export default function AddEditExpenseScreen() {
 
       <View className="mb-6">
         <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
-          Worth it slider
+          Worth it
         </Text>
-        <Slider
-          value={sliderValue}
-          minimumValue={0}
-          maximumValue={100}
-          step={1}
-          minimumTrackTintColor="#101114"
-          maximumTrackTintColor="#E7E5E0"
-          thumbTintColor="#101114"
-          onValueChange={setSliderValue}
-        />
-        <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-2">
-          {sliderValue <= 40
-            ? 'Mostly regret'
-            : sliderValue >= 70
-              ? 'Totally worth it'
-              : 'Mixed feelings'}
-        </Text>
+        {(() => {
+          const selected =
+            regretOptions.find((option) => option.value === sliderValue) ?? regretOptions[2];
+          return (
+            <Text className="text-sm font-emphasis text-app-text dark:text-app-text-dark mb-2">
+              {selected.label}
+            </Text>
+          );
+        })()}
+        <View>
+          <Slider
+            value={sliderValue}
+            minimumValue={0}
+            maximumValue={100}
+            step={25}
+            minimumTrackTintColor="#101114"
+            maximumTrackTintColor="#E7E5E0"
+            thumbTintColor="#101114"
+            onValueChange={setSliderValue}
+            style={{ marginHorizontal: 8 }}
+          />
+          <View className="flex-row mt-3" style={{ paddingHorizontal: 8 }}>
+            {regretOptions.map((option) => (
+              <View key={option.value} className="flex-1 items-center">
+                <View
+                  className={`h-2 w-2 rounded-full ${
+                    option.value === sliderValue
+                      ? 'bg-app-brand dark:bg-app-brand-dark'
+                      : 'bg-app-border dark:bg-app-border-dark'
+                  }`}
+                />
+                <Text
+                  className={`text-[10px] text-center mt-2 ${
+                    option.value === sliderValue
+                      ? 'text-app-text dark:text-app-text-dark'
+                      : 'text-app-muted dark:text-app-muted-dark'
+                  }`}
+                >
+                  {option.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
 
       <Input label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional" multiline />

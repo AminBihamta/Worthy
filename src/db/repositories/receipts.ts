@@ -55,6 +55,18 @@ export async function updateReceiptInbox(
   await db.runAsync(`UPDATE receipt_inbox SET ${assignments} WHERE id = ?`, ...values, id);
 }
 
+export async function getReceiptForExpense(expenseId: string): Promise<ReceiptInboxRow | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<ReceiptInboxRow>(
+    `SELECT * FROM receipt_inbox
+     WHERE linked_expense_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    expenseId,
+  );
+  return row ?? null;
+}
+
 export async function deleteReceiptInboxItem(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM receipt_inbox WHERE id = ?', id);

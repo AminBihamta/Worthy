@@ -8,48 +8,51 @@ export function TransactionRow({
   transaction,
   lifeCost,
   onPress,
+  dateLabel,
 }: {
   transaction: Transaction;
   lifeCost?: string | null;
   onPress?: () => void;
+  dateLabel?: string;
 }) {
   const amount =
     transaction.type === 'expense' ? -transaction.amount_minor : transaction.amount_minor;
   const currency = transaction.account_currency ?? 'USD';
-  const dotColor =
+  const leftBorderClass =
     transaction.type === 'expense'
-      ? (transaction.category_color ?? '#101114')
+      ? 'border-app-danger'
       : transaction.type === 'income'
-        ? '#2CB67D'
-        : '#FFB347';
+        ? 'border-app-success'
+        : 'border-app-accent';
+  const categoryLabel = transaction.category_name ?? '';
 
   return (
     <Pressable
-      className="rounded-3xl border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-4"
+      className={`rounded-3xl border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-4 border-l-4 ${leftBorderClass}`}
       onPress={onPress}
     >
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1">
-          <View
-            className="h-12 w-12 rounded-full items-center justify-center"
-            style={{ backgroundColor: dotColor }}
-          >
-            <Text className="text-xs text-white font-emphasis">
-              {transaction.title.slice(0, 2).toUpperCase()}
-            </Text>
-          </View>
-          <View className="ml-3 flex-1">
+      <View className="flex-row items-start justify-between">
+        <View className="flex-1 pr-3">
+          <View className="flex-row items-start">
             <Text
-              className="text-base font-display text-app-text dark:text-app-text-dark"
+              className="text-base font-display text-app-text dark:text-app-text-dark flex-1 pr-2"
               numberOfLines={1}
             >
               {transaction.title}
             </Text>
-            <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mt-1">
-              {transaction.type}
-              {transaction.category_name ? ` · ${transaction.category_name}` : ''}
-            </Text>
+            {categoryLabel ? (
+              <View className="rounded-full bg-app-soft dark:bg-app-soft-dark px-2 py-1">
+                <Text className="text-[10px] font-emphasis text-app-muted dark:text-app-muted-dark">
+                  {categoryLabel}
+                </Text>
+              </View>
+            ) : null}
           </View>
+          {dateLabel ? (
+            <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-2">
+              {dateLabel}
+            </Text>
+          ) : null}
         </View>
         <View className="items-end">
           <Text

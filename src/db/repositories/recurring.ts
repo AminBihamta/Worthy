@@ -35,6 +35,22 @@ export async function createRecurringRule(input: {
   return id;
 }
 
+export async function getRecurringRuleForEntity(
+  entity_type: 'expense' | 'income',
+  entity_id: string,
+): Promise<RecurringRuleRow | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<RecurringRuleRow>(
+    `SELECT * FROM recurring_rules
+     WHERE entity_type = ? AND entity_id = ?
+     ORDER BY next_run_ts DESC
+     LIMIT 1`,
+    entity_type,
+    entity_id,
+  );
+  return row ?? null;
+}
+
 export async function updateRecurringRule(id: string, active: boolean): Promise<void> {
   const db = await getDb();
   await db.runAsync('UPDATE recurring_rules SET active = ? WHERE id = ?', active ? 1 : 0, id);
