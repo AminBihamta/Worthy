@@ -24,6 +24,7 @@ import ReceiptInboxScreen from '../screens/Receipts/ReceiptInboxScreen';
 import RecurringScreen from '../screens/Recurring/RecurringScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 import WidgetsScreen from '../screens/Settings/WidgetsScreen';
+import { colors } from '../theme/tokens';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -159,18 +160,19 @@ function InsightsStack() {
 export default function RootNavigator() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const palette = isDark ? colors.dark : colors.light;
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: isDark ? '#15171C' : '#FFFFFF',
-          borderTopColor: isDark ? '#262A33' : '#E7E5E0',
+          backgroundColor: palette.surface,
+          borderTopColor: palette.border,
           height: 76,
         },
-        tabBarActiveTintColor: isDark ? '#F5F7FA' : '#101114',
-        tabBarInactiveTintColor: isDark ? '#9AA2AE' : '#8D929B',
+        tabBarActiveTintColor: palette.brand,
+        tabBarInactiveTintColor: palette.muted,
         tabBarLabelStyle: {
           fontFamily: 'Manrope_500Medium',
           fontSize: 11,

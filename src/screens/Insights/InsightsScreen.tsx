@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useColorScheme } from 'nativewind';
 import {
   VictoryAxis,
   VictoryBar,
@@ -25,6 +26,10 @@ import { getPeriodRange } from '../../utils/period';
 import { useSettingsStore } from '../../state/useSettingsStore';
 
 export default function InsightsScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const axisColor = isDark ? '#C8A9C2' : '#8A6B9A';
+  const accentColor = isDark ? '#FF63C1' : '#FF4FB6';
   const { insightsPeriod, setInsightsPeriod } = useUIStore();
   const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
   const [expenseSeries, setExpenseSeries] = useState<{ x: string; y: number }[]>([]);
@@ -103,8 +108,8 @@ export default function InsightsScreen() {
             Expenses over time
           </Text>
           <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
-            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
+            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
+            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
             <VictoryLine
               data={expenseSeries}
               style={{ data: { stroke: '#EF4444', strokeWidth: 2 } }}
@@ -119,8 +124,8 @@ export default function InsightsScreen() {
             Income over time
           </Text>
           <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
-            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
+            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
+            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
             <VictoryLine
               data={incomeSeries}
               style={{ data: { stroke: '#2CB67D', strokeWidth: 2 } }}
@@ -146,7 +151,7 @@ export default function InsightsScreen() {
               colorScale={categorySpend.map((row) => row.category_color)}
               innerRadius={60}
               labelRadius={90}
-              style={{ labels: { fontSize: 10, fill: '#8D929B' } }}
+              style={{ labels: { fontSize: 10, fill: axisColor } }}
             />
           )}
         </Card>
@@ -163,15 +168,15 @@ export default function InsightsScreen() {
             </Text>
           ) : (
             <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-              <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }} />
+              <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
               <VictoryAxis
                 dependentAxis
                 domain={[0, 100]}
-                style={{ tickLabels: { fontSize: 10, fill: '#8D929B' } }}
+                style={{ tickLabels: { fontSize: 10, fill: axisColor } }}
               />
               <VictoryBar
                 data={regretByCategory.map((row) => ({ x: row.category_name, y: row.avg_regret }))}
-                style={{ data: { fill: '#FFB347' } }}
+                style={{ data: { fill: accentColor } }}
               />
             </VictoryChart>
           )}

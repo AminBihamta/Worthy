@@ -17,6 +17,8 @@ export default function CategoriesScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const iconColor = isDark ? '#F9E6F4' : '#2C0C4D';
+  const disabledColor = isDark ? '#C8A9C2' : '#B892C4';
   const [categories, setCategories] = useState<Awaited<ReturnType<typeof listCategories>>>([]);
 
   const load = useCallback(() => {
@@ -77,7 +79,7 @@ export default function CategoriesScreen() {
                     <Feather
                       name="chevron-up"
                       size={18}
-                      color={index === 0 ? '#A2A7AF' : isDark ? '#F5F7FA' : '#101114'}
+                      color={index === 0 ? disabledColor : iconColor}
                     />
                   </Pressable>
                   <Pressable
@@ -89,7 +91,7 @@ export default function CategoriesScreen() {
                       name="chevron-down"
                       size={18}
                       color={
-                        index === categories.length - 1 ? '#A2A7AF' : isDark ? '#F5F7FA' : '#101114'
+                        index === categories.length - 1 ? disabledColor : iconColor
                       }
                     />
                   </Pressable>

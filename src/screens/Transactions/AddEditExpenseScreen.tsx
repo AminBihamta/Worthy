@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Slider from '@react-native-community/slider';
 import { addMonths } from 'date-fns';
+import { useColorScheme } from 'nativewind';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { SelectField } from '../../components/SelectField';
@@ -28,6 +29,8 @@ const normalizeRegretValue = (value: number) => {
 
 export default function AddEditExpenseScreen() {
   const navigation = useNavigation();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const route = useRoute();
   const params = route.params as { id?: string; receiptId?: string } | undefined;
   const editingId = params?.id;
@@ -177,9 +180,9 @@ export default function AddEditExpenseScreen() {
             minimumValue={0}
             maximumValue={100}
             step={25}
-            minimumTrackTintColor="#101114"
-            maximumTrackTintColor="#E7E5E0"
-            thumbTintColor="#101114"
+            minimumTrackTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
+            maximumTrackTintColor={isDark ? '#3A254F' : '#F2C7E3'}
+            thumbTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
             onValueChange={setSliderValue}
             style={{ marginHorizontal: 8 }}
           />

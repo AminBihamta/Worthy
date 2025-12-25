@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, TextInput, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 
 export function Input({
   label,
@@ -16,6 +17,9 @@ export function Input({
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'decimal-pad';
   multiline?: boolean;
 }) {
+  const { colorScheme } = useColorScheme();
+  const placeholderColor = colorScheme === 'dark' ? '#C8A9C2' : '#B892C4';
+
   return (
     <View className="mb-4">
       <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
@@ -28,7 +32,7 @@ export function Input({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#A2A7AF"
+        placeholderTextColor={placeholderColor}
         keyboardType={keyboardType}
         multiline={multiline}
       />

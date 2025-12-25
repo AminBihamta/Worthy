@@ -50,7 +50,7 @@ export function SwipeableRow({
       renderRightActions={(progress) => (
         <View className="flex-row items-center pr-2">
           {onEdit ? (
-            <RightAction progress={progress} label="Edit" color="#101114" onPress={onEdit} />
+            <RightAction progress={progress} label="Edit" color="#5C2AAE" onPress={onEdit} />
           ) : null}
           {onDelete ? (
             <RightAction progress={progress} label="Delete" color="#EF4444" onPress={onDelete} />

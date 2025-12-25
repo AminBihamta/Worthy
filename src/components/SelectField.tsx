@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
 
 export interface SelectOption {
   label: string;
@@ -21,6 +22,9 @@ export function SelectField({
 }) {
   const [visible, setVisible] = useState(false);
   const selected = options.find((option) => option.value === value);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const iconColor = isDark ? '#C8A9C2' : '#8A6B9A';
 
   return (
     <View className="mb-4">
@@ -34,7 +38,7 @@ export function SelectField({
         <Text className="text-base text-app-text dark:text-app-text-dark">
           {selected?.label ?? 'Select'}
         </Text>
-        <Feather name="chevron-down" size={18} color="#8D929B" />
+        <Feather name="chevron-down" size={18} color={iconColor} />
       </Pressable>
 
       <Modal visible={visible} animationType="slide" transparent>
@@ -45,7 +49,7 @@ export function SelectField({
                 {label}
               </Text>
               <Pressable onPress={() => setVisible(false)}>
-                <Feather name="x" size={20} color="#8D929B" />
+                <Feather name="x" size={20} color={iconColor} />
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={{ paddingBottom: 8 }}>

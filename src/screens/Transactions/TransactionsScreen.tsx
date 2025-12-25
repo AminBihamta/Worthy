@@ -143,11 +143,11 @@ export default function TransactionsScreen() {
           Search
         </Text>
         <View className="rounded-2xl border border-transparent bg-app-soft dark:bg-app-soft-dark px-4 py-3 flex-row items-center">
-          <Feather name="search" size={16} color={isDark ? '#9AA2AE' : '#8D929B'} />
+          <Feather name="search" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
           <TextInput
             className="flex-1 text-base text-app-text dark:text-app-text-dark ml-3"
             placeholder="Search transactions"
-            placeholderTextColor="#A2A7AF"
+            placeholderTextColor={isDark ? '#C8A9C2' : '#B892C4'}
             value={query}
             onChangeText={setQuery}
             autoCapitalize="none"
@@ -229,7 +229,7 @@ export default function TransactionsScreen() {
           className="absolute bottom-6 left-6 h-14 px-4 rounded-full bg-app-surface dark:bg-app-surface-dark border border-app-border dark:border-app-border-dark flex-row items-center"
           onPress={() => navigation.navigate('ReceiptInbox' as never)}
         >
-          <Feather name="camera" size={18} color={isDark ? '#F5F7FA' : '#101114'} />
+          <Feather name="camera" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
           <Text className="ml-2 text-sm font-emphasis text-app-text dark:text-app-text-dark">
             Receipts
           </Text>
