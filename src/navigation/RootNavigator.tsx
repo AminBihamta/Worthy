@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -31,7 +32,7 @@ const Stack = createNativeStackNavigator();
 
 function HomeStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Worthy' }} />
       <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Accounts' }} />
       <Stack.Screen
@@ -78,7 +79,7 @@ function HomeStack() {
 
 function TransactionsStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen
         name="Transactions"
         component={TransactionsScreen}
@@ -120,7 +121,7 @@ function TransactionsStack() {
 
 function BudgetsStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Budgets" component={BudgetsScreen} options={{ title: 'Budgets' }} />
       <Stack.Screen
         name="BudgetForm"
@@ -133,7 +134,7 @@ function BudgetsStack() {
 
 function GoalsStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Goals" component={GoalsScreen} options={{ title: 'Goals' }} />
       <Stack.Screen
         name="BucketForm"
@@ -151,7 +152,7 @@ function GoalsStack() {
 
 function InsightsStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Insights' }} />
     </Stack.Navigator>
   );
@@ -161,25 +162,47 @@ export default function RootNavigator() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const palette = isDark ? colors.dark : colors.light;
+  const activeIconColor = '#FFFFFF';
+  const renderTabLabel = (label: string, focused: boolean) => (
+    <Text
+      style={{
+        fontFamily: focused ? 'Manrope_600SemiBold' : 'Manrope_500Medium',
+        fontSize: 11,
+        color: focused ? palette.brand : palette.muted,
+      }}
+    >
+      {label}
+    </Text>
+  );
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
+          position: 'absolute',
+          left: 20,
+          right: 20,
+          bottom: 18,
           backgroundColor: palette.surface,
-          borderTopColor: palette.border,
-          height: 76,
+          borderColor: palette.border,
+          borderWidth: 1,
+          borderTopWidth: 1,
+          height: 72,
+          borderRadius: 26,
+          paddingBottom: 8,
+          paddingTop: 8,
+          paddingHorizontal: 8,
+          shadowColor: '#000',
+          shadowOpacity: 0.12,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 10,
         },
         tabBarActiveTintColor: palette.brand,
         tabBarInactiveTintColor: palette.muted,
-        tabBarLabelStyle: {
-          fontFamily: 'Manrope_500Medium',
-          fontSize: 11,
-          marginBottom: 6,
-        },
         tabBarIconStyle: {
-          marginTop: 6,
+          marginTop: 2,
         },
       }}
     >
@@ -188,7 +211,25 @@ export default function RootNavigator() {
         component={HomeStack}
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Feather name="home" size={size} color={color} />,
+          tabBarLabel: ({ focused }) => renderTabLabel('Home', focused),
+          tabBarIcon: ({ size, focused, color }) => (
+            <View
+              style={{
+                height: 36,
+                width: 36,
+                borderRadius: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: focused ? palette.brand : 'transparent',
+                shadowColor: focused ? palette.brand : 'transparent',
+                shadowOpacity: focused ? 0.25 : 0,
+                shadowRadius: focused ? 10 : 0,
+                shadowOffset: { width: 0, height: 6 },
+              }}
+            >
+              <Feather name="home" size={size} color={focused ? activeIconColor : color} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen
@@ -196,7 +237,25 @@ export default function RootNavigator() {
         component={TransactionsStack}
         options={{
           title: 'Transactions',
-          tabBarIcon: ({ color, size }) => <Feather name="list" size={size} color={color} />,
+          tabBarLabel: ({ focused }) => renderTabLabel('Transactions', focused),
+          tabBarIcon: ({ size, focused, color }) => (
+            <View
+              style={{
+                height: 36,
+                width: 36,
+                borderRadius: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: focused ? palette.brand : 'transparent',
+                shadowColor: focused ? palette.brand : 'transparent',
+                shadowOpacity: focused ? 0.25 : 0,
+                shadowRadius: focused ? 10 : 0,
+                shadowOffset: { width: 0, height: 6 },
+              }}
+            >
+              <Feather name="list" size={size} color={focused ? activeIconColor : color} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen
@@ -204,7 +263,25 @@ export default function RootNavigator() {
         component={BudgetsStack}
         options={{
           title: 'Budgets',
-          tabBarIcon: ({ color, size }) => <Feather name="pie-chart" size={size} color={color} />,
+          tabBarLabel: ({ focused }) => renderTabLabel('Budgets', focused),
+          tabBarIcon: ({ size, focused, color }) => (
+            <View
+              style={{
+                height: 36,
+                width: 36,
+                borderRadius: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: focused ? palette.brand : 'transparent',
+                shadowColor: focused ? palette.brand : 'transparent',
+                shadowOpacity: focused ? 0.25 : 0,
+                shadowRadius: focused ? 10 : 0,
+                shadowOffset: { width: 0, height: 6 },
+              }}
+            >
+              <Feather name="pie-chart" size={size} color={focused ? activeIconColor : color} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen
@@ -212,7 +289,25 @@ export default function RootNavigator() {
         component={GoalsStack}
         options={{
           title: 'Goals',
-          tabBarIcon: ({ color, size }) => <Feather name="target" size={size} color={color} />,
+          tabBarLabel: ({ focused }) => renderTabLabel('Goals', focused),
+          tabBarIcon: ({ size, focused, color }) => (
+            <View
+              style={{
+                height: 36,
+                width: 36,
+                borderRadius: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: focused ? palette.brand : 'transparent',
+                shadowColor: focused ? palette.brand : 'transparent',
+                shadowOpacity: focused ? 0.25 : 0,
+                shadowRadius: focused ? 10 : 0,
+                shadowOffset: { width: 0, height: 6 },
+              }}
+            >
+              <Feather name="target" size={size} color={focused ? activeIconColor : color} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen
@@ -220,7 +315,25 @@ export default function RootNavigator() {
         component={InsightsStack}
         options={{
           title: 'Insights',
-          tabBarIcon: ({ color, size }) => <Feather name="bar-chart-2" size={size} color={color} />,
+          tabBarLabel: ({ focused }) => renderTabLabel('Insights', focused),
+          tabBarIcon: ({ size, focused, color }) => (
+            <View
+              style={{
+                height: 36,
+                width: 36,
+                borderRadius: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: focused ? palette.brand : 'transparent',
+                shadowColor: focused ? palette.brand : 'transparent',
+                shadowOpacity: focused ? 0.25 : 0,
+                shadowRadius: focused ? 10 : 0,
+                shadowOffset: { width: 0, height: 6 },
+              }}
+            >
+              <Feather name="bar-chart-2" size={size} color={focused ? activeIconColor : color} />
+            </View>
+          ),
         }}
       />
     </Tab.Navigator>

@@ -54,8 +54,12 @@ export default function HomeScreen() {
   const primaryAccount = accounts[0] ?? null;
   const balanceCurrency = primaryAccount?.currency ?? 'USD';
   const totalBalance = summary.income - summary.spent;
-  const accountSuffix = primaryAccount?.id ? primaryAccount.id.slice(-4) : '0000';
-  const brandColor = colorScheme === 'dark' ? '#7D3AE6' : '#5C2AAE';
+  const brandColor = colorScheme === 'dark' ? '#8B5CF6' : '#6D28D9';
+  const accentColor = colorScheme === 'dark' ? '#67E8F9' : '#22D3EE';
+  const cardAccents = useMemo(
+    () => [brandColor, accentColor, colorScheme === 'dark' ? '#38BDF8' : '#0EA5E9'],
+    [accentColor, brandColor, colorScheme],
+  );
   const quickActions = useMemo(
     () => [
       {
@@ -84,8 +88,19 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 24, paddingBottom: 200 }}>
-        <View className="rounded-[36px] bg-app-soft dark:bg-app-soft-dark p-6 mb-6">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 24, paddingBottom: 200 }}
+      >
+        <View className="relative rounded-[36px] bg-app-soft dark:bg-app-soft-dark p-6 mb-6 overflow-hidden">
+          <View
+            className="absolute -top-12 -right-10 h-40 w-40 rounded-full"
+            style={{ backgroundColor: accentColor, opacity: 0.16 }}
+          />
+          <View
+            className="absolute -bottom-12 -left-10 h-36 w-36 rounded-full"
+            style={{ backgroundColor: brandColor, opacity: 0.12 }}
+          />
           <View className="flex-row items-center justify-between mb-6">
             <PressableScale
               onPress={() => navigation.navigate('TransactionsStack' as never)}
@@ -100,20 +115,90 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+          <Text className="text-sm uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
             Total balance
           </Text>
           <AnimatedNumber
-            value={`${formatSigned(totalBalance, balanceCurrency)} ${balanceCurrency}`}
-            className="text-3xl font-display text-app-text dark:text-app-text-dark mt-2"
+            value={formatSigned(totalBalance, balanceCurrency)}
+            className="text-[40px] font-display text-app-text dark:text-app-text-dark mt-2"
           />
+          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mt-2">
+            Across all accounts
+          </Text>
 
-          <View className="flex-row gap-3 mt-4">
+          <View className="mt-5">
+            <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-3">
+              Accounts
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-4">
+                {accounts.length === 0 ? (
+                  <View className="w-64 rounded-[26px] border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-5 items-center justify-center">
+                    <Text className="text-sm text-app-muted dark:text-app-muted-dark">
+                      No accounts yet
+                    </Text>
+                  </View>
+                ) : (
+                  accounts.map((account, index) => {
+                    const accent = cardAccents[index % cardAccents.length];
+                    const suffix = account.id.slice(-4);
+                    return (
+                      <PressableScale
+                        key={account.id}
+                        onPress={() =>
+                          navigation.navigate('AccountForm' as never, { id: account.id } as never)
+                        }
+                        haptic
+                      >
+                        <View className="w-64 rounded-[26px] border border-app-border dark:border-app-border-dark bg-app-card dark:bg-app-card-dark p-5 overflow-hidden shadow-lg">
+                          <View
+                            className="absolute -top-10 -right-12 h-28 w-28 rounded-full"
+                            style={{ backgroundColor: accent, opacity: 0.18 }}
+                          />
+                          <View
+                            className="absolute -bottom-10 -left-10 h-24 w-24 rounded-full"
+                            style={{ backgroundColor: accent, opacity: 0.12 }}
+                          />
+                          <View className="flex-row items-center justify-between">
+                            <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+                              {account.type}
+                            </Text>
+                            <Feather name="credit-card" size={16} color={accent} />
+                          </View>
+                          <Text className="text-base font-display text-app-text dark:text-app-text-dark mt-3">
+                            {account.name}
+                          </Text>
+                          <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
+                            {account.currency} · •• {suffix}
+                          </Text>
+                          <Text className="text-2xl font-display text-app-text dark:text-app-text-dark mt-4">
+                            {formatSigned(account.starting_balance_minor, account.currency)}
+                          </Text>
+                        </View>
+                      </PressableScale>
+                    );
+                  })
+                )}
+                <PressableScale onPress={() => navigation.navigate('AccountForm' as never)} haptic>
+                  <View className="w-40 rounded-[26px] border border-dashed border-app-border dark:border-app-border-dark bg-transparent items-center justify-center p-5">
+                    <View className="h-12 w-12 rounded-full bg-app-card dark:bg-app-card-dark items-center justify-center">
+                      <Feather name="plus" size={18} color={brandColor} />
+                    </View>
+                    <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-2">
+                      Add account
+                    </Text>
+                  </View>
+                </PressableScale>
+              </View>
+            </ScrollView>
+          </View>
+
+          <View className="flex-row gap-3 mt-5">
             <View className="flex-1 rounded-2xl bg-app-card dark:bg-app-card-dark p-4">
               <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
                 Spent
               </Text>
-              <Text className="text-base font-display text-app-danger mt-2">
+              <Text className="text-lg font-display text-app-danger mt-2">
                 {formatSigned(summary.spent, balanceCurrency)}
               </Text>
             </View>
@@ -121,35 +206,10 @@ export default function HomeScreen() {
               <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
                 Income
               </Text>
-              <Text className="text-base font-display text-app-success mt-2">
+              <Text className="text-lg font-display text-app-success mt-2">
                 {formatSigned(summary.income, balanceCurrency)}
               </Text>
             </View>
-          </View>
-
-          <View className="flex-row gap-3 mt-4">
-            <View className="flex-1 rounded-2xl bg-app-card dark:bg-app-card-dark p-4">
-              <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-                {primaryAccount?.name ?? 'Primary account'}
-              </Text>
-              <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
-                {balanceCurrency} · •• {accountSuffix}
-              </Text>
-              <Text className="text-lg font-display text-app-text dark:text-app-text-dark mt-3">
-                {formatSigned(primaryAccount?.starting_balance_minor ?? 0, balanceCurrency)}
-              </Text>
-            </View>
-            <PressableScale onPress={() => navigation.navigate('Accounts' as never)} haptic>
-              <View
-                className="w-24 rounded-2xl border border-dashed border-app-border dark:border-app-border-dark bg-transparent items-center justify-center"
-                style={{ minHeight: 120 }}
-              >
-                <View className="h-12 w-12 rounded-full bg-app-card dark:bg-app-card-dark items-center justify-center">
-                  <Feather name="plus" size={18} color={brandColor} />
-                </View>
-                <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-2">Open</Text>
-              </View>
-            </PressableScale>
           </View>
         </View>
 

@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import {
@@ -17,6 +17,7 @@ import RootNavigator from './navigation/RootNavigator';
 import { DatabaseProvider, useDatabaseStatus } from './db/provider';
 import { useSettingsStore } from './state/useSettingsStore';
 import { getNavigationTheme } from './theme/navigation';
+import { colors } from './theme/tokens';
 
 function AppContent() {
   const [fontsLoaded] = useFonts({
@@ -71,11 +72,16 @@ function AppContent() {
     );
   }
 
+  const backgroundColor =
+    resolvedScheme === 'dark' ? colors.dark.bg : colors.light.bg;
+
   return (
-    <NavigationContainer theme={getNavigationTheme(resolvedScheme as 'light' | 'dark')}>
-      <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
-      <RootNavigator />
-    </NavigationContainer>
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['top']}>
+      <NavigationContainer theme={getNavigationTheme(resolvedScheme as 'light' | 'dark')}>
+        <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
+        <RootNavigator />
+      </NavigationContainer>
+    </SafeAreaView>
   );
 }
 
