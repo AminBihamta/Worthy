@@ -37,7 +37,7 @@ export function DateRangeSelector({
 }: DateRangeSelectorProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const iconColor = isDark ? '#C8A9C2' : '#8A6B9A';
+  const iconColor = isDark ? '#8B949E' : '#6B7A8F';
   const [isSelecting, setIsSelecting] = useState(false);
 
   const { start, end } = useMemo(() => {

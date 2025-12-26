@@ -34,7 +34,7 @@ export function Button({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const iconColor =
-    variant === 'primary' || variant === 'danger' ? '#FFFFFF' : isDark ? '#F9E6F4' : '#2C0C4D';
+    variant === 'primary' || variant === 'danger' ? '#FFFFFF' : isDark ? '#E6EDF3' : '#0D1B2A';
   const renderedIcon = typeof icon === 'function' ? icon(iconColor) : icon;
 
   return (

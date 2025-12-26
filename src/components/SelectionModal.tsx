@@ -37,7 +37,7 @@ export function SelectionModal({
                 {title}
               </Text>
               <Pressable onPress={onClose} className="p-2 -mr-2">
-                <Feather name="x" size={24} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                <Feather name="x" size={24} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={{ padding: 24 }}>
@@ -71,7 +71,7 @@ export function SelectionModal({
                     )}
                   </View>
                   {selectedId === option.id && (
-                    <Feather name="check" size={20} color={isDark ? '#7D3AE6' : '#5C2AAE'} />
+                    <Feather name="check" size={20} color={isDark ? '#58D5D8' : '#0A9396'} />
                   )}
                 </PressableScale>
               ))}

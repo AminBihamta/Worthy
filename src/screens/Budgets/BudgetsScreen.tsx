@@ -171,7 +171,7 @@ export default function BudgetsScreen() {
                           className="h-full rounded-full"
                           style={{
                             width: `${progress * 100}%`,
-                            backgroundColor: overspent ? '#EF4444' : budget.color,
+                            backgroundColor: overspent ? '#D62828' : budget.color,
                           }}
                         />
                       </View>

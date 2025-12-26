@@ -18,7 +18,7 @@ export function Input({
   multiline?: boolean;
 }) {
   const { colorScheme } = useColorScheme();
-  const placeholderColor = colorScheme === 'dark' ? '#C8A9C2' : '#B892C4';
+  const placeholderColor = colorScheme === 'dark' ? '#8B949E' : '#6B7A8F';
 
   return (
     <View className="mb-4">

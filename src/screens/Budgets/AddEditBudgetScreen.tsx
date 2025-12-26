@@ -100,7 +100,7 @@ export default function AddEditBudgetScreen() {
               value={amount}
               onChangeText={setAmount}
               placeholder="0.00"
-              placeholderTextColor={isDark ? '#3A254F' : '#F2C7E3'}
+              placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
               keyboardType="decimal-pad"
               className="text-6xl font-display text-app-text dark:text-app-text-dark text-center"
               autoFocus={!editingId}
@@ -119,13 +119,13 @@ export default function AddEditBudgetScreen() {
               <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
                 <View className="flex-row items-center gap-4">
                   <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-                    <Feather name="tag" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                    <Feather name="tag" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
                   </View>
                   <Text className="text-base font-medium text-app-text dark:text-app-text-dark">
                     {selectedCategory?.name || 'Select Category'}
                   </Text>
                 </View>
-                <Feather name="chevron-right" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                <Feather name="chevron-right" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
               </View>
             </PressableScale>
 
@@ -134,13 +134,13 @@ export default function AddEditBudgetScreen() {
               <View className="flex-row items-center justify-between p-5">
                 <View className="flex-row items-center gap-4">
                   <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-                    <Feather name="calendar" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                    <Feather name="calendar" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
                   </View>
                   <Text className="text-base font-medium text-app-text dark:text-app-text-dark">
                     {selectedPeriod?.name || 'Select Period'}
                   </Text>
                 </View>
-                <Feather name="chevron-right" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                <Feather name="chevron-right" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
               </View>
             </PressableScale>
           </View>

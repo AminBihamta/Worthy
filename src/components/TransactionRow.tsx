@@ -21,21 +21,21 @@ export function TransactionRow({
   const currency = transaction.account_currency ?? 'USD';
 
   let iconName: keyof typeof Feather.glyphMap = 'dollar-sign';
-  let iconColor = '#8B5CF6';
+  let iconColor = '#0A9396';
   let iconBg = 'bg-app-soft dark:bg-app-soft-dark';
 
   if (transaction.type === 'expense') {
     iconName = 'arrow-up-right';
-    iconColor = '#EF4444';
+    iconColor = '#D62828';
     iconBg = 'bg-red-50 dark:bg-red-900/20';
   } else if (transaction.type === 'income') {
     iconName = 'arrow-down-left';
-    iconColor = '#2CB67D';
+    iconColor = '#38B000';
     iconBg = 'bg-green-50 dark:bg-green-900/20';
   } else {
     iconName = 'repeat';
-    iconColor = '#38BDF8';
-    iconBg = 'bg-blue-50 dark:bg-blue-900/20';
+    iconColor = '#0A9396';
+    iconBg = 'bg-teal-50 dark:bg-teal-900/20';
   }
 
   const categoryLabel = transaction.category_name ?? '';

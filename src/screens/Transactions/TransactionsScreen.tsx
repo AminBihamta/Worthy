@@ -213,7 +213,7 @@ export default function TransactionsScreen() {
         <View className="flex-1 bg-app-card dark:bg-app-card-dark p-4 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50">
           <View className="flex-row items-center mb-2">
             <View className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 items-center justify-center mr-2">
-              <Feather name="arrow-down-left" size={16} color="#2CB67D" />
+              <Feather name="arrow-down-left" size={16} color="#38B000" />
             </View>
             <Text className="text-xs font-medium text-app-muted dark:text-app-muted-dark uppercase tracking-wider">
               Income
@@ -226,7 +226,7 @@ export default function TransactionsScreen() {
         <View className="flex-1 bg-app-card dark:bg-app-card-dark p-4 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50">
           <View className="flex-row items-center mb-2">
             <View className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mr-2">
-              <Feather name="arrow-up-right" size={16} color="#EF4444" />
+              <Feather name="arrow-up-right" size={16} color="#D62828" />
             </View>
             <Text className="text-xs font-medium text-app-muted dark:text-app-muted-dark uppercase tracking-wider">
               Spent
@@ -240,11 +240,11 @@ export default function TransactionsScreen() {
 
       {/* Search */}
       <View className="rounded-2xl bg-app-soft dark:bg-app-soft-dark px-4 py-3 flex-row items-center mb-4">
-        <Feather name="search" size={18} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+        <Feather name="search" size={18} color={isDark ? '#8B949E' : '#6B7A8F'} />
         <TextInput
           className="flex-1 text-base font-medium text-app-text dark:text-app-text-dark ml-3"
           placeholder="Search transactions..."
-          placeholderTextColor={isDark ? '#C8A9C2' : '#B892C4'}
+          placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
           value={query}
           onChangeText={(text) => {
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -255,7 +255,7 @@ export default function TransactionsScreen() {
         />
         {query.length > 0 && (
           <PressableScale onPress={() => setQuery('')}>
-            <Feather name="x-circle" size={18} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+            <Feather name="x-circle" size={18} color={isDark ? '#8B949E' : '#6B7A8F'} />
           </PressableScale>
         )}
       </View>
@@ -345,7 +345,7 @@ export default function TransactionsScreen() {
               navigation.navigate('ReceiptInbox' as never);
             }}
           >
-            <Feather name="camera" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+            <Feather name="camera" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
             <Text className="ml-2 text-sm font-bold text-app-text dark:text-app-text-dark">
               Scan
             </Text>

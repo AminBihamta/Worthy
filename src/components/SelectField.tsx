@@ -24,7 +24,7 @@ export function SelectField({
   const selected = options.find((option) => option.value === value);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const iconColor = isDark ? '#C8A9C2' : '#8A6B9A';
+  const iconColor = isDark ? '#8B949E' : '#6B7A8F';
 
   return (
     <View className="mb-4">

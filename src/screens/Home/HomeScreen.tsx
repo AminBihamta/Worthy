@@ -54,10 +54,10 @@ export default function HomeScreen() {
   const primaryAccount = accounts[0] ?? null;
   const balanceCurrency = primaryAccount?.currency ?? 'USD';
   const totalBalance = summary.income - summary.spent;
-  const brandColor = colorScheme === 'dark' ? '#8B5CF6' : '#6D28D9';
-  const accentColor = colorScheme === 'dark' ? '#67E8F9' : '#22D3EE';
+  const brandColor = colorScheme === 'dark' ? '#58D5D8' : '#0A9396';
+  const accentColor = colorScheme === 'dark' ? '#FFB703' : '#EE9B00';
   const cardAccents = useMemo(
-    () => [brandColor, accentColor, colorScheme === 'dark' ? '#38BDF8' : '#0EA5E9'],
+    () => [brandColor, accentColor, colorScheme === 'dark' ? '#3FB950' : '#38B000'],
     [accentColor, brandColor, colorScheme],
   );
   const actions = [
@@ -70,7 +70,7 @@ export default function HomeScreen() {
     {
       label: 'Income',
       icon: 'arrow-down-left' as const,
-      color: '#2CB67D',
+      color: '#38B000',
       onPress: () => navigation.navigate('AddIncome' as never),
     },
     {
@@ -82,7 +82,7 @@ export default function HomeScreen() {
     {
       label: 'Accounts',
       icon: 'credit-card' as const,
-      color: colorScheme === 'dark' ? '#A78BFA' : '#8B5CF6',
+      color: colorScheme === 'dark' ? '#58D5D8' : '#0A9396',
       onPress: () => navigation.navigate('Accounts' as never),
     },
   ];
@@ -145,7 +145,7 @@ export default function HomeScreen() {
                     >
                       <View className="w-72 h-44 rounded-[32px] bg-app-text dark:bg-app-card-dark overflow-hidden relative p-6 justify-between shadow-sm">
                          {/* Dark card background for contrast */}
-                         <View className="absolute inset-0 bg-[#1C1326] dark:bg-[#241733]" />
+                         <View className="absolute inset-0 bg-[#0D1B2A] dark:bg-[#1C2432]" />
                          
                          {/* Decorative Blobs */}
                          <View

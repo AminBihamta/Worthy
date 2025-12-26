@@ -107,7 +107,7 @@ export function PeriodSelector({
           onPress={handlePrev}
           className="w-10 h-10 rounded-full items-center justify-center bg-app-soft dark:bg-app-soft-dark"
         >
-          <Feather name="chevron-left" size={20} color="#8A6B9A" />
+          <Feather name="chevron-left" size={20} color="#6B7A8F" />
         </PressableScale>
 
         <Text className="text-base font-display text-app-text dark:text-app-text-dark">
@@ -118,7 +118,7 @@ export function PeriodSelector({
           onPress={handleNext}
           className="w-10 h-10 rounded-full items-center justify-center bg-app-soft dark:bg-app-soft-dark"
         >
-          <Feather name="chevron-right" size={20} color="#8A6B9A" />
+          <Feather name="chevron-right" size={20} color="#6B7A8F" />
         </PressableScale>
       </View>
     </View>

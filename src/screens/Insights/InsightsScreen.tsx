@@ -30,8 +30,8 @@ import { formatSigned } from '../../utils/money';
 export default function InsightsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const axisColor = isDark ? '#C8A9C2' : '#8A6B9A';
-  const accentColor = isDark ? '#FF63C1' : '#FF4FB6';
+  const axisColor = isDark ? '#8B949E' : '#6B7A8F';
+  const accentColor = isDark ? '#FFB703' : '#EE9B00';
   const { insightsPeriod, setInsightsPeriod } = useUIStore();
   const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
   const [date, setDate] = useState(new Date());
@@ -94,14 +94,14 @@ export default function InsightsScreen() {
 
   const pieData = useMemo(() => {
     const palette = [
-      '#5C2AAE',
-      '#FF4FB6',
-      '#2CB67D',
-      '#F28E2B',
-      '#4E79A7',
-      '#EDC949',
-      '#B07AA1',
-      '#76B7B2',
+      '#0A9396',
+      '#EE9B00',
+      '#38B000',
+      '#005F73',
+      '#FFB703',
+      '#D62828',
+      '#6B7A8F',
+      '#58D5D8',
     ];
     return categorySpend
       .filter((row) => row.total_minor > 0)
@@ -136,7 +136,7 @@ export default function InsightsScreen() {
           <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
             <View className="flex-row items-center mb-6">
               <View className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mr-3">
-                <Feather name="trending-up" size={20} color="#EF4444" />
+                <Feather name="trending-up" size={20} color="#D62828" />
               </View>
               <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
                 Expenses over time
@@ -178,7 +178,7 @@ export default function InsightsScreen() {
                 <VictoryLine
                   data={expenseSeries}
                   style={{
-                    data: { stroke: '#EF4444', strokeWidth: 3 },
+                    data: { stroke: '#D62828', strokeWidth: 3 },
                   }}
                   animate={{
                     duration: 500,
@@ -194,7 +194,7 @@ export default function InsightsScreen() {
           <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
             <View className="flex-row items-center mb-6">
               <View className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 items-center justify-center mr-3">
-                <Feather name="trending-down" size={20} color="#2CB67D" />
+                <Feather name="trending-down" size={20} color="#38B000" />
               </View>
               <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
                 Income over time
@@ -236,7 +236,7 @@ export default function InsightsScreen() {
                 <VictoryLine
                   data={incomeSeries}
                   style={{
-                    data: { stroke: '#2CB67D', strokeWidth: 3 },
+                    data: { stroke: '#38B000', strokeWidth: 3 },
                   }}
                   animate={{
                     duration: 500,
@@ -252,7 +252,7 @@ export default function InsightsScreen() {
           <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
             <View className="flex-row items-center mb-6">
               <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mr-3">
-                <Feather name="pie-chart" size={20} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                <Feather name="pie-chart" size={20} color={isDark ? '#8B949E' : '#6B7A8F'} />
               </View>
               <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
                 Spending by category
@@ -275,7 +275,7 @@ export default function InsightsScreen() {
                 style={{
                   data: {
                     fillOpacity: 0.9,
-                    stroke: isDark ? '#241733' : '#FFFFFF',
+                    stroke: isDark ? '#1C2432' : '#FFFFFF',
                     strokeWidth: 1,
                   },
                   labels: { fontSize: 10, fill: axisColor, fontFamily: 'Manrope_500Medium' },
@@ -292,7 +292,7 @@ export default function InsightsScreen() {
           <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
             <View className="flex-row items-center mb-6">
               <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mr-3">
-                <Feather name="sliders" size={20} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                <Feather name="sliders" size={20} color={isDark ? '#8B949E' : '#6B7A8F'} />
               </View>
               <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
                 Regret vs Worth-it
@@ -381,7 +381,7 @@ export default function InsightsScreen() {
           <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
             <View className="flex-row items-center mb-6">
               <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mr-3">
-                <Feather name="clock" size={20} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                <Feather name="clock" size={20} color={isDark ? '#8B949E' : '#6B7A8F'} />
               </View>
               <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
                 Life cost by category

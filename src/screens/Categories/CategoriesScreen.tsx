@@ -17,8 +17,8 @@ export default function CategoriesScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const iconColor = isDark ? '#F9E6F4' : '#2C0C4D';
-  const disabledColor = isDark ? '#C8A9C2' : '#B892C4';
+  const iconColor = isDark ? '#E6EDF3' : '#0D1B2A';
+  const disabledColor = isDark ? '#8B949E' : '#6B7A8F';
   const [categories, setCategories] = useState<Awaited<ReturnType<typeof listCategories>>>([]);
 
   const load = useCallback(() => {

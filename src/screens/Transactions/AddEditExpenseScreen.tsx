@@ -64,7 +64,7 @@ function SelectionModal({ visible, onClose, title, options, onSelect, selectedId
                 {title}
               </Text>
               <Pressable onPress={onClose} className="p-2 -mr-2">
-                <Feather name="x" size={24} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                <Feather name="x" size={24} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={{ padding: 24 }}>
@@ -94,7 +94,7 @@ function SelectionModal({ visible, onClose, title, options, onSelect, selectedId
                     )}
                   </View>
                   {selectedId === option.id && (
-                    <Feather name="check" size={20} color={isDark ? '#7D3AE6' : '#5C2AAE'} />
+                    <Feather name="check" size={20} color={isDark ? '#58D5D8' : '#0A9396'} />
                   )}
                 </PressableScale>
               ))}
@@ -220,7 +220,7 @@ export default function AddEditExpenseScreen() {
               value={amount}
               onChangeText={setAmount}
               placeholder="0.00"
-              placeholderTextColor={isDark ? '#3A254F' : '#F2C7E3'}
+              placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
               keyboardType="decimal-pad"
               className="text-6xl font-display text-app-text dark:text-app-text-dark text-center min-w-[120px]"
               autoFocus={!editingId}
@@ -230,7 +230,7 @@ export default function AddEditExpenseScreen() {
             value={title}
             onChangeText={setTitle}
             placeholder="What is this for?"
-            placeholderTextColor={isDark ? '#C8A9C2' : '#8A6B9A'}
+            placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
             className="text-xl text-app-text dark:text-app-text-dark text-center mt-2 font-medium w-full"
           />
         </View>
@@ -243,7 +243,7 @@ export default function AddEditExpenseScreen() {
               <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
                 <View className="flex-row items-center gap-4">
                   <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-                    <Feather name="tag" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                    <Feather name="tag" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
                   </View>
                   <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Category</Text>
                 </View>
@@ -251,7 +251,7 @@ export default function AddEditExpenseScreen() {
                   <Text className="text-base text-app-muted dark:text-app-muted-dark">
                     {selectedCategory?.name || 'Select'}
                   </Text>
-                  <Feather name="chevron-right" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                  <Feather name="chevron-right" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
                 </View>
               </View>
             </PressableScale>
@@ -261,7 +261,7 @@ export default function AddEditExpenseScreen() {
               <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
                 <View className="flex-row items-center gap-4">
                   <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-                    <Feather name="credit-card" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                    <Feather name="credit-card" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
                   </View>
                   <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Account</Text>
                 </View>
@@ -269,7 +269,7 @@ export default function AddEditExpenseScreen() {
                   <Text className="text-base text-app-muted dark:text-app-muted-dark">
                     {selectedAccount?.name || 'Select'}
                   </Text>
-                  <Feather name="chevron-right" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                  <Feather name="chevron-right" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
                 </View>
               </View>
             </PressableScale>
@@ -278,7 +278,7 @@ export default function AddEditExpenseScreen() {
             <View className="flex-row items-center justify-between p-5">
               <View className="flex-row items-center gap-4">
                 <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-                  <Feather name="calendar" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                  <Feather name="calendar" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
                 </View>
                 <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Date</Text>
               </View>
@@ -286,7 +286,7 @@ export default function AddEditExpenseScreen() {
                 value={dateInput}
                 onChangeText={setDateInput}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor={isDark ? '#C8A9C2' : '#8A6B9A'}
+                placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
                 className="text-base text-app-muted dark:text-app-muted-dark text-right min-w-[100px]"
               />
             </View>
@@ -304,7 +304,7 @@ export default function AddEditExpenseScreen() {
               return (
                 <View className="items-center mb-6">
                   <View className="w-12 h-12 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mb-3">
-                    <Feather name={selected.icon as any} size={24} color={isDark ? '#7D3AE6' : '#5C2AAE'} />
+                    <Feather name={selected.icon as any} size={24} color={isDark ? '#58D5D8' : '#0A9396'} />
                   </View>
                   <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
                     {selected.label}
@@ -318,9 +318,9 @@ export default function AddEditExpenseScreen() {
               minimumValue={0}
               maximumValue={100}
               step={25}
-              minimumTrackTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
-              maximumTrackTintColor={isDark ? '#3A254F' : '#F2C7E3'}
-              thumbTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
+              minimumTrackTintColor={isDark ? '#58D5D8' : '#0A9396'}
+              maximumTrackTintColor={isDark ? '#30363D' : '#D1DDE6'}
+              thumbTintColor={isDark ? '#58D5D8' : '#0A9396'}
               onValueChange={(val) => {
                 Haptics.selectionAsync();
                 setSliderValue(val);
@@ -341,7 +341,7 @@ export default function AddEditExpenseScreen() {
               value={notes}
               onChangeText={setNotes}
               placeholder="Add notes..."
-              placeholderTextColor={isDark ? '#C8A9C2' : '#8A6B9A'}
+              placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
               multiline
               className="text-base text-app-text dark:text-app-text-dark min-h-[80px]"
               textAlignVertical="top"
@@ -364,7 +364,7 @@ export default function AddEditExpenseScreen() {
                 <View className={`w-10 h-10 rounded-full items-center justify-center ${
                   recurring ? 'bg-app-brand dark:bg-app-brand-dark' : 'bg-app-soft dark:bg-app-soft-dark'
                 }`}>
-                  <Feather name="repeat" size={18} color={recurring ? '#FFFFFF' : (isDark ? '#F9E6F4' : '#2C0C4D')} />
+                  <Feather name="repeat" size={18} color={recurring ? '#FFFFFF' : (isDark ? '#E6EDF3' : '#0D1B2A')} />
                 </View>
                 <View>
                   <Text className={`text-base font-medium ${

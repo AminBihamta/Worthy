@@ -7,13 +7,13 @@ import { SelectField } from '../../components/SelectField';
 import { createCategory, listCategories, updateCategory } from '../../db/repositories/categories';
 
 const colorOptions = [
-  { label: 'Teal', value: '#2F6F62' },
-  { label: 'Orange', value: '#F28E2B' },
-  { label: 'Blue', value: '#4E79A7' },
-  { label: 'Green', value: '#59A14F' },
-  { label: 'Pink', value: '#E15759' },
-  { label: 'Gold', value: '#EDC949' },
-  { label: 'Purple', value: '#B07AA1' },
+  { label: 'Teal', value: '#0A9396' },
+  { label: 'Amber', value: '#EE9B00' },
+  { label: 'Ocean', value: '#005F73' },
+  { label: 'Forest', value: '#38B000' },
+  { label: 'Coral', value: '#D62828' },
+  { label: 'Gold', value: '#FFB703' },
+  { label: 'Slate', value: '#6B7A8F' },
 ];
 
 export default function AddEditCategoryScreen() {

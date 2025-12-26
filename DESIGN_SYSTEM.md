@@ -1,43 +1,44 @@
 # Worthy Design System
 
 ## 1. Design Philosophy
-**"Calm, Soft, and Tactile"**
+**"Midnight Aurora – Calm, Sophisticated, and Fresh"**
 
-The Worthy design language is built to make financial management feel approachable, stress-free, and delightful. It moves away from the cold, spreadsheet-like aesthetics of traditional finance apps in favor of a warm, organic, and highly interactive experience.
+The Worthy design language is built to make financial management feel approachable, modern, and trustworthy. It combines the depth and professionalism of oceanic teals with warm golden accents, creating a premium experience that works beautifully in both light and dark modes.
 
 ### Core Principles
-*   **Softness over Sharpness:** We use generous border radii (`rounded-3xl`), soft pastel backgrounds, and subtle borders to create a friendly UI.
+*   **Depth & Clarity:** Deep, rich backgrounds in dark mode with crisp, clean surfaces in light mode.
 *   **Tactile Feedback:** Every interaction should feel physical. We use scale animations (`PressableScale`) and haptic feedback (`expo-haptics`) to acknowledge user intent.
 *   **Content as Hero:** The most important data (amounts) takes center stage with massive typography, while secondary details recede.
-*   **Dark Mode First:** The system is designed to look stunning in both light and dark modes, with deep purples and vibrant accents in dark mode.
+*   **Dual Mode Excellence:** Both light and dark modes are first-class citizens, each with their own carefully crafted palette.
 
 ---
 
 ## 2. Color System
 
-Our palette is based on a "Soft Purple" theme. We use semantic naming (`app-*`) to ensure seamless dark mode support.
+Our palette is based on a **"Midnight Aurora"** theme – oceanic teals meet warm golden accents. We use semantic naming (`app-*`) to ensure seamless dark mode support.
 
 ### Base Colors
 | Token | Light Mode | Dark Mode | Usage |
 | :--- | :--- | :--- | :--- |
-| `bg-app-bg` | `#FFF1FA` | `#140A1E` | Main screen background. Very soft pink/purple tint. |
-| `bg-app-surface` | `#FFFFFF` | `#1C1326` | Secondary backgrounds, headers, bottom sheets. |
-| `bg-app-card` | `#FFFFFF` | `#241733` | Main container for grouped content. |
+| `bg-app-bg` | `#F8FAFB` | `#0D1117` | Main screen background. Subtle cool tone. |
+| `bg-app-surface` | `#FFFFFF` | `#161B22` | Secondary backgrounds, headers, bottom sheets. |
+| `bg-app-card` | `#FFFFFF` | `#1C2432` | Main container for grouped content. |
 
 ### Content Colors
 | Token | Light Mode | Dark Mode | Usage |
 | :--- | :--- | :--- | :--- |
-| `text-app-text` | `#2C0C4D` | `#F9E6F4` | Primary headings, body text. High contrast. |
-| `text-app-muted` | `#8A6B9A` | `#C8A9C2` | Secondary labels, subtitles, icons. |
-| `bg-app-soft` | `#FFE0F2` | `#2E1B40` | Icon backgrounds, pills, subtle highlights. |
+| `text-app-text` | `#0D1B2A` | `#E6EDF3` | Primary headings, body text. High contrast. |
+| `text-app-muted` | `#6B7A8F` | `#8B949E` | Secondary labels, subtitles, icons. |
+| `bg-app-soft` | `#E8F4F2` | `#243447` | Icon backgrounds, pills, subtle highlights. |
 
 ### Brand & Functional
 | Token | Light Mode | Dark Mode | Usage |
 | :--- | :--- | :--- | :--- |
-| `bg-app-brand` | `#5C2AAE` | `#7D3AE6` | Primary actions, active states, key highlights. |
-| `border-app-border`| `#F2C7E3` | `#3A254F` | Subtle dividers, card borders. |
-| `text-app-success` | `#2CB67D` | `#2CB67D` | Positive values (Income). |
-| `text-app-danger` | `#EF4444` | `#EF4444` | Destructive actions, errors. |
+| `bg-app-brand` | `#0A9396` | `#58D5D8` | Primary actions, active states, key highlights. |
+| `border-app-border`| `#D1DDE6` | `#30363D` | Subtle dividers, card borders. |
+| `text-app-accent` | `#EE9B00` | `#FFB703` | Highlights, warnings, secondary accents. |
+| `text-app-success` | `#38B000` | `#3FB950` | Positive values (Income). |
+| `text-app-danger` | `#D62828` | `#F85149` | Destructive actions, errors, expenses. |
 
 ---
 
