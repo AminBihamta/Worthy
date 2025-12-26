@@ -175,10 +175,10 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const palette = isDark ? colors.dark : colors.light;
   const activeIconColor = '#FFFFFF';
   const inactiveIconColor = palette.muted;
-  const navBackground = isDark ? '#161B22' : '#FFFFFF';
-  const navBorder = isDark ? '#30363D' : '#D1DDE6';
+  const navBackground = isDark ? palette.surface : palette.surface;
+  const navBorder = isDark ? palette.border : palette.border;
   const pillBackground = palette.brand;
-  const pillBorder = isDark ? '#7DD8DB' : '#087F82';
+  const pillBorder = isDark ? 'transparent' : 'transparent';
 
   return (
     <View
