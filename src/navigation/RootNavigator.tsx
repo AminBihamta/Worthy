@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Animated, { FadeIn, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import HomeScreen from '../screens/Home/HomeScreen';
@@ -169,16 +170,109 @@ function InsightsStack() {
   );
 }
 
-function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+function TabBarItem({ route, index, state, navigation, descriptors }) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const palette = isDark ? colors.dark : colors.light;
   const activeIconColor = '#FFFFFF';
   const inactiveIconColor = palette.muted;
+  const pillBackground = palette.brand;
+
+  const focused = state.index === index;
+  const config = TAB_CONFIG[route.name] ?? {
+    label: route.name,
+    icon: 'circle',
+  };
+  const onPress = () => {
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: route.key,
+      canPreventDefault: true,
+    });
+    if (!focused && !event.defaultPrevented) {
+      navigation.navigate(route.name);
+    }
+  };
+  const onLongPress = () => {
+    navigation.emit({
+      type: 'tabLongPress',
+      target: route.key,
+    });
+  };
+  const { options } = descriptors[route.key];
+  const label =
+    typeof options.tabBarLabel === 'string'
+      ? options.tabBarLabel
+      : typeof options.title === 'string'
+      ? options.title
+      : config.label;
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      flex: withSpring(focused ? 2.2 : 0.9, {
+        damping: 15,
+        stiffness: 120,
+      }),
+      backgroundColor: focused ? pillBackground : 'transparent',
+    };
+  });
+
+  return (
+    <Animated.View
+      key={route.key}
+      style={[
+        {
+          borderRadius: 999,
+          marginHorizontal: 4,
+          height: 46,
+        },
+        animatedStyle,
+      ]}
+    >
+      <PressableScale haptic onPress={onPress} onLongPress={onLongPress}>
+        <View
+          style={{
+            height: 46,
+            borderRadius: 999,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: focused ? 1 : 0,
+          }}
+        >
+          <Feather
+            name={config.icon}
+            size={20}
+            color={focused ? activeIconColor : inactiveIconColor}
+          />
+          {focused ? (
+            <Animated.View entering={FadeIn.delay(200)}>
+              <Text
+                numberOfLines={1}
+                style={{
+                  marginLeft: 10,
+                  fontFamily: 'Manrope_600SemiBold',
+                  fontSize: 12,
+                  color: activeIconColor,
+                  flexShrink: 1,
+                }}
+              >
+                {label}
+              </Text>
+            </Animated.View>
+          ) : null}
+        </View>
+      </PressableScale>
+    </Animated.View>
+  );
+}
+
+function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const palette = isDark ? colors.dark : colors.light;
   const navBackground = isDark ? palette.surface : palette.surface;
   const navBorder = isDark ? palette.border : palette.border;
-  const pillBackground = palette.brand;
-  const pillBorder = isDark ? 'transparent' : 'transparent';
 
   return (
     <View
@@ -204,81 +298,16 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         elevation: 10,
       }}
     >
-      {state.routes.map((route, index) => {
-        const focused = state.index === index;
-        const config = TAB_CONFIG[route.name] ?? {
-          label: route.name,
-          icon: 'circle',
-        };
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (!focused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
-        const onLongPress = () => {
-          navigation.emit({
-            type: 'tabLongPress',
-            target: route.key,
-          });
-        };
-        const { options } = descriptors[route.key];
-        const label =
-          typeof options.tabBarLabel === 'string'
-            ? options.tabBarLabel
-            : typeof options.title === 'string'
-              ? options.title
-              : config.label;
-
-        return (
-          <View key={route.key} style={{ flex: focused ? 2.2 : 0.9, marginHorizontal: 4 }}>
-            <PressableScale haptic onPress={onPress} onLongPress={onLongPress}>
-              <View
-                style={{
-                  height: 46,
-                  
-                  borderRadius: 999,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: focused ? pillBackground : 'transparent',
-                  borderWidth: focused ? 1 : 0,
-                  borderColor: focused ? pillBorder : 'transparent',
-                  paddingHorizontal: focused ? 1 : 0,
-                  shadowColor: focused ? pillBorder : 'transparent',
-                  shadowOpacity: focused ? 0.25 : 0,
-                  shadowRadius: focused ? 12 : 0,
-                  shadowOffset: { width: 0, height: 6 },
-                }}
-              >
-                <Feather
-                  name={config.icon}
-                  size={20}
-                  color={focused ? activeIconColor : inactiveIconColor}
-                />
-                {focused ? (
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      marginLeft: 10,
-                      fontFamily: 'Manrope_600SemiBold',
-                      fontSize: 12,
-                      color: activeIconColor,
-                      flexShrink: 1,
-                    }}
-                  >
-                    {label}
-                  </Text>
-                ) : null}
-              </View>
-            </PressableScale>
-          </View>
-        );
-      })}
+      {state.routes.map((route, index) => (
+        <TabBarItem
+          key={route.key}
+          route={route}
+          index={index}
+          state={state}
+          navigation={navigation}
+          descriptors={descriptors}
+        />
+      ))}
     </View>
   );
 }

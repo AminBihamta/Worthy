@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
-import { Animated, Pressable, PressableProps } from 'react-native';
+import React from 'react';
+import { Pressable, PressableProps } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 export function PressableScale({
@@ -13,14 +14,19 @@ export function PressableScale({
   children: React.ReactNode;
   haptic?: boolean;
 }) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
 
   const animateTo = (value: number) => {
-    Animated.timing(scale, {
-      toValue: value,
-      duration: 140,
-      useNativeDriver: true,
-    }).start();
+    scale.value = withSpring(value, {
+      damping: 15,
+      stiffness: 400,
+    });
   };
 
   return (
@@ -35,7 +41,7 @@ export function PressableScale({
       }}
       {...props}
     >
-      <Animated.View style={{ transform: [{ scale }] }} className={className}>
+      <Animated.View style={animatedStyle} className={className}>
         {children}
       </Animated.View>
     </Pressable>
