@@ -218,7 +218,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
   const progress = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
-    progress.value = withTiming(focused ? 1 : 0, { duration: 240 });
+    progress.value = withTiming(focused ? 1 : 0, { duration: 40 });
   }, [focused, progress]);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -243,7 +243,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
           borderRadius: 999,
           marginHorizontal: 4,
           height: 46,
-          minWidth: focused ? 140 : 44,
+
         },
         animatedStyle,
       ]}
@@ -256,7 +256,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            paddingHorizontal: focused ? 16 : 0,
+            paddingHorizontal: focused ? 0 : 0,
           }}
         >
           <Feather
@@ -269,7 +269,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
               <Text
                 numberOfLines={1}
                 style={{
-                  marginLeft: 10,
+                  marginLeft: 5,
                   fontFamily: 'Manrope_600SemiBold',
                   fontSize: 12,
                   color: activeIconColor,
@@ -303,10 +303,10 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         backgroundColor: navBackground,
         borderColor: navBorder,
         borderWidth: 1,
-        height: 78,
+
         borderRadius: 32,
-        paddingVertical: 10,
-        paddingHorizontal: 8,
+        paddingVertical: 0,
+        paddingHorizontal: 0,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -315,6 +315,8 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         shadowRadius: isDark ? 20 : 16,
         shadowOffset: { width: 0, height: 10 },
         elevation: 10,
+
+
       }}
     >
       {state.routes.map((route, index) => (

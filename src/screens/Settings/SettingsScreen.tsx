@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
-import { ScrollView, Text, TextInput, View, Switch, Pressable } from 'react-native';
+import React from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import * as Haptics from 'expo-haptics';
 
-import { Card } from '../../components/Card';
 import { PressableScale } from '../../components/PressableScale';
 import { useSettingsStore } from '../../state/useSettingsStore';
-import { toMinor } from '../../utils/money';
 import { generateSampleData } from '../../db/sampleData';
 
 function SettingsSection({ title, children }: { title?: string; children: React.ReactNode }) {
@@ -82,51 +80,6 @@ function SettingsRow({
   );
 }
 
-function SettingsInputRow({
-  icon,
-  label,
-  value,
-  onChangeText,
-  onEndEditing,
-  placeholder,
-  isLast = false,
-}: {
-  icon: keyof typeof Feather.glyphMap;
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  onEndEditing?: () => void;
-  placeholder?: string;
-  isLast?: boolean;
-}) {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
-
-  return (
-    <View
-      className={`flex-row items-center justify-between p-4 ${
-        !isLast ? 'border-b border-app-border/30 dark:border-app-border-dark/30' : ''
-      }`}
-    >
-      <View className="flex-row items-center gap-4">
-        <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-          <Feather name={icon} size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
-        </View>
-        <Text className="text-base font-medium text-app-text dark:text-app-text-dark">{label}</Text>
-      </View>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        onEndEditing={onEndEditing}
-        placeholder={placeholder}
-        placeholderTextColor={isDark ? '#C8A9C2' : '#8A6B9A'}
-        keyboardType="decimal-pad"
-        className="text-base text-app-brand dark:text-app-brand-dark font-medium text-right min-w-[80px]"
-      />
-    </View>
-  );
-}
-
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
@@ -135,26 +88,7 @@ export default function SettingsScreen() {
   const {
     themeMode,
     setThemeMode,
-    fixedHourlyRateMinor,
-    setFixedHourlyRateMinor,
-    hoursPerDay,
-    setHoursPerDay,
   } = useSettingsStore();
-
-  const [hourlyRate, setHourlyRate] = useState(
-    fixedHourlyRateMinor ? String(fixedHourlyRateMinor / 100) : '',
-  );
-  const [hoursInput, setHoursInput] = useState(String(hoursPerDay));
-
-  const handleSaveHourlyRate = () => {
-    const minor = toMinor(hourlyRate);
-    setFixedHourlyRateMinor(minor);
-  };
-
-  const handleSaveHoursPerDay = () => {
-    const hours = Number.parseInt(hoursInput || '8', 10);
-    setHoursPerDay(hours);
-  };
 
   const cycleTheme = () => {
     const modes: ('system' | 'light' | 'dark')[] = ['system', 'light', 'dark'];
@@ -201,27 +135,6 @@ export default function SettingsScreen() {
                 </View>
               </View>
             </PressableScale>
-          </SettingsSection>
-
-          {/* Life Cost */}
-          <SettingsSection title="Life Cost Calculator">
-            <SettingsInputRow
-              icon="clock"
-              label="Hourly Rate"
-              value={hourlyRate}
-              onChangeText={setHourlyRate}
-              onEndEditing={handleSaveHourlyRate}
-              placeholder="0.00"
-            />
-            <SettingsInputRow
-              icon="sun"
-              label="Hours per Day"
-              value={hoursInput}
-              onChangeText={setHoursInput}
-              onEndEditing={handleSaveHoursPerDay}
-              placeholder="8"
-              isLast
-            />
           </SettingsSection>
 
           {/* Management */}

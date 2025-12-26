@@ -62,7 +62,7 @@ export default function ExpenseDetailScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [budgetMeta, setBudgetMeta] = useState<BudgetMeta | null>(null);
   const [categoryStats, setCategoryStats] = useState<CategoryStats | null>(null);
-  const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
+  const { hoursPerDay } = useSettingsStore();
 
   useFocusEffect(
     useCallback(() => {
@@ -86,8 +86,7 @@ export default function ExpenseDetailScreen() {
         setBudgetMeta(null);
         setCategoryStats(null);
 
-        const fallback = fixedHourlyRateMinor > 0 ? fixedHourlyRateMinor : null;
-        const rate = hourly.hourly_rate_minor ?? fallback;
+        const rate = hourly.hourly_rate_minor ?? null;
         if (row && rate) {
           setLifeCost(formatLifeCost(row.amount_minor, rate, hoursPerDay));
         }
@@ -148,7 +147,7 @@ export default function ExpenseDetailScreen() {
       return () => {
         active = false;
       };
-    }, [params?.id, fixedHourlyRateMinor, hoursPerDay]),
+    }, [params?.id, hoursPerDay]),
   );
 
   const handleDelete = async () => {
@@ -263,7 +262,7 @@ export default function ExpenseDetailScreen() {
 
         {/* Main Details Card */}
         <View className="px-4 space-y-4">
-          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl overflow-hidden border border-app-border/50 dark:border-app-border-dark/50">
+          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl overflow-hidden border border-app-border/50 dark:border-app-border-dark/50 mb-4">
             {/* Category */}
             <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
               <View className="flex-row items-center gap-4">
@@ -291,7 +290,7 @@ export default function ExpenseDetailScreen() {
             </View>
 
             {/* Date */}
-            <View className="flex-row items-center justify-between p-5">
+            <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
               <View className="flex-row items-center gap-4">
                 <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
                   <Feather name="calendar" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
@@ -302,38 +301,22 @@ export default function ExpenseDetailScreen() {
                 {formatDate(expense.date_ts)}
               </Text>
             </View>
+
+             {/* Life Cost */}
+            <View className="flex-row items-center justify-between p-5">
+              <View className="flex-row items-center gap-4">
+                <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                  <Feather name="clock" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                </View>
+                <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Life Cost</Text>
+              </View>
+              <Text className="text-base text-app-muted dark:text-app-muted-dark">
+         {lifeCost}
+              </Text>
+            </View>
           </View>
 
-          {/* Stats Grid */}
-          <View className="flex-row gap-4">
-            {lifeCost && (
-              <View className="flex-1 bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
-                <View className="w-8 h-8 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mb-3">
-                  <Feather name="clock" size={14} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
-                </View>
-                <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-1">
-                  Life Cost
-                </Text>
-                <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
-                  {lifeCost}
-                </Text>
-              </View>
-            )}
-            
-            {budgetMeta && (
-              <View className="flex-1 bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
-                <View className="w-8 h-8 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mb-3">
-                  <Feather name="pie-chart" size={14} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
-                </View>
-                <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-1">
-                  Impact
-                </Text>
-                <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
-                  {budgetMeta.impactPct.toFixed(1)}%
-                </Text>
-              </View>
-            )}
-          </View>
+        
 
           {/* Worth It Section */}
           <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-6 border border-app-border/50 dark:border-app-border-dark/50">

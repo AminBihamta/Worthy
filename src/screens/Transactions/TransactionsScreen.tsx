@@ -59,7 +59,7 @@ type ListItem =
 
 export default function TransactionsScreen() {
   const navigation = useNavigation();
-  const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
+  const { hoursPerDay } = useSettingsStore();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [rows, setRows] = useState<Transaction[]>([]);
@@ -73,12 +73,11 @@ export default function TransactionsScreen() {
     try {
       const [items, hourly] = await Promise.all([listTransactions(), getEffectiveHourlyRate()]);
       setRows(items);
-      const fallback = fixedHourlyRateMinor > 0 ? fixedHourlyRateMinor : null;
-      setHourlyRateMinor(hourly.hourly_rate_minor ?? fallback);
+      setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
     } catch (error) {
       console.error('[TransactionsScreen] load failed', error);
     }
-  }, [fixedHourlyRateMinor]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -337,7 +336,7 @@ export default function TransactionsScreen() {
         />
         
         {/* Floating Action Buttons */}
-        <View className="absolute bottom-6 right-6 flex-row items-center gap-4">
+        <View className="absolute bottom-20 right-6 flex-row items-center gap-4">
           <PressableScale
             className="h-12 px-5 rounded-full bg-app-surface dark:bg-app-surface-dark border border-app-border dark:border-app-border-dark flex-row items-center shadow-sm"
             onPress={() => {

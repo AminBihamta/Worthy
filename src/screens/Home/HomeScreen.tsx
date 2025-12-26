@@ -10,7 +10,7 @@ import { AnimatedNumber } from '../../components/AnimatedNumber';
 import { getEffectiveHourlyRate } from '../../db/repositories/analytics';
 import { getExpenseTotals } from '../../db/repositories/expenses';
 import { getIncomeTotals } from '../../db/repositories/incomes';
-import { listAccounts } from '../../db/repositories/accounts';
+import { listAccountsWithBalances } from '../../db/repositories/accounts';
 import { listTransactions } from '../../db/repositories/transactions';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { formatSigned } from '../../utils/money';
@@ -21,11 +21,11 @@ import { formatShortDate } from '../../utils/time';
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
-  const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
+  const { hoursPerDay } = useSettingsStore();
   const [summary, setSummary] = useState({ spent: 0, income: 0 });
   const [recent, setRecent] = useState<Awaited<ReturnType<typeof listTransactions>>>([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
-  const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof listAccounts>>>([]);
+  const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof listAccountsWithBalances>>>([]);
 
   const load = useCallback(() => {
     const now = new Date();
@@ -33,17 +33,16 @@ export default function HomeScreen() {
     Promise.all([
       getExpenseTotals(range.start, range.end),
       getIncomeTotals(range.start, range.end),
-      listAccounts(),
+      listAccountsWithBalances(),
       listTransactions({ limit: 5 }),
       getEffectiveHourlyRate(),
     ]).then(([spent, income, accountsRows, recentRows, hourly]) => {
       setSummary({ spent, income });
       setAccounts(accountsRows);
       setRecent(recentRows);
-      const fallback = fixedHourlyRateMinor > 0 ? fixedHourlyRateMinor : null;
-      setHourlyRateMinor(hourly.hourly_rate_minor ?? fallback);
+      setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
     });
-  }, [fixedHourlyRateMinor]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -53,7 +52,10 @@ export default function HomeScreen() {
 
   const primaryAccount = accounts[0] ?? null;
   const balanceCurrency = primaryAccount?.currency ?? 'USD';
-  const totalBalance = summary.income - summary.spent;
+  const totalBalance = accounts.reduce(
+    (sum, account) => sum + (account.balance_minor ?? account.starting_balance_minor),
+    0,
+  );
   const brandColor = colorScheme === 'dark' ? '#58D5D8' : '#0A9396';
   const accentColor = colorScheme === 'dark' ? '#FFB703' : '#EE9B00';
   const cardAccents = useMemo(
@@ -168,7 +170,7 @@ export default function HomeScreen() {
                         <View>
                          
                           <Text className="text-3xl font-display font-bold text-white">
-                            {formatSigned(account.starting_balance_minor, account.currency)}
+                            {formatSigned(account.balance_minor, account.currency)}
                           </Text>
                         </View>
                       </View>

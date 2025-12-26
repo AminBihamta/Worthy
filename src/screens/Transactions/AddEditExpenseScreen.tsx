@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -18,12 +19,12 @@ import * as Haptics from 'expo-haptics';
 
 import { Button } from '../../components/Button';
 import { PressableScale } from '../../components/PressableScale';
-import { listAccounts } from '../../db/repositories/accounts';
+import { getAccountBalance, listAccounts } from '../../db/repositories/accounts';
 import { listCategories } from '../../db/repositories/categories';
 import { createExpense, getExpense, updateExpense } from '../../db/repositories/expenses';
 import { updateReceiptInbox } from '../../db/repositories/receipts';
 import { createRecurringRule } from '../../db/repositories/recurring';
-import { toMinor } from '../../utils/money';
+import { formatSigned, toMinor } from '../../utils/money';
 
 const regretOptions = [
   { value: 0, label: 'Total regret', icon: 'frown' },
@@ -123,6 +124,10 @@ export default function AddEditExpenseScreen() {
   const [sliderValue, setSliderValue] = useState(50);
   const [notes, setNotes] = useState('');
   const [recurring, setRecurring] = useState(false);
+  const [originalExpense, setOriginalExpense] = useState<{
+    amount_minor: number;
+    account_id: string;
+  } | null>(null);
 
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [accounts, setAccounts] = useState<{ id: string; name: string; currency: string }[]>([]);
@@ -143,6 +148,7 @@ export default function AddEditExpenseScreen() {
     if (!editingId) return;
     getExpense(editingId).then((expense) => {
       if (!expense) return;
+      setOriginalExpense({ amount_minor: expense.amount_minor, account_id: expense.account_id });
       setTitle(expense.title);
       setAmount(String(expense.amount_minor / 100));
       setCategoryId(expense.category_id);
@@ -159,8 +165,37 @@ export default function AddEditExpenseScreen() {
     const parsedDate = new Date(dateInput);
     const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
     const finalDateTs = safeDate.setHours(12, 0, 0, 0);
+    const selectedAccount = accounts.find((acct) => acct.id === accountId);
+
+    const warnInsufficient = async (availableMinor: number) => {
+      const currency = selectedAccount?.currency ?? 'USD';
+      Alert.alert(
+        'Not enough balance',
+        `You only have ${formatSigned(availableMinor, currency)} available in ${
+          selectedAccount?.name ?? 'this account'
+        }. Transfer funds to continue.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Transfer',
+            onPress: () => navigation.navigate('AddTransfer' as never),
+          },
+        ],
+      );
+    };
 
     if (editingId) {
+      const currentBalance = await getAccountBalance(accountId);
+      const availableBalance =
+        originalExpense && originalExpense.account_id === accountId
+          ? currentBalance + originalExpense.amount_minor
+          : currentBalance;
+
+      if (amountMinor > availableBalance) {
+        await warnInsufficient(availableBalance);
+        return;
+      }
+
       await updateExpense(editingId, {
         title,
         amount_minor: amountMinor,
@@ -171,6 +206,12 @@ export default function AddEditExpenseScreen() {
         notes,
       });
       navigation.goBack();
+      return;
+    }
+
+    const currentBalance = await getAccountBalance(accountId);
+    if (amountMinor > currentBalance) {
+      await warnInsufficient(currentBalance);
       return;
     }
 

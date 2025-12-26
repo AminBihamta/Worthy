@@ -33,7 +33,7 @@ export default function InsightsScreen() {
   const axisColor = isDark ? '#8B949E' : '#6B7A8F';
   const accentColor = isDark ? '#FFB703' : '#EE9B00';
   const { insightsPeriod, setInsightsPeriod } = useUIStore();
-  const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
+  const { hoursPerDay } = useSettingsStore();
   const [date, setDate] = useState(new Date());
   const [expenseSeries, setExpenseSeries] = useState<{ x: string; y: number }[]>([]);
   const [incomeSeries, setIncomeSeries] = useState<{ x: string; y: number }[]>([]);
@@ -73,10 +73,9 @@ export default function InsightsScreen() {
       setRegretByCategory(regretRows);
       setRegretful(regretfulRows);
       setLifeCostRows(lifeRows);
-      const fallback = fixedHourlyRateMinor > 0 ? fixedHourlyRateMinor : null;
-      setHourlyRateMinor(hourly.hourly_rate_minor ?? fallback);
+      setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
     });
-  }, [insightsPeriod, fixedHourlyRateMinor, date]);
+  }, [insightsPeriod, date]);
 
   useFocusEffect(
     useCallback(() => {
@@ -403,7 +402,7 @@ export default function InsightsScreen() {
               ))
             ) : (
               <Text className="text-sm text-app-muted dark:text-app-muted-dark">
-                Set a fixed hourly rate in Settings to unlock life cost analytics.
+                Add income with hours worked to unlock life cost analytics.
               </Text>
             )}
           </View>

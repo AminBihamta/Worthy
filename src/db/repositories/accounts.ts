@@ -13,16 +13,57 @@ export interface AccountRow {
   archived_at: number | null;
 }
 
+export interface AccountBalanceRow extends AccountRow {
+  balance_minor: number;
+}
+
 export async function listAccounts(includeArchived = false): Promise<AccountRow[]> {
   const db = await getDb();
   const where = includeArchived ? '' : 'WHERE archived_at IS NULL';
   return db.getAllAsync<AccountRow>(`SELECT * FROM accounts ${where} ORDER BY created_at DESC`);
 }
 
+export async function listAccountsWithBalances(
+  includeArchived = false,
+): Promise<AccountBalanceRow[]> {
+  const db = await getDb();
+  const where = includeArchived ? '' : 'WHERE a.archived_at IS NULL';
+  return db.getAllAsync<AccountBalanceRow>(
+    `SELECT a.*,
+      (
+        a.starting_balance_minor
+        + COALESCE((SELECT SUM(amount_minor) FROM incomes WHERE account_id = a.id), 0)
+        - COALESCE((SELECT SUM(amount_minor) FROM expenses WHERE account_id = a.id), 0)
+        + COALESCE((SELECT SUM(amount_minor) FROM transfers WHERE to_account_id = a.id), 0)
+        - COALESCE((SELECT SUM(amount_minor) FROM transfers WHERE from_account_id = a.id), 0)
+      ) AS balance_minor
+     FROM accounts a
+     ${where}
+     ORDER BY a.created_at DESC`,
+  );
+}
+
 export async function getAccount(id: string): Promise<AccountRow | null> {
   const db = await getDb();
   const row = await db.getFirstAsync<AccountRow>('SELECT * FROM accounts WHERE id = ?', id);
   return row ?? null;
+}
+
+export async function getAccountBalance(id: string): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ balance_minor: number }>(
+    `SELECT (
+        a.starting_balance_minor
+        + COALESCE((SELECT SUM(amount_minor) FROM incomes WHERE account_id = a.id), 0)
+        - COALESCE((SELECT SUM(amount_minor) FROM expenses WHERE account_id = a.id), 0)
+        + COALESCE((SELECT SUM(amount_minor) FROM transfers WHERE to_account_id = a.id), 0)
+        - COALESCE((SELECT SUM(amount_minor) FROM transfers WHERE from_account_id = a.id), 0)
+      ) AS balance_minor
+     FROM accounts a
+     WHERE a.id = ?`,
+    id,
+  );
+  return row?.balance_minor ?? 0;
 }
 
 export async function createAccount(input: {

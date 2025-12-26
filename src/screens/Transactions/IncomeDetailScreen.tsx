@@ -102,9 +102,9 @@ export default function IncomeDetailScreen() {
         </View>
 
         {/* Main Details Card */}
-        <View className="px-4 space-y-4">
-          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl overflow-hidden border border-app-border/50 dark:border-app-border-dark/50">
-            {/* Account */}
+        <View className="px-4 space-y-4 gap-4">
+          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl overflow-hidden border border-app-border/50 dark:border-app-border-dark/50 ">
+            {/* Account */} 
             <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
               <View className="flex-row items-center gap-4">
                 <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
@@ -118,7 +118,7 @@ export default function IncomeDetailScreen() {
             </View>
 
             {/* Date */}
-            <View className="flex-row items-center justify-between p-5">
+            <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
               <View className="flex-row items-center gap-4">
                 <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
                   <Feather name="calendar" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
@@ -129,22 +129,23 @@ export default function IncomeDetailScreen() {
                 {formatDate(income.date_ts)}
               </Text>
             </View>
-          </View>
 
-          {/* Hours Worked (if applicable) */}
-          {income.hours_worked ? (
-            <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50 flex-row items-center justify-between">
+            {/* Hours Worked */}
+            {income.hours_worked ? (
+            <View className="flex-row items-center justify-between p-5">
               <View className="flex-row items-center gap-4">
                 <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
                   <Feather name="clock" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
                 </View>
                 <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Hours Worked</Text>
               </View>
-              <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
-                {income.hours_worked}
-              </Text>
+              <Text className="text-base text-app-muted dark:text-app-muted-dark">
+       {income.hours_worked}              </Text>
             </View>
-          ) : null}
+            ) : null}
+          </View>
+
+          
 
           {/* Notes */}
           {income.notes ? (
