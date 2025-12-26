@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Animated, { FadeIn, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  interpolate,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import HomeScreen from '../screens/Home/HomeScreen';
@@ -207,13 +215,23 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
       ? options.title
       : config.label;
 
+  const progress = useSharedValue(focused ? 1 : 0);
+
+  useEffect(() => {
+    progress.value = withTiming(focused ? 1 : 0, { duration: 240 });
+  }, [focused, progress]);
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      flex: withSpring(focused ? 2.2 : 0.9, {
+      flex: withSpring(interpolate(progress.value, [0, 1], [0.8, 2.4]), {
         damping: 15,
         stiffness: 120,
       }),
-      backgroundColor: focused ? pillBackground : 'transparent',
+      backgroundColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        ['rgba(0,0,0,0)', pillBackground],
+      ),
     };
   });
 
@@ -225,6 +243,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
           borderRadius: 999,
           marginHorizontal: 4,
           height: 46,
+          minWidth: focused ? 140 : 44,
         },
         animatedStyle,
       ]}
@@ -237,7 +256,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            paddingHorizontal: focused ? 1 : 0,
+            paddingHorizontal: focused ? 16 : 0,
           }}
         >
           <Feather
