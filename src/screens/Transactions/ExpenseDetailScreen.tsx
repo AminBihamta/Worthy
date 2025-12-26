@@ -4,6 +4,9 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import { useColorScheme } from 'nativewind';
 import Slider from '@react-native-community/slider';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+
+import { PressableScale } from '../../components/PressableScale';
 import { Card } from '../../components/Card';
 import { LifeCostPill } from '../../components/LifeCostPill';
 import {
@@ -24,6 +27,14 @@ import { Button } from '../../components/Button';
 import { getRecurringRuleForEntity, RecurringRuleRow } from '../../db/repositories/recurring';
 import { formatRRule } from '../../utils/recurring';
 import { getReceiptForExpense, ReceiptInboxRow } from '../../db/repositories/receipts';
+
+const regretOptions = [
+  { value: 0, label: 'Total regret', icon: 'frown' },
+  { value: 25, label: 'Mostly regret', icon: 'meh' },
+  { value: 50, label: 'Mixed feelings', icon: 'minus' },
+  { value: 75, label: 'Worth it', icon: 'smile' },
+  { value: 100, label: 'Absolutely worth it', icon: 'heart' },
+];
 
 type BudgetMeta = {
   periodLabel: string;
@@ -140,35 +151,38 @@ export default function ExpenseDetailScreen() {
     }, [params?.id, fixedHourlyRateMinor, hoursPerDay]),
   );
 
-  const regretLabel = useMemo(() => {
-    if (!expense) return '';
-    const value = Math.max(0, Math.min(100, Math.round(expense.slider_0_100 / 25) * 25));
-    switch (value) {
-      case 0:
-        return 'Total regret';
-      case 25:
-        return 'Mostly regret';
-      case 50:
-        return 'Mixed feelings';
-      case 75:
-        return 'Worth it';
-      case 100:
-        return 'Absolutely worth it';
-      default:
-        return 'Mixed feelings';
-    }
-  }, [expense]);
+  const handleDelete = async () => {
+    if (!expense) return;
+    Alert.alert('Delete expense?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteExpense(expense.id);
+          navigation.goBack();
+        },
+      },
+    ]);
+  };
 
-  const budgetImpactText = useMemo(() => {
-    if (!expense) return null;
-    if (!budgetMeta) {
-      return 'Set a budget to see the impact here.';
-    }
-    return `${budgetMeta.impactPct}% of your ${budgetMeta.periodLabel} ${expense.category_name} budget`;
-  }, [budgetMeta, expense]);
+  if (!expense) {
+    return (
+      <View className="flex-1 bg-app-bg dark:bg-app-bg-dark items-center justify-center">
+        <Text className="text-app-muted dark:text-app-muted-dark">Loading...</Text>
+      </View>
+    );
+  }
 
-  const insightItems = useMemo(() => {
-    if (!expense) return [];
+  const regretOption =
+    regretOptions.find((o) => o.value === (Math.round(expense.slider_0_100 / 25) * 25)) ??
+    regretOptions[2];
+
+  const budgetImpactText = budgetMeta
+    ? `${budgetMeta.impactPct}% of your ${budgetMeta.periodLabel} ${expense.category_name} budget`
+    : null;
+
+  const insightItems = (() => {
     const items: string[] = [];
     if (budgetMeta) {
       const remaining = budgetMeta.budgetAmountMinor - budgetMeta.spentTotalMinor;
@@ -215,255 +229,235 @@ export default function ExpenseDetailScreen() {
       items.push(`Largest ${expense.category_name} expense this month.`);
     }
 
-    if (!items.length) {
-      items.push('Add a budget for this category to unlock smarter insights.');
-    }
-
     return items.slice(0, 3);
-  }, [budgetMeta, categoryStats, expense]);
-
-  if (!expense) {
-    return (
-      <View className="flex-1 bg-app-bg dark:bg-app-bg-dark items-center justify-center">
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark">Loading...</Text>
-      </View>
-    );
-  }
-
-  const categoryGlyph =
-    expense.category_icon?.trim() || expense.category_name?.trim()?.slice(0, 1) || 'C';
-  const categoryBorder = expense.category_color || (isDark ? '#3A254F' : '#F2C7E3');
+  })();
 
   return (
-    <>
-      <ScrollView
-        className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 }}
-      >
-        <Card className="mb-4 border-0 bg-app-soft dark:bg-app-soft-dark">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center">
-              
-              <View className="ml-3 ">
-                <Text className="text-base bg-app-brand dark:bg-app-brand-dark px-3 py-1 rounded-full font-display dark:text-app-text text-app-text-dark mt-1">
-                  {expense.category_name}
-                </Text>
-              </View>
-            </View>
-            <Pressable
-              className="h-10 w-10 rounded-full items-center justify-center bg-app-surface dark:bg-app-surface-dark"
-              onPress={() => setMenuOpen(true)}
-            >
-              <Feather
-                name="more-horizontal"
-                size={18}
-                color={isDark ? '#F9E6F4' : '#2C0C4D'}
-              />
-            </Pressable>
-          </View>
+    <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        {/* Header Actions */}
+        <View className="flex-row justify-between items-center px-6 pt-4">
+          <PressableScale
+            onPress={() => navigation.goBack()}
+            className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center"
+          >
+            <Feather name="arrow-left" size={20} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+          </PressableScale>
+          <PressableScale
+            onPress={() => setMenuOpen(true)}
+            className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center"
+          >
+            <Feather name="more-horizontal" size={20} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+          </PressableScale>
+        </View>
 
-          <Text className="text-[12vw] font-black text-app-brand dark:text-app-brand-dark mt-5 text-center">
-            {formatSigned(-expense.amount_minor, expense.account_currency)}
+        {/* Hero Section */}
+        <View className="items-center pt-16 pb-8 px-6">
+          <Text className="text-7xl font-display text-app-text dark:text-app-text-dark text-center pt-4 leading-tight">
+            {formatMinor(expense.amount_minor)}
           </Text>
-          <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-2 text-center">
+          <Text className="text-xl text-app-muted dark:text-app-muted-dark text-center mt-2 font-medium">
             {expense.title}
           </Text>
-          {budgetImpactText ? (
-            <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-2 text-center">
-              {budgetImpactText}
-            </Text>
-          ) : null}
-          <View className="flex-row items-center justify-center mt-4">
-            {lifeCost ? (
-              <LifeCostPill value={lifeCost} />
-            ) : (
-              <Text className="text-xs text-app-muted dark:text-app-muted-dark">
-                Set hourly rate
-              </Text>
-            )}
-            <View className="h-3 w-px bg-app-border dark:bg-app-border-dark mx-3" />
-            <Text className="text-xs text-app-muted dark:text-app-muted-dark">
-              {formatDate(expense.date_ts)}
-            </Text>
-          </View>
-        </Card>
+        </View>
 
-        <Card className="mb-4 border-0">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-              <Text className="text-[11px] uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-                Category
-              </Text>
-              <Text className="text-sm font-display text-app-text dark:text-app-text-dark mt-1">
+        {/* Main Details Card */}
+        <View className="px-4 space-y-4">
+          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl overflow-hidden border border-app-border/50 dark:border-app-border-dark/50">
+            {/* Category */}
+            <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
+              <View className="flex-row items-center gap-4">
+                <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                  <Feather name="tag" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                </View>
+                <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Category</Text>
+              </View>
+              <Text className="text-base text-app-muted dark:text-app-muted-dark">
                 {expense.category_name}
               </Text>
             </View>
-            <View className="h-10 w-px bg-app-border dark:bg-app-border-dark mx-3" />
-            <View className="flex-1">
-              <Text className="text-[11px] uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-                Account
-              </Text>
-              <Text className="text-sm font-display text-app-text dark:text-app-text-dark mt-1">
+
+            {/* Account */}
+            <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
+              <View className="flex-row items-center gap-4">
+                <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                  <Feather name="credit-card" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                </View>
+                <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Account</Text>
+              </View>
+              <Text className="text-base text-app-muted dark:text-app-muted-dark">
                 {expense.account_name}
               </Text>
             </View>
-            <View className="h-10 w-px bg-app-border dark:bg-app-border-dark mx-3" />
-            <View className="flex-1">
-              <Text className="text-[11px] uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-                Date
-              </Text>
-              <Text className="text-sm font-display text-app-text dark:text-app-text-dark mt-1">
+
+            {/* Date */}
+            <View className="flex-row items-center justify-between p-5">
+              <View className="flex-row items-center gap-4">
+                <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                  <Feather name="calendar" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                </View>
+                <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Date</Text>
+              </View>
+              <Text className="text-base text-app-muted dark:text-app-muted-dark">
                 {formatDate(expense.date_ts)}
               </Text>
             </View>
           </View>
-        </Card>
 
-        <Card className="mb-4 border-0">
-          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-            How did this feel?
-          </Text>
-          <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-2">{regretLabel}</Text>
-          <Slider
-            value={expense.slider_0_100}
-            minimumValue={0}
-            maximumValue={100}
-            step={25}
-            disabled
-            minimumTrackTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
-            maximumTrackTintColor={isDark ? '#352146' : '#EBD1E3'}
-            thumbTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
-            style={{ marginTop: 12 }}
-          />
-          <View className="flex-row items-center justify-between mt-2">
-            <Text className="text-xs text-app-muted dark:text-app-muted-dark">Regret</Text>
-            <Text className="text-xs text-app-muted dark:text-app-muted-dark">Worth it</Text>
+          {/* Stats Grid */}
+          <View className="flex-row gap-4">
+            {lifeCost && (
+              <View className="flex-1 bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
+                <View className="w-8 h-8 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mb-3">
+                  <Feather name="clock" size={14} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                </View>
+                <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-1">
+                  Life Cost
+                </Text>
+                <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                  {lifeCost}
+                </Text>
+              </View>
+            )}
+            
+            {budgetMeta && (
+              <View className="flex-1 bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
+                <View className="w-8 h-8 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mb-3">
+                  <Feather name="pie-chart" size={14} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                </View>
+                <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-1">
+                  Impact
+                </Text>
+                <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                  {budgetMeta.impactPct.toFixed(1)}%
+                </Text>
+              </View>
+            )}
           </View>
-        </Card>
 
-        <View className="flex-row flex-wrap gap-2 mb-4">
-          {recurringRule ? (
-            <View className="px-3 py-2 rounded-full bg-app-soft dark:bg-app-soft-dark">
-              <Text className="text-xs text-app-text dark:text-app-text-dark">
-                Recurring: {formatRRule(recurringRule.rrule_text)}
+          {/* Worth It Section */}
+          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-6 border border-app-border/50 dark:border-app-border-dark/50">
+            <View className="items-center mb-4">
+              <View className="w-12 h-12 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mb-3">
+                <Feather name={regretOption.icon as any} size={24} color={isDark ? '#7D3AE6' : '#5C2AAE'} />
+              </View>
+              <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                {regretOption.label}
+              </Text>
+            </View>
+            <Slider
+              value={expense.slider_0_100}
+              minimumValue={0}
+              maximumValue={100}
+              disabled
+              minimumTrackTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
+              maximumTrackTintColor={isDark ? '#3A254F' : '#F2C7E3'}
+              thumbTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
+              style={{ height: 40, opacity: 0.8 }}
+            />
+          </View>
+
+          {/* Notes */}
+          {expense.notes ? (
+            <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
+              <View className="flex-row items-center gap-3 mb-2">
+                <Feather name="file-text" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+                  Notes
+                </Text>
+              </View>
+              <Text className="text-base text-app-text dark:text-app-text-dark leading-6">
+                {expense.notes}
               </Text>
             </View>
           ) : null}
-          {recurringRule && !recurringRule.active ? (
-            <View className="px-3 py-2 rounded-full bg-app-soft dark:bg-app-soft-dark">
-              <Text className="text-xs text-app-muted dark:text-app-muted-dark">Paused</Text>
-            </View>
-          ) : null}
-          {receipt ? (
-            <View className="px-3 py-2 rounded-full bg-app-soft dark:bg-app-soft-dark">
-              <Text className="text-xs text-app-text dark:text-app-text-dark">Receipt attached</Text>
-            </View>
-          ) : null}
-          {expense.notes ? (
-            <View className="px-3 py-2 rounded-full bg-app-soft dark:bg-app-soft-dark">
-              <Text className="text-xs text-app-text dark:text-app-text-dark">Notes</Text>
-            </View>
-          ) : null}
-        </View>
 
-        {expense.notes ? (
-          <Card className="mb-4 border-0">
-            <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-              Notes
-            </Text>
-            <Text className="text-base text-app-text dark:text-app-text-dark mt-2">
-              {expense.notes}
-            </Text>
-          </Card>
-        ) : null}
-
-        {insightItems.length ? (
-          <Card className="mb-4 border-0 bg-app-soft dark:bg-app-soft-dark">
-            <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-              Insights
-            </Text>
-            <View className="mt-3">
-              {insightItems.map((item, index) => (
-                <Text
-                  key={`${expense.id}-insight-${index}`}
-                  className="text-sm text-app-text dark:text-app-text-dark mt-2"
-                >
-                  - {item}
+          {/* Recurring Info */}
+          {recurringRule && (
+            <View className="bg-app-soft dark:bg-app-soft-dark rounded-3xl p-5 flex-row items-center gap-4 border border-app-brand/20 dark:border-app-brand-dark/20">
+              <View className="w-10 h-10 rounded-full bg-app-brand dark:bg-app-brand-dark items-center justify-center">
+                <Feather name="repeat" size={18} color="#FFFFFF" />
+              </View>
+              <View>
+                <Text className="text-base font-medium text-app-brand dark:text-app-brand-dark">
+                  Recurring Expense
                 </Text>
-              ))}
+                <Text className="text-xs text-app-muted dark:text-app-muted-dark">
+                  Repeats monthly
+                </Text>
+              </View>
             </View>
-          </Card>
-        ) : null}
+          )}
 
-        {receipt ? (
-          <Card className="mb-4 border-0">
-            <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-              Receipt
-            </Text>
-            <Image
-              source={{ uri: receipt.image_uri }}
-              className="w-full h-56 rounded-2xl mt-3"
-              resizeMode="cover"
-            />
-            <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-3">
-              Added {formatDateTime(receipt.created_at)}
-            </Text>
-          </Card>
-        ) : null}
+          {/* Insights */}
+          {insightItems.length > 0 && (
+            <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
+              <View className="flex-row items-center gap-3 mb-2">
+                <Feather name="trending-up" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+                  Insights
+                </Text>
+              </View>
+              <View className="space-y-2">
+                {insightItems.map((item, index) => (
+                  <Text key={index} className="text-sm text-app-text dark:text-app-text-dark">
+                    • {item}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
 
-        <View className="mt-2">
-          <Text className="text-xs text-app-muted dark:text-app-muted-dark">
-            Created {formatDateTime(expense.created_at)}. Updated {formatDateTime(expense.updated_at)}.
-          </Text>
+          {/* Receipt */}
+          {receipt && (
+            <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
+              <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-3">
+                Receipt
+              </Text>
+              <Image
+                source={{ uri: receipt.image_uri }}
+                className="w-full h-56 rounded-2xl"
+                resizeMode="cover"
+              />
+              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-3">
+                Added {formatDateTime(receipt.created_at)}
+              </Text>
+            </View>
+          )}
         </View>
 
-        <View className="mt-6">
+        <View className="px-6 mt-8">
           <Button
-            title="Edit expense"
-            variant="primary"
-            onPress={() => navigation.navigate('AddExpense' as never, { id: expense.id } as never)}
+            title="Edit Expense"
+            onPress={() => navigation.navigate('AddEditExpense', { id: expense.id })}
+            variant="secondary"
+            icon={<Feather name="edit-2" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />}
           />
         </View>
       </ScrollView>
 
+      {/* Menu Modal */}
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-        <View className="flex-1 justify-end bg-black/40">
-          <Pressable className="flex-1" onPress={() => setMenuOpen(false)} />
-          <View className="bg-app-surface dark:bg-app-surface-dark p-5 rounded-t-3xl">
-            <Text className="text-sm font-display text-app-text dark:text-app-text-dark">
-              More actions
-            </Text>
-            <Pressable
-              className="mt-4 rounded-2xl bg-app-soft dark:bg-app-soft-dark px-4 py-3"
+        <Pressable className="flex-1 bg-black/60 justify-end" onPress={() => setMenuOpen(false)}>
+          <View className="bg-app-card dark:bg-app-card-dark rounded-t-[32px] p-6 pb-10">
+            <View className="items-center mb-6">
+              <View className="w-12 h-1.5 rounded-full bg-app-border dark:bg-app-border-dark" />
+            </View>
+            <PressableScale
+              className="flex-row items-center p-4 rounded-2xl bg-app-danger/10 mb-2"
               onPress={() => {
                 setMenuOpen(false);
-                navigation.navigate('AddExpense' as never, { id: expense.id } as never);
+                setTimeout(handleDelete, 200);
               }}
             >
-              <Text className="text-sm text-app-text dark:text-app-text-dark">Edit expense</Text>
-            </Pressable>
-            <Pressable
-              className="mt-3 rounded-2xl bg-app-soft dark:bg-app-soft-dark px-4 py-3"
-              onPress={() => {
-                setMenuOpen(false);
-                Alert.alert('Delete expense?', 'This action cannot be undone.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                      await deleteExpense(expense.id);
-                      navigation.goBack();
-                    },
-                  },
-                ]);
-              }}
-            >
-              <Text className="text-sm text-app-danger">Delete expense</Text>
-            </Pressable>
+              <View className="w-10 h-10 rounded-full bg-app-danger/20 items-center justify-center mr-4">
+                <Feather name="trash-2" size={20} color="#EF4444" />
+              </View>
+              <Text className="text-lg font-medium text-app-danger">Delete Expense</Text>
+            </PressableScale>
           </View>
-        </View>
+        </Pressable>
       </Modal>
-    </>
+    </View>
   );
 }

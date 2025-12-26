@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Slider from '@react-native-community/slider';
-import { addMonths } from 'date-fns';
+import { addMonths, format, parseISO } from 'date-fns';
 import { useColorScheme } from 'nativewind';
-import { Input } from '../../components/Input';
+import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+
 import { Button } from '../../components/Button';
-import { SelectField } from '../../components/SelectField';
+import { PressableScale } from '../../components/PressableScale';
 import { listAccounts } from '../../db/repositories/accounts';
 import { listCategories } from '../../db/repositories/categories';
 import { createExpense, getExpense, updateExpense } from '../../db/repositories/expenses';
@@ -15,17 +26,85 @@ import { createRecurringRule } from '../../db/repositories/recurring';
 import { toMinor } from '../../utils/money';
 
 const regretOptions = [
-  { value: 0, label: 'Total regret' },
-  { value: 25, label: 'Mostly regret' },
-  { value: 50, label: 'Mixed feelings' },
-  { value: 75, label: 'Worth it' },
-  { value: 100, label: 'Absolutely worth it' },
+  { value: 0, label: 'Total regret', icon: 'frown' },
+  { value: 25, label: 'Mostly regret', icon: 'meh' },
+  { value: 50, label: 'Mixed feelings', icon: 'minus' },
+  { value: 75, label: 'Worth it', icon: 'smile' },
+  { value: 100, label: 'Absolutely worth it', icon: 'heart' },
 ];
 
 const normalizeRegretValue = (value: number) => {
   const snapped = Math.round(value / 25) * 25;
   return Math.max(0, Math.min(100, snapped));
 };
+
+interface SelectionModalProps {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  options: { id: string; name: string; subtitle?: string }[];
+  onSelect: (id: string) => void;
+  selectedId: string | null;
+}
+
+function SelectionModal({ visible, onClose, title, options, onSelect, selectedId }: SelectionModalProps) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable className="flex-1 bg-black/60" onPress={onClose}>
+        <View className="flex-1 justify-end">
+          <Pressable className="bg-app-card dark:bg-app-card-dark rounded-t-[32px] overflow-hidden h-[70%]">
+            <View className="items-center pt-4 pb-2">
+              <View className="w-12 h-1.5 rounded-full bg-app-border dark:bg-app-border-dark" />
+            </View>
+            <View className="px-6 py-4 border-b border-app-border/50 dark:border-app-border-dark/50 flex-row justify-between items-center">
+              <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
+                {title}
+              </Text>
+              <Pressable onPress={onClose} className="p-2 -mr-2">
+                <Feather name="x" size={24} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 24 }}>
+              {options.map((option) => (
+                <PressableScale
+                  key={option.id}
+                  className={`flex-row items-center justify-between p-4 mb-3 rounded-2xl border ${
+                    selectedId === option.id
+                      ? 'bg-app-soft dark:bg-app-soft-dark border-app-brand dark:border-app-brand-dark'
+                      : 'bg-transparent border-app-border dark:border-app-border-dark'
+                  }`}
+                  onPress={() => {
+                    onSelect(option.id);
+                    onClose();
+                  }}
+                >
+                  <View>
+                    <Text className={`text-base font-medium ${
+                      selectedId === option.id ? 'text-app-brand dark:text-app-brand-dark' : 'text-app-text dark:text-app-text-dark'
+                    }`}>
+                      {option.name}
+                    </Text>
+                    {option.subtitle && (
+                      <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-0.5">
+                        {option.subtitle}
+                      </Text>
+                    )}
+                  </View>
+                  {selectedId === option.id && (
+                    <Feather name="check" size={20} color={isDark ? '#7D3AE6' : '#5C2AAE'} />
+                  )}
+                </PressableScale>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+}
 
 export default function AddEditExpenseScreen() {
   const navigation = useNavigation();
@@ -47,6 +126,9 @@ export default function AddEditExpenseScreen() {
 
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [accounts, setAccounts] = useState<{ id: string; name: string; currency: string }[]>([]);
+
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   useEffect(() => {
     Promise.all([listCategories(), listAccounts()]).then(([cats, accts]) => {
@@ -118,115 +200,219 @@ export default function AddEditExpenseScreen() {
     navigation.goBack();
   };
 
+  const selectedCategory = categories.find(c => c.id === categoryId);
+  const selectedAccount = accounts.find(a => a.id === accountId);
+
   return (
-    <ScrollView
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24 }}
     >
-      <Input
-        label="Title"
-        value={title}
-        onChangeText={setTitle}
-        placeholder="e.g. Weekly groceries"
-      />
-      <Input
-        label="Amount"
-        value={amount}
-        onChangeText={setAmount}
-        placeholder="0.00"
-        keyboardType="decimal-pad"
-      />
-      <SelectField
-        label="Category"
-        value={categoryId}
-        options={categories.map((cat) => ({ label: cat.name, value: cat.id }))}
-        onChange={setCategoryId}
-      />
-      <SelectField
-        label="Account"
-        value={accountId}
-        options={accounts.map((acct) => ({
-          label: `${acct.name} (${acct.currency})`,
-          value: acct.id,
-        }))}
-        onChange={setAccountId}
-      />
-
-      <Input
-        label="Date (YYYY-MM-DD)"
-        value={dateInput}
-        onChangeText={(value) => {
-          setDateInput(value);
-        }}
-        placeholder="2025-03-10"
-      />
-
-      <View className="mb-6">
-        <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
-          Worth it
-        </Text>
-        {(() => {
-          const selected =
-            regretOptions.find((option) => option.value === sliderValue) ?? regretOptions[2];
-          return (
-            <Text className="text-sm font-emphasis text-app-text dark:text-app-text-dark mb-2">
-              {selected.label}
-            </Text>
-          );
-        })()}
-        <View>
-          <Slider
-            value={sliderValue}
-            minimumValue={0}
-            maximumValue={100}
-            step={25}
-            minimumTrackTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
-            maximumTrackTintColor={isDark ? '#3A254F' : '#F2C7E3'}
-            thumbTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
-            onValueChange={setSliderValue}
-            style={{ marginHorizontal: 8 }}
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Section */}
+        <View className="pt-8 pb-8 px-6 items-center justify-center">
+          <View className="flex-row items-center justify-center">
+            <Text className="text-4xl font-display text-app-muted dark:text-app-muted-dark mr-1">$</Text>
+            <TextInput
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="0.00"
+              placeholderTextColor={isDark ? '#3A254F' : '#F2C7E3'}
+              keyboardType="decimal-pad"
+              className="text-6xl font-display text-app-text dark:text-app-text-dark text-center min-w-[120px]"
+              autoFocus={!editingId}
+            />
+          </View>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="What is this for?"
+            placeholderTextColor={isDark ? '#C8A9C2' : '#8A6B9A'}
+            className="text-xl text-app-text dark:text-app-text-dark text-center mt-2 font-medium w-full"
           />
-          <View className="flex-row mt-3" style={{ paddingHorizontal: 8 }}>
-            {regretOptions.map((option) => (
-              <View key={option.value} className="flex-1 items-center">
-                <View
-                  className={`h-2 w-2 rounded-full ${
-                    option.value === sliderValue
-                      ? 'bg-app-brand dark:bg-app-brand-dark'
-                      : 'bg-app-border dark:bg-app-border-dark'
-                  }`}
-                />
-                <Text
-                  className={`text-[10px] text-center mt-2 ${
-                    option.value === sliderValue
-                      ? 'text-app-text dark:text-app-text-dark'
-                      : 'text-app-muted dark:text-app-muted-dark'
-                  }`}
-                >
-                  {option.label}
-                </Text>
+        </View>
+
+        {/* Details Card */}
+        <View className="px-4">
+          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl overflow-hidden border border-app-border/50 dark:border-app-border-dark/50">
+            {/* Category Row */}
+            <PressableScale onPress={() => setShowCategoryModal(true)}>
+              <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
+                <View className="flex-row items-center gap-4">
+                  <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                    <Feather name="tag" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                  </View>
+                  <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Category</Text>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-base text-app-muted dark:text-app-muted-dark">
+                    {selectedCategory?.name || 'Select'}
+                  </Text>
+                  <Feather name="chevron-right" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                </View>
               </View>
-            ))}
+            </PressableScale>
+
+            {/* Account Row */}
+            <PressableScale onPress={() => setShowAccountModal(true)}>
+              <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
+                <View className="flex-row items-center gap-4">
+                  <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                    <Feather name="credit-card" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                  </View>
+                  <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Account</Text>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-base text-app-muted dark:text-app-muted-dark">
+                    {selectedAccount?.name || 'Select'}
+                  </Text>
+                  <Feather name="chevron-right" size={16} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+                </View>
+              </View>
+            </PressableScale>
+
+            {/* Date Row */}
+            <View className="flex-row items-center justify-between p-5">
+              <View className="flex-row items-center gap-4">
+                <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                  <Feather name="calendar" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
+                </View>
+                <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Date</Text>
+              </View>
+              <TextInput
+                value={dateInput}
+                onChangeText={setDateInput}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={isDark ? '#C8A9C2' : '#8A6B9A'}
+                className="text-base text-app-muted dark:text-app-muted-dark text-right min-w-[100px]"
+              />
+            </View>
           </View>
         </View>
-      </View>
 
-      <Input label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional" multiline />
-
-      {!editingId ? (
-        <View className="mb-6">
-          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
-            Recurring
+        {/* Slider Section */}
+        <View className="px-6 mt-8">
+          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-4 ml-2">
+            How do you feel?
           </Text>
+          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-6 border border-app-border/50 dark:border-app-border-dark/50">
+            {(() => {
+              const selected = regretOptions.find((option) => option.value === sliderValue) ?? regretOptions[2];
+              return (
+                <View className="items-center mb-6">
+                  <View className="w-12 h-12 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mb-3">
+                    <Feather name={selected.icon as any} size={24} color={isDark ? '#7D3AE6' : '#5C2AAE'} />
+                  </View>
+                  <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                    {selected.label}
+                  </Text>
+                </View>
+              );
+            })()}
+            
+            <Slider
+              value={sliderValue}
+              minimumValue={0}
+              maximumValue={100}
+              step={25}
+              minimumTrackTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
+              maximumTrackTintColor={isDark ? '#3A254F' : '#F2C7E3'}
+              thumbTintColor={isDark ? '#7D3AE6' : '#5C2AAE'}
+              onValueChange={(val) => {
+                Haptics.selectionAsync();
+                setSliderValue(val);
+              }}
+              style={{ height: 40 }}
+            />
+            <View className="flex-row justify-between px-2 mt-2">
+              <Text className="text-[10px] text-app-muted dark:text-app-muted-dark">Regret</Text>
+              <Text className="text-[10px] text-app-muted dark:text-app-muted-dark">Worth it</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Notes & Recurring */}
+        <View className="px-4 mt-6 space-y-4">
+          <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Add notes..."
+              placeholderTextColor={isDark ? '#C8A9C2' : '#8A6B9A'}
+              multiline
+              className="text-base text-app-text dark:text-app-text-dark min-h-[80px]"
+              textAlignVertical="top"
+            />
+          </View>
+
+          {!editingId && (
+            <PressableScale
+              onPress={() => {
+                Haptics.selectionAsync();
+                setRecurring(!recurring);
+              }}
+              className={`flex-row items-center justify-between p-5 rounded-3xl border ${
+                recurring
+                  ? 'bg-app-soft dark:bg-app-soft-dark border-app-brand dark:border-app-brand-dark'
+                  : 'bg-app-card dark:bg-app-card-dark border-app-border/50 dark:border-app-border-dark/50'
+              }`}
+            >
+              <View className="flex-row items-center gap-4">
+                <View className={`w-10 h-10 rounded-full items-center justify-center ${
+                  recurring ? 'bg-app-brand dark:bg-app-brand-dark' : 'bg-app-soft dark:bg-app-soft-dark'
+                }`}>
+                  <Feather name="repeat" size={18} color={recurring ? '#FFFFFF' : (isDark ? '#F9E6F4' : '#2C0C4D')} />
+                </View>
+                <View>
+                  <Text className={`text-base font-medium ${
+                    recurring ? 'text-app-brand dark:text-app-brand-dark' : 'text-app-text dark:text-app-text-dark'
+                  }`}>
+                    Monthly Recurring
+                  </Text>
+                  <Text className="text-xs text-app-muted dark:text-app-muted-dark">
+                    Repeat this expense every month
+                  </Text>
+                </View>
+              </View>
+              <View className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
+                recurring ? 'border-app-brand dark:border-app-brand-dark bg-app-brand dark:bg-app-brand-dark' : 'border-app-muted dark:border-app-muted-dark'
+              }`}>
+                {recurring && <Feather name="check" size={14} color="#FFFFFF" />}
+              </View>
+            </PressableScale>
+          )}
+        </View>
+
+        <View className="px-6 mt-8">
           <Button
-            title={recurring ? 'Monthly recurring enabled' : 'Enable monthly recurring'}
-            variant={recurring ? 'primary' : 'secondary'}
-            onPress={() => setRecurring((value) => !value)}
+            title={editingId ? 'Update Expense' : 'Save Expense'}
+            onPress={handleSave}
+            variant="primary"
+            icon={<Feather name="check" size={20} color="#FFFFFF" />}
           />
         </View>
-      ) : null}
+      </ScrollView>
 
-      <Button title={editingId ? 'Update expense' : 'Save expense'} onPress={handleSave} />
-    </ScrollView>
+      <SelectionModal
+        visible={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        title="Select Category"
+        options={categories}
+        onSelect={setCategoryId}
+        selectedId={categoryId}
+      />
+
+      <SelectionModal
+        visible={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        title="Select Account"
+        options={accounts.map(a => ({ ...a, subtitle: a.currency }))}
+        onSelect={setAccountId}
+        selectedId={accountId}
+      />
+    </KeyboardAvoidingView>
   );
 }
