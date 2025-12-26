@@ -1,7 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View, Dimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
+import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import {
   VictoryAxis,
   VictoryBar,
@@ -10,8 +12,7 @@ import {
   VictoryPie,
 } from '../../components/charts/victory';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { Card } from '../../components/Card';
-import { SegmentedControl } from '../../components/SegmentedControl';
+import { DateRangeSelector } from '../../components/DateRangeSelector';
 import { useUIStore } from '../../state/useUIStore';
 import {
   getExpenseSeries,
@@ -24,6 +25,7 @@ import {
 } from '../../db/repositories/analytics';
 import { getPeriodRange } from '../../utils/period';
 import { useSettingsStore } from '../../state/useSettingsStore';
+import { formatSigned } from '../../utils/money';
 
 export default function InsightsScreen() {
   const { colorScheme } = useColorScheme();
@@ -32,6 +34,7 @@ export default function InsightsScreen() {
   const accentColor = isDark ? '#FF63C1' : '#FF4FB6';
   const { insightsPeriod, setInsightsPeriod } = useUIStore();
   const { fixedHourlyRateMinor, hoursPerDay } = useSettingsStore();
+  const [date, setDate] = useState(new Date());
   const [expenseSeries, setExpenseSeries] = useState<{ x: string; y: number }[]>([]);
   const [incomeSeries, setIncomeSeries] = useState<{ x: string; y: number }[]>([]);
   const [categorySpend, setCategorySpend] = useState<
@@ -48,8 +51,12 @@ export default function InsightsScreen() {
   >([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
 
+  const chartWidth = Dimensions.get('window').width - 48 - 48; // Screen width - padding (24*2) - card padding (24*2)
+  const pieOuterRadius = Math.min(chartWidth, 220) / 2 - 16;
+  const pieInnerRadius = Math.max(32, Math.round(pieOuterRadius * 0.55));
+
   const load = useCallback(() => {
-    const range = getPeriodRange(new Date(), insightsPeriod);
+    const range = getPeriodRange(date, insightsPeriod);
     const granularity = insightsPeriod === 'year' ? 'month' : 'day';
     Promise.all([
       getExpenseSeries({ start: range.start, end: range.end, granularity }),
@@ -69,7 +76,7 @@ export default function InsightsScreen() {
       const fallback = fixedHourlyRateMinor > 0 ? fixedHourlyRateMinor : null;
       setHourlyRateMinor(hourly.hourly_rate_minor ?? fallback);
     });
-  }, [insightsPeriod, fixedHourlyRateMinor]);
+  }, [insightsPeriod, fixedHourlyRateMinor, date]);
 
   useFocusEffect(
     useCallback(() => {
@@ -85,132 +92,323 @@ export default function InsightsScreen() {
     }));
   }, [lifeCostRows, hourlyRateMinor]);
 
+  const pieData = useMemo(() => {
+    const palette = [
+      '#5C2AAE',
+      '#FF4FB6',
+      '#2CB67D',
+      '#F28E2B',
+      '#4E79A7',
+      '#EDC949',
+      '#B07AA1',
+      '#76B7B2',
+    ];
+    return categorySpend
+      .filter((row) => row.total_minor > 0)
+      .map((row, index) => ({
+        x: row.category_name,
+        y: row.total_minor / 100,
+        color: row.category_color || palette[index % palette.length],
+      }));
+  }, [categorySpend]);
+
   return (
-    <ScrollView
-      className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24 }}
-    >
-      <View className="mb-6">
-        <SegmentedControl
-          options={[
-            { label: 'Week', value: 'week' },
-            { label: 'Month', value: 'month' },
-            { label: 'Year', value: 'year' },
-          ]}
-          value={insightsPeriod}
-          onChange={(value) => setInsightsPeriod(value)}
+    <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="flex-row items-center justify-between mb-6">
+          <Text className="text-4xl font-display text-app-text dark:text-app-text-dark">
+            Insights
+          </Text>
+        </View>
+
+        <DateRangeSelector
+          period={insightsPeriod}
+          date={date}
+          onChangeDate={setDate}
+          onChangePeriod={setInsightsPeriod}
         />
-      </View>
 
-      <Animated.View entering={FadeInUp.duration(300)}>
-        <Card className="mb-5">
-          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
-            Expenses over time
-          </Text>
-          <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
-            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
-            <VictoryLine
-              data={expenseSeries}
-              style={{ data: { stroke: '#EF4444', strokeWidth: 2 } }}
-            />
-          </VictoryChart>
-        </Card>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.duration(350)}>
-        <Card className="mb-5">
-          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
-            Income over time
-          </Text>
-          <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-            <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
-            <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
-            <VictoryLine
-              data={incomeSeries}
-              style={{ data: { stroke: '#2CB67D', strokeWidth: 2 } }}
-            />
-          </VictoryChart>
-        </Card>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.duration(400)}>
-        <Card className="mb-5">
-          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
-            Spending by category
-          </Text>
-          {categorySpend.length === 0 ? (
-            <Text className="text-sm text-app-muted dark:text-app-muted-dark">No data yet.</Text>
-          ) : (
-            <VictoryPie
-              height={220}
-              data={categorySpend.map((row) => ({
-                x: row.category_name,
-                y: row.total_minor / 100,
-              }))}
-              colorScale={categorySpend.map((row) => row.category_color)}
-              innerRadius={60}
-              labelRadius={90}
-              style={{ labels: { fontSize: 10, fill: axisColor } }}
-            />
-          )}
-        </Card>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.duration(450)}>
-        <Card className="mb-5">
-          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
-            Regret vs worth-it
-          </Text>
-          {regretByCategory.length === 0 ? (
-            <Text className="text-sm text-app-muted dark:text-app-muted-dark">
-              No slider data yet.
-            </Text>
-          ) : (
-            <VictoryChart height={220} padding={{ top: 20, left: 40, right: 20, bottom: 40 }}>
-              <VictoryAxis style={{ tickLabels: { fontSize: 10, fill: axisColor } }} />
-              <VictoryAxis
-                dependentAxis
-                domain={[0, 100]}
-                style={{ tickLabels: { fontSize: 10, fill: axisColor } }}
-              />
-              <VictoryBar
-                data={regretByCategory.map((row) => ({ x: row.category_name, y: row.avg_regret }))}
-                style={{ data: { fill: accentColor } }}
-              />
-            </VictoryChart>
-          )}
-          <View className="mt-4">
-            {regretful.map((item) => (
-              <Text key={item.title} className="text-xs text-app-muted dark:text-app-muted-dark">
-                {item.title}: avg {Math.round(item.avg_regret)}
-              </Text>
-            ))}
-          </View>
-        </Card>
-      </Animated.View>
-
-      <Animated.View entering={FadeInUp.duration(500)}>
-        <Card>
-          <Text className="text-base font-display text-app-text dark:text-app-text-dark mb-3">
-            Life cost by category
-          </Text>
-          {hourlyRateMinor ? (
-            lifeCostDisplay.map((row) => (
-              <View key={row.name} className="flex-row items-center justify-between mb-2">
-                <Text className="text-sm text-app-text dark:text-app-text-dark">{row.name}</Text>
-                <Text className="text-sm text-app-muted dark:text-app-muted-dark">
-                  {(row.hours / hoursPerDay).toFixed(1)} days
-                </Text>
+        <Animated.View entering={FadeInUp.duration(300)}>
+          <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
+            <View className="flex-row items-center mb-6">
+              <View className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mr-3">
+                <Feather name="trending-up" size={20} color="#EF4444" />
               </View>
-            ))
-          ) : (
-            <Text className="text-sm text-app-muted dark:text-app-muted-dark">
-              Set a fixed hourly rate in Settings to unlock life cost analytics.
-            </Text>
-          )}
-        </Card>
-      </Animated.View>
-    </ScrollView>
+              <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                Expenses over time
+              </Text>
+            </View>
+            {expenseSeries.length === 0 ? (
+              <Text className="text-sm text-app-muted dark:text-app-muted-dark">
+                No data available
+              </Text>
+            ) : (
+              <VictoryChart
+                width={chartWidth}
+                height={220}
+                padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
+                prependDefaultAxes={false}
+              >
+                <VictoryAxis
+                  style={{
+                    tickLabels: {
+                      fontSize: 10,
+                      fill: axisColor,
+                      fontFamily: 'Manrope_500Medium',
+                    },
+                    axis: { stroke: axisColor, strokeWidth: 0.5 },
+                  }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  style={{
+                    tickLabels: {
+                      fontSize: 10,
+                      fill: axisColor,
+                      fontFamily: 'Manrope_500Medium',
+                    },
+                    axis: { stroke: 'transparent' },
+                    grid: { stroke: axisColor, strokeWidth: 0.5, strokeDasharray: '4, 4' },
+                  }}
+                />
+                <VictoryLine
+                  data={expenseSeries}
+                  style={{
+                    data: { stroke: '#EF4444', strokeWidth: 3 },
+                  }}
+                  animate={{
+                    duration: 500,
+                    onLoad: { duration: 500 },
+                  }}
+                />
+              </VictoryChart>
+            )}
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.duration(350)}>
+          <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
+            <View className="flex-row items-center mb-6">
+              <View className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 items-center justify-center mr-3">
+                <Feather name="trending-down" size={20} color="#2CB67D" />
+              </View>
+              <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                Income over time
+              </Text>
+            </View>
+            {incomeSeries.length === 0 ? (
+              <Text className="text-sm text-app-muted dark:text-app-muted-dark">
+                No data available
+              </Text>
+            ) : (
+              <VictoryChart
+                width={chartWidth}
+                height={220}
+                padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
+                prependDefaultAxes={false}
+              >
+                <VictoryAxis
+                  style={{
+                    tickLabels: {
+                      fontSize: 10,
+                      fill: axisColor,
+                      fontFamily: 'Manrope_500Medium',
+                    },
+                    axis: { stroke: axisColor, strokeWidth: 0.5 },
+                  }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  style={{
+                    tickLabels: {
+                      fontSize: 10,
+                      fill: axisColor,
+                      fontFamily: 'Manrope_500Medium',
+                    },
+                    axis: { stroke: 'transparent' },
+                    grid: { stroke: axisColor, strokeWidth: 0.5, strokeDasharray: '4, 4' },
+                  }}
+                />
+                <VictoryLine
+                  data={incomeSeries}
+                  style={{
+                    data: { stroke: '#2CB67D', strokeWidth: 3 },
+                  }}
+                  animate={{
+                    duration: 500,
+                    onLoad: { duration: 500 },
+                  }}
+                />
+              </VictoryChart>
+            )}
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.duration(400)}>
+          <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
+            <View className="flex-row items-center mb-6">
+              <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mr-3">
+                <Feather name="pie-chart" size={20} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+              </View>
+              <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                Spending by category
+              </Text>
+            </View>
+            {pieData.length === 0 ? (
+              <Text className="text-sm text-app-muted dark:text-app-muted-dark">
+                No data available
+              </Text>
+            ) : (
+              <VictoryPie
+                width={chartWidth}
+                height={200}
+                data={pieData}
+                colorScale={pieData.map((row) => row.color)}
+                padding={20}
+                innerRadius={pieInnerRadius}
+                padAngle={1}
+                labelRadius={90}
+                style={{
+                  data: {
+                    fillOpacity: 0.9,
+                    stroke: isDark ? '#241733' : '#FFFFFF',
+                    strokeWidth: 1,
+                  },
+                  labels: { fontSize: 10, fill: axisColor, fontFamily: 'Manrope_500Medium' },
+                }}
+                animate={{
+                  duration: 500,
+                }}
+              />
+            )}
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.duration(450)}>
+          <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
+            <View className="flex-row items-center mb-6">
+              <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mr-3">
+                <Feather name="sliders" size={20} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+              </View>
+              <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                Regret vs Worth-it
+              </Text>
+            </View>
+            {regretByCategory.length === 0 ? (
+              <Text className="text-sm text-app-muted dark:text-app-muted-dark">
+                No data available
+              </Text>
+            ) : (
+              <VictoryChart
+                width={chartWidth}
+                height={220}
+                padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
+                prependDefaultAxes={false}
+                domain={{ y: [0, 100] }}
+              >
+                <VictoryAxis
+                  style={{
+                    tickLabels: {
+                      fontSize: 10,
+                      fill: axisColor,
+                      fontFamily: 'Manrope_500Medium',
+                    },
+                    axis: { stroke: axisColor, strokeWidth: 0.5 },
+                  }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  style={{
+                    tickLabels: {
+                      fontSize: 10,
+                      fill: axisColor,
+
+                      fontFamily: 'Manrope_500Medium',
+                    },
+                    axis: { stroke: 'transparent' },
+                    grid: { stroke: axisColor, strokeWidth: 0.5, strokeDasharray: '4, 4' },
+                  }}
+                />
+                <VictoryBar
+                  data={regretByCategory.map((row) => ({
+                    x: row.category_name,
+                    y: row.avg_regret,
+                  }))}
+                  style={{ data: { fill: accentColor } }}
+                  animate={{
+                    duration: 500,
+                    onLoad: { duration: 500 },
+                  }}
+                  cornerRadius={{ top: 4 }}
+
+                />
+              </VictoryChart>
+            )}
+            <View className="mt-5">
+              {regretful.map((item, index) => (
+                <View
+                  key={item.title}
+                  className={`flex-row items-center justify-between py-2 ${
+                    index < regretful.length - 1
+                      ? 'border-b border-app-border/50 dark:border-app-border-dark/50'
+                      : ''
+                  }`}
+                >
+                  <Text className="text-sm text-app-text dark:text-app-text-dark font-medium">
+                    {item.title}
+                  </Text>
+                  <View className="flex-row items-center">
+                    <Text className="text-xs text-app-muted dark:text-app-muted-dark mr-2">
+                      Regret score
+                    </Text>
+                    <View className="bg-app-soft dark:bg-app-soft-dark px-2 py-1 rounded-lg">
+                      <Text className="text-xs font-bold text-app-brand dark:text-app-brand-dark">
+                        {Math.round(item.avg_regret)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInUp.duration(500)}>
+          <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
+            <View className="flex-row items-center mb-6">
+              <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center mr-3">
+                <Feather name="clock" size={20} color={isDark ? '#C8A9C2' : '#8A6B9A'} />
+              </View>
+              <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                Life cost by category
+              </Text>
+            </View>
+            {hourlyRateMinor ? (
+              lifeCostDisplay.map((row) => (
+                <View key={row.name} className="flex-row items-center justify-between mb-3">
+                  <Text className="text-sm font-medium text-app-text dark:text-app-text-dark">
+                    {row.name}
+                  </Text>
+                  <View className="flex-row items-center">
+                    <Text className="text-sm font-bold text-app-brand dark:text-app-brand-dark mr-1">
+                      {(row.hours / hoursPerDay).toFixed(1)}
+                    </Text>
+                    <Text className="text-xs text-app-muted dark:text-app-muted-dark">days</Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <Text className="text-sm text-app-muted dark:text-app-muted-dark">
+                Set a fixed hourly rate in Settings to unlock life cost analytics.
+              </Text>
+            )}
+          </View>
+        </Animated.View>
+      </ScrollView>
+    </View>
   );
 }

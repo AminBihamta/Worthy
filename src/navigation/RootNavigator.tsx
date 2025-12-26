@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
@@ -26,9 +26,20 @@ import RecurringScreen from '../screens/Recurring/RecurringScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 import WidgetsScreen from '../screens/Settings/WidgetsScreen';
 import { colors } from '../theme/tokens';
+import { PressableScale } from '../components/PressableScale';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+const TAB_CONFIG: Record<
+  string,
+  { label: string; icon: keyof typeof Feather.glyphMap }
+> = {
+  HomeStack: { label: 'Home', icon: 'home' },
+  TransactionsStack: { label: 'Transactions', icon: 'list' },
+  BudgetsStack: { label: 'Budgets', icon: 'pie-chart' },
+  GoalsStack: { label: 'Goals', icon: 'target' },
+  InsightsStack: { label: 'Insights', icon: 'bar-chart-2' },
+};
 
 function HomeStack() {
   return (
@@ -158,78 +169,128 @@ function InsightsStack() {
   );
 }
 
-export default function RootNavigator() {
+function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const palette = isDark ? colors.dark : colors.light;
   const activeIconColor = '#FFFFFF';
-  const renderTabLabel = (label: string, focused: boolean) => (
-    <Text
-      style={{
-        fontFamily: focused ? 'Manrope_600SemiBold' : 'Manrope_500Medium',
-        fontSize: 11,
-        color: focused ? palette.brand : palette.muted,
-      }}
-    >
-      {label}
-    </Text>
-  );
+  const inactiveIconColor = palette.muted;
+  const navBackground = isDark ? '#1A0E25' : '#FFFFFF';
+  const navBorder = isDark ? '#4F2B6C' : '#E6C9DF';
+  const pillBackground = palette.brand;
+  const pillBorder = isDark ? '#A06BF0' : '#7441C8';
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          position: 'absolute',
-          left: 20,
-          right: 20,
-          bottom: 18,
-          backgroundColor: palette.surface,
-          borderColor: palette.border,
-          borderWidth: 1,
-          borderTopWidth: 1,
-          height: 72,
-          borderRadius: 26,
-          paddingBottom: 8,
-          paddingTop: 8,
-          paddingHorizontal: 8,
-          shadowColor: '#000',
-          shadowOpacity: 0.12,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 10,
-        },
-        tabBarActiveTintColor: palette.brand,
-        tabBarInactiveTintColor: palette.muted,
-        tabBarIconStyle: {
-          marginTop: 2,
-        },
+    <View
+      style={{
+        position: 'absolute',
+        left: 20,
+        right: 20,
+        bottom: 18,
+        backgroundColor: navBackground,
+        borderColor: navBorder,
+        borderWidth: 1,
+        height: 78,
+        borderRadius: 32,
+        paddingVertical: 10,
+        paddingHorizontal: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        shadowColor: '#000',
+        shadowOpacity: isDark ? 0.4 : 0.14,
+        shadowRadius: isDark ? 20 : 16,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 10,
       }}
     >
+      {state.routes.map((route, index) => {
+        const focused = state.index === index;
+        const config = TAB_CONFIG[route.name] ?? {
+          label: route.name,
+          icon: 'circle',
+        };
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!focused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+        const onLongPress = () => {
+          navigation.emit({
+            type: 'tabLongPress',
+            target: route.key,
+          });
+        };
+        const { options } = descriptors[route.key];
+        const label =
+          typeof options.tabBarLabel === 'string'
+            ? options.tabBarLabel
+            : typeof options.title === 'string'
+              ? options.title
+              : config.label;
+
+        return (
+          <View key={route.key} style={{ flex: focused ? 2.2 : 0.9, marginHorizontal: 4 }}>
+            <PressableScale haptic onPress={onPress} onLongPress={onLongPress}>
+              <View
+                style={{
+                  height: 46,
+                  
+                  borderRadius: 999,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: focused ? pillBackground : 'transparent',
+                  borderWidth: focused ? 1 : 0,
+                  borderColor: focused ? pillBorder : 'transparent',
+                  paddingHorizontal: focused ? 1 : 0,
+                  shadowColor: focused ? pillBorder : 'transparent',
+                  shadowOpacity: focused ? 0.25 : 0,
+                  shadowRadius: focused ? 12 : 0,
+                  shadowOffset: { width: 0, height: 6 },
+                }}
+              >
+                <Feather
+                  name={config.icon}
+                  size={20}
+                  color={focused ? activeIconColor : inactiveIconColor}
+                />
+                {focused ? (
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      marginLeft: 10,
+                      fontFamily: 'Manrope_600SemiBold',
+                      fontSize: 12,
+                      color: activeIconColor,
+                      flexShrink: 1,
+                    }}
+                  >
+                    {label}
+                  </Text>
+                ) : null}
+              </View>
+            </PressableScale>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+export default function RootNavigator() {
+  return (
+    <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tab.Screen
         name="HomeStack"
         component={HomeStack}
         options={{
           title: 'Home',
-          tabBarLabel: ({ focused }) => renderTabLabel('Home', focused),
-          tabBarIcon: ({ size, focused, color }) => (
-            <View
-              style={{
-                height: 36,
-                width: 36,
-                borderRadius: 18,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: focused ? palette.brand : 'transparent',
-                shadowColor: focused ? palette.brand : 'transparent',
-                shadowOpacity: focused ? 0.25 : 0,
-                shadowRadius: focused ? 10 : 0,
-                shadowOffset: { width: 0, height: 6 },
-              }}
-            >
-              <Feather name="home" size={size} color={focused ? activeIconColor : color} />
-            </View>
-          ),
         }}
       />
       <Tab.Screen
@@ -237,25 +298,6 @@ export default function RootNavigator() {
         component={TransactionsStack}
         options={{
           title: 'Transactions',
-          tabBarLabel: ({ focused }) => renderTabLabel('Transactions', focused),
-          tabBarIcon: ({ size, focused, color }) => (
-            <View
-              style={{
-                height: 36,
-                width: 36,
-                borderRadius: 18,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: focused ? palette.brand : 'transparent',
-                shadowColor: focused ? palette.brand : 'transparent',
-                shadowOpacity: focused ? 0.25 : 0,
-                shadowRadius: focused ? 10 : 0,
-                shadowOffset: { width: 0, height: 6 },
-              }}
-            >
-              <Feather name="list" size={size} color={focused ? activeIconColor : color} />
-            </View>
-          ),
         }}
       />
       <Tab.Screen
@@ -263,25 +305,6 @@ export default function RootNavigator() {
         component={BudgetsStack}
         options={{
           title: 'Budgets',
-          tabBarLabel: ({ focused }) => renderTabLabel('Budgets', focused),
-          tabBarIcon: ({ size, focused, color }) => (
-            <View
-              style={{
-                height: 36,
-                width: 36,
-                borderRadius: 18,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: focused ? palette.brand : 'transparent',
-                shadowColor: focused ? palette.brand : 'transparent',
-                shadowOpacity: focused ? 0.25 : 0,
-                shadowRadius: focused ? 10 : 0,
-                shadowOffset: { width: 0, height: 6 },
-              }}
-            >
-              <Feather name="pie-chart" size={size} color={focused ? activeIconColor : color} />
-            </View>
-          ),
         }}
       />
       <Tab.Screen
@@ -289,25 +312,6 @@ export default function RootNavigator() {
         component={GoalsStack}
         options={{
           title: 'Goals',
-          tabBarLabel: ({ focused }) => renderTabLabel('Goals', focused),
-          tabBarIcon: ({ size, focused, color }) => (
-            <View
-              style={{
-                height: 36,
-                width: 36,
-                borderRadius: 18,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: focused ? palette.brand : 'transparent',
-                shadowColor: focused ? palette.brand : 'transparent',
-                shadowOpacity: focused ? 0.25 : 0,
-                shadowRadius: focused ? 10 : 0,
-                shadowOffset: { width: 0, height: 6 },
-              }}
-            >
-              <Feather name="target" size={size} color={focused ? activeIconColor : color} />
-            </View>
-          ),
         }}
       />
       <Tab.Screen
@@ -315,25 +319,6 @@ export default function RootNavigator() {
         component={InsightsStack}
         options={{
           title: 'Insights',
-          tabBarLabel: ({ focused }) => renderTabLabel('Insights', focused),
-          tabBarIcon: ({ size, focused, color }) => (
-            <View
-              style={{
-                height: 36,
-                width: 36,
-                borderRadius: 18,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: focused ? palette.brand : 'transparent',
-                shadowColor: focused ? palette.brand : 'transparent',
-                shadowOpacity: focused ? 0.25 : 0,
-                shadowRadius: focused ? 10 : 0,
-                shadowOffset: { width: 0, height: 6 },
-              }}
-            >
-              <Feather name="bar-chart-2" size={size} color={focused ? activeIconColor : color} />
-            </View>
-          ),
         }}
       />
     </Tab.Navigator>

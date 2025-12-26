@@ -166,7 +166,7 @@ export default function HomeScreen() {
                         </View>
 
                         <View>
-                          <Text className="text-white/60 text-xs mb-1">•••• {suffix}</Text>
+                         
                           <Text className="text-3xl font-display font-bold text-white">
                             {formatSigned(account.starting_balance_minor, account.currency)}
                           </Text>

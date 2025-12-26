@@ -69,6 +69,10 @@ export function VictoryAxis(props: React.ComponentProps<typeof BaseVictoryAxis>)
     />
   );
 }
+// @ts-ignore
+VictoryAxis.role = 'axis';
+// @ts-ignore
+VictoryAxis.getAxis = BaseVictoryAxis.getAxis;
 
 export function VictoryPolarAxis(props: React.ComponentProps<typeof BaseVictoryPolarAxis>) {
   return (
@@ -85,6 +89,10 @@ export function VictoryPolarAxis(props: React.ComponentProps<typeof BaseVictoryP
     />
   );
 }
+// @ts-ignore
+VictoryPolarAxis.role = 'axis';
+// @ts-ignore
+VictoryPolarAxis.getAxis = BaseVictoryPolarAxis.getAxis;
 
 export function VictoryLine(props: React.ComponentProps<typeof BaseVictoryLine>) {
   return (
@@ -98,6 +106,8 @@ export function VictoryLine(props: React.ComponentProps<typeof BaseVictoryLine>)
     />
   );
 }
+// @ts-ignore
+VictoryLine.role = 'line';
 
 export function VictoryBar(props: React.ComponentProps<typeof BaseVictoryBar>) {
   return (
@@ -111,6 +121,8 @@ export function VictoryBar(props: React.ComponentProps<typeof BaseVictoryBar>) {
     />
   );
 }
+// @ts-ignore
+VictoryBar.role = 'bar';
 
 export function VictoryPie(props: React.ComponentProps<typeof BaseVictoryPie>) {
   const width = props.width ?? getWidth();
@@ -126,6 +138,8 @@ export function VictoryPie(props: React.ComponentProps<typeof BaseVictoryPie>) {
     />
   );
 }
+// @ts-ignore
+VictoryPie.role = 'pie';
 
 export function VictoryChart(props: React.ComponentProps<typeof BaseVictoryChart>) {
   return (
@@ -151,3 +165,5 @@ export function VictoryChart(props: React.ComponentProps<typeof BaseVictoryChart
     />
   );
 }
+// @ts-ignore
+VictoryChart.role = 'chart';
