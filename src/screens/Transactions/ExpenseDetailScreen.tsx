@@ -243,17 +243,9 @@ export default function ExpenseDetailScreen() {
         <Card className="mb-4 border-0 bg-app-soft dark:bg-app-soft-dark">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
-              <View
-                className="h-11 w-11 rounded-full items-center justify-center border"
-                style={{ borderColor: categoryBorder }}
-              >
-                <Text className="text-lg text-app-text dark:text-app-text-dark">{categoryGlyph}</Text>
-              </View>
-              <View className="ml-3">
-                <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
-                  Category
-                </Text>
-                <Text className="text-base font-display text-app-text dark:text-app-text-dark mt-1">
+              
+              <View className="ml-3 ">
+                <Text className="text-base bg-app-brand dark:bg-app-brand-dark px-3 py-1 rounded-full font-display dark:text-app-text text-app-text-dark mt-1">
                   {expense.category_name}
                 </Text>
               </View>
