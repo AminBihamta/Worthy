@@ -168,7 +168,7 @@ export default function TransactionsScreen() {
   );
 
   const renderRow = (item: Transaction) => (
-    <View className="mb-4" key={item.id}>
+    <View className="mb-4">
       <SwipeableRow
         onDelete={() => handleDelete(item)}
         onEdit={() => {
@@ -217,6 +217,7 @@ export default function TransactionsScreen() {
               }
             />
           }
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => renderRow(item)}
         />
         <Pressable
