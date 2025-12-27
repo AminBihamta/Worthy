@@ -8,9 +8,12 @@ export async function getExpenseSeries(input: {
   const db = await getDb();
   const fmt = input.granularity === 'month' ? '%Y-%m' : '%Y-%m-%d';
   return db.getAllAsync<{ bucket: string; total_minor: number }>(
-    `SELECT strftime('${fmt}', date_ts / 1000, 'unixepoch') as bucket, SUM(amount_minor) as total_minor
-     FROM expenses
-     WHERE date_ts BETWEEN ? AND ?
+    `SELECT strftime('${fmt}', e.date_ts / 1000, 'unixepoch') as bucket,
+      ROUND(SUM(e.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor
+     FROM expenses e
+     JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN currencies c ON c.code = COALESCE(e.currency_code, a.currency)
+     WHERE e.date_ts BETWEEN ? AND ?
      GROUP BY bucket
      ORDER BY bucket ASC`,
     input.start,
@@ -26,9 +29,12 @@ export async function getIncomeSeries(input: {
   const db = await getDb();
   const fmt = input.granularity === 'month' ? '%Y-%m' : '%Y-%m-%d';
   return db.getAllAsync<{ bucket: string; total_minor: number }>(
-    `SELECT strftime('${fmt}', date_ts / 1000, 'unixepoch') as bucket, SUM(amount_minor) as total_minor
-     FROM incomes
-     WHERE date_ts BETWEEN ? AND ?
+    `SELECT strftime('${fmt}', i.date_ts / 1000, 'unixepoch') as bucket,
+      ROUND(SUM(i.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor
+     FROM incomes i
+     JOIN accounts a ON a.id = i.account_id
+     LEFT JOIN currencies c ON c.code = COALESCE(i.currency_code, a.currency)
+     WHERE i.date_ts BETWEEN ? AND ?
      GROUP BY bucket
      ORDER BY bucket ASC`,
     input.start,
@@ -44,9 +50,12 @@ export async function getSpendingByCategory(start: number, end: number) {
     category_color: string;
     total_minor: number;
   }>(
-    `SELECT e.category_id, c.name as category_name, c.color as category_color, SUM(e.amount_minor) as total_minor
+    `SELECT e.category_id, c.name as category_name, c.color as category_color,
+      ROUND(SUM(e.amount_minor * COALESCE(cur.rate_to_base, 1))) as total_minor
      FROM expenses e
      JOIN categories c ON c.id = e.category_id
+     JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN currencies cur ON cur.code = COALESCE(e.currency_code, a.currency)
      WHERE e.date_ts BETWEEN ? AND ?
      GROUP BY e.category_id
      ORDER BY total_minor DESC`,
@@ -63,9 +72,12 @@ export async function getRegretByCategory(start: number, end: number) {
     avg_regret: number;
     total_spent: number;
   }>(
-    `SELECT e.category_id, c.name as category_name, AVG(e.slider_0_100) as avg_regret, SUM(e.amount_minor) as total_spent
+    `SELECT e.category_id, c.name as category_name, AVG(e.slider_0_100) as avg_regret,
+      ROUND(SUM(e.amount_minor * COALESCE(cur.rate_to_base, 1))) as total_spent
      FROM expenses e
      JOIN categories c ON c.id = e.category_id
+     JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN currencies cur ON cur.code = COALESCE(e.currency_code, a.currency)
      WHERE e.date_ts BETWEEN ? AND ?
      GROUP BY e.category_id
      ORDER BY avg_regret ASC`,
@@ -77,8 +89,11 @@ export async function getRegretByCategory(start: number, end: number) {
 export async function getMostRegretfulExpenses(start: number, end: number, limit = 5) {
   const db = await getDb();
   return db.getAllAsync<{ title: string; avg_regret: number; total_spent: number }>(
-    `SELECT e.title as title, AVG(e.slider_0_100) as avg_regret, SUM(e.amount_minor) as total_spent
+    `SELECT e.title as title, AVG(e.slider_0_100) as avg_regret,
+      ROUND(SUM(e.amount_minor * COALESCE(cur.rate_to_base, 1))) as total_spent
      FROM expenses e
+     JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN currencies cur ON cur.code = COALESCE(e.currency_code, a.currency)
      WHERE e.date_ts BETWEEN ? AND ?
      GROUP BY e.title
      ORDER BY avg_regret ASC
@@ -91,9 +106,12 @@ export async function getMostRegretfulExpenses(start: number, end: number, limit
 export async function getLifeCostByCategory(start: number, end: number) {
   const db = await getDb();
   return db.getAllAsync<{ category_id: string; category_name: string; total_minor: number }>(
-    `SELECT e.category_id, c.name as category_name, SUM(e.amount_minor) as total_minor
+    `SELECT e.category_id, c.name as category_name,
+      ROUND(SUM(e.amount_minor * COALESCE(cur.rate_to_base, 1))) as total_minor
      FROM expenses e
      JOIN categories c ON c.id = e.category_id
+     JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN currencies cur ON cur.code = COALESCE(e.currency_code, a.currency)
      WHERE e.date_ts BETWEEN ? AND ?
      GROUP BY e.category_id
      ORDER BY total_minor DESC`,
@@ -110,9 +128,12 @@ export async function getEffectiveHourlyRate(): Promise<{
   const db = await getDb();
   const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const row = await db.getFirstAsync<{ total_minor: number; total_hours: number }>(
-    `SELECT SUM(amount_minor) as total_minor, SUM(hours_worked) as total_hours
-     FROM incomes
-     WHERE date_ts >= ? AND hours_worked IS NOT NULL AND hours_worked > 0`,
+    `SELECT ROUND(SUM(i.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor,
+      SUM(i.hours_worked) as total_hours
+     FROM incomes i
+     JOIN accounts a ON a.id = i.account_id
+     LEFT JOIN currencies c ON c.code = COALESCE(i.currency_code, a.currency)
+     WHERE i.date_ts >= ? AND i.hours_worked IS NOT NULL AND i.hours_worked > 0`,
     since,
   );
   const totalIncome = row?.total_minor ?? 0;

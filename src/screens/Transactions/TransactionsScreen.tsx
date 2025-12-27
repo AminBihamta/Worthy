@@ -12,6 +12,7 @@ import {
 import { deleteExpense } from '../../db/repositories/expenses';
 import { deleteIncome } from '../../db/repositories/incomes';
 import { deleteTransfer } from '../../db/repositories/transfers';
+import { listCurrencies } from '../../db/repositories/currencies';
 import { SwipeableRow } from '../../components/SwipeableRow';
 import { TransactionRow } from '../../components/TransactionRow';
 import { EmptyState } from '../../components/EmptyState';
@@ -21,6 +22,7 @@ import { useSettingsStore } from '../../state/useSettingsStore';
 import { formatLifeCost } from '../../utils/lifeCost';
 import { formatShortDate } from '../../utils/time';
 import { formatSigned } from '../../utils/money';
+import { buildRateMap, convertMinorToBase } from '../../utils/currency';
 
 class TransactionsErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -59,25 +61,31 @@ type ListItem =
 
 export default function TransactionsScreen() {
   const navigation = useNavigation();
-  const { hoursPerDay } = useSettingsStore();
+  const { hoursPerDay, baseCurrency } = useSettingsStore();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [rows, setRows] = useState<Transaction[]>([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
+  const [rateMap, setRateMap] = useState<Map<string, number>>(new Map());
   const loadIdRef = useRef(0);
 
   const load = useCallback(async () => {
     const loadId = (loadIdRef.current += 1);
     try {
-      const [items, hourly] = await Promise.all([listTransactions(), getEffectiveHourlyRate()]);
+      const [items, hourly, currencyRows] = await Promise.all([
+        listTransactions(),
+        getEffectiveHourlyRate(),
+        listCurrencies(),
+      ]);
       setRows(items);
       setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
+      setRateMap(buildRateMap(currencyRows, baseCurrency));
     } catch (error) {
       console.error('[TransactionsScreen] load failed', error);
     }
-  }, []);
+  }, [baseCurrency]);
 
   useFocusEffect(
     useCallback(() => {
@@ -127,10 +135,16 @@ export default function TransactionsScreen() {
     // Calculate summary
     const stats = filtered.reduce(
       (acc, item) => {
+        const amountBase = convertMinorToBase(
+          item.amount_minor,
+          item.account_currency,
+          rateMap,
+          baseCurrency,
+        );
         if (item.type === 'income') {
-          acc.income += item.amount_minor;
+          acc.income += amountBase;
         } else if (item.type === 'expense') {
-          acc.expense += item.amount_minor;
+          acc.expense += amountBase;
         }
         return acc;
       },
@@ -162,7 +176,7 @@ export default function TransactionsScreen() {
     });
 
     return { listData: grouped, summary: stats };
-  }, [rows, query, filterType]);
+  }, [rows, query, filterType, rateMap, baseCurrency]);
 
   const hasQuery = query.trim().length > 0;
 
@@ -219,7 +233,7 @@ export default function TransactionsScreen() {
             </Text>
           </View>
           <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
-            {formatSigned(summary.income, 'USD')}
+            {formatSigned(summary.income, baseCurrency)}
           </Text>
         </View>
         <View className="flex-1 bg-app-card dark:bg-app-card-dark p-4 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50">
@@ -232,7 +246,7 @@ export default function TransactionsScreen() {
             </Text>
           </View>
           <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
-            {formatSigned(-summary.expense, 'USD')}
+            {formatSigned(-summary.expense, baseCurrency)}
           </Text>
         </View>
       </View>
@@ -296,7 +310,16 @@ export default function TransactionsScreen() {
             transaction={transaction}
             lifeCost={
               transaction.type === 'expense'
-                ? formatLifeCost(transaction.amount_minor, hourlyRateMinor, hoursPerDay)
+                ? formatLifeCost(
+                    convertMinorToBase(
+                      transaction.amount_minor,
+                      transaction.account_currency,
+                      rateMap,
+                      baseCurrency,
+                    ),
+                    hourlyRateMinor,
+                    hoursPerDay,
+                  )
                 : null
             }
             onPress={() => {

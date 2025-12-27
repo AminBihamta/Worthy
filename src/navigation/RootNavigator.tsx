@@ -33,9 +33,11 @@ import AddEditCategoryScreen from '../screens/Categories/AddEditCategoryScreen';
 import ReceiptInboxScreen from '../screens/Receipts/ReceiptInboxScreen';
 import RecurringScreen from '../screens/Recurring/RecurringScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
+import CurrenciesScreen from '../screens/Settings/CurrenciesScreen';
 import WidgetsScreen from '../screens/Settings/WidgetsScreen';
 import { colors } from '../theme/tokens';
 import { PressableScale } from '../components/PressableScale';
+import { HeaderIconButton } from '../components/HeaderIconButton';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -50,10 +52,48 @@ const TAB_CONFIG: Record<
   InsightsStack: { label: 'Insights', icon: 'bar-chart-2' },
 };
 
+const STACK_ROOTS: Record<string, string> = {
+  HomeStack: 'Home',
+  TransactionsStack: 'Transactions',
+  BudgetsStack: 'Budgets',
+  GoalsStack: 'Goals',
+  InsightsStack: 'Insights',
+};
+
+const createStackScreenOptions =
+  (palette: typeof colors.light) =>
+  ({ navigation }: { navigation: any }) => ({
+    headerShown: true,
+    headerBackTitleVisible: false,
+    headerTitleAlign: 'center' as const,
+    headerStyle: { backgroundColor: palette.bg },
+    headerTintColor: palette.text,
+    headerShadowVisible: false,
+    headerTitleStyle: {
+      fontFamily: 'Manrope_600SemiBold',
+      fontSize: 20,
+      color: palette.text,
+    },
+    headerLeftContainerStyle: { paddingLeft: 16 },
+    headerRightContainerStyle: { paddingRight: 16 },
+    headerLeft: ({ canGoBack }: { canGoBack: boolean }) =>
+      canGoBack ? (
+        <HeaderIconButton
+          icon="arrow-left"
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Back"
+        />
+      ) : null,
+  });
+
 function HomeStack() {
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === 'dark' ? colors.dark : colors.light;
+  const screenOptions = createStackScreenOptions(palette);
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Worthy' }} />
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Worthy', headerShown: false }} />
       <Stack.Screen name="Accounts" component={AccountsScreen} options={{ title: 'Accounts' }} />
       <Stack.Screen
         name="AccountForm"
@@ -76,6 +116,7 @@ function HomeStack() {
         options={{ title: 'Receipt Inbox' }}
       />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="Currencies" component={CurrenciesScreen} options={{ title: 'Currencies' }} />
       <Stack.Screen name="Widgets" component={WidgetsScreen} options={{ title: 'Widgets' }} />
       <Stack.Screen name="Recurring" component={RecurringScreen} options={{ title: 'Recurring' }} />
       <Stack.Screen
@@ -98,12 +139,16 @@ function HomeStack() {
 }
 
 function TransactionsStack() {
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === 'dark' ? colors.dark : colors.light;
+  const screenOptions = createStackScreenOptions(palette);
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
         name="Transactions"
         component={TransactionsScreen}
-        options={{ title: 'Transactions' }}
+        options={{ title: 'Transactions', headerShown: false }}
       />
       <Stack.Screen
         name="AddExpense"
@@ -140,9 +185,13 @@ function TransactionsStack() {
 }
 
 function BudgetsStack() {
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === 'dark' ? colors.dark : colors.light;
+  const screenOptions = createStackScreenOptions(palette);
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Budgets" component={BudgetsScreen} options={{ title: 'Budgets' }} />
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen name="Budgets" component={BudgetsScreen} options={{ title: 'Budgets', headerShown: false }} />
       <Stack.Screen
         name="BudgetForm"
         component={AddEditBudgetScreen}
@@ -153,9 +202,13 @@ function BudgetsStack() {
 }
 
 function GoalsStack() {
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === 'dark' ? colors.dark : colors.light;
+  const screenOptions = createStackScreenOptions(palette);
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Goals" component={GoalsScreen} options={{ title: 'Goals' }} />
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen name="Goals" component={GoalsScreen} options={{ title: 'Goals', headerShown: false }} />
       <Stack.Screen
         name="BucketForm"
         component={AddEditBucketScreen}
@@ -171,9 +224,13 @@ function GoalsStack() {
 }
 
 function InsightsStack() {
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === 'dark' ? colors.dark : colors.light;
+  const screenOptions = createStackScreenOptions(palette);
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Insights' }} />
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Insights', headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -197,7 +254,11 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
       target: route.key,
       canPreventDefault: true,
     });
-    if (!focused && !event.defaultPrevented) {
+    if (event.defaultPrevented) return;
+    const rootScreen = STACK_ROOTS[route.name];
+    if (rootScreen) {
+      navigation.navigate(route.name, { screen: rootScreen });
+    } else {
       navigation.navigate(route.name);
     }
   };

@@ -60,5 +60,21 @@ export async function seedDefaultData(): Promise<void> {
       'fixed_hourly_rate_minor',
       '0',
     );
+    await db.runAsync('INSERT INTO settings (key, value) VALUES (?, ?)', 'base_currency', 'USD');
+  }
+
+  const currencyCount = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM currencies',
+  );
+  if (!currencyCount || currencyCount.count === 0) {
+    const now = Date.now();
+    await db.runAsync(
+      'INSERT INTO currencies (code, name, symbol, rate_to_base, created_at) VALUES (?, ?, ?, ?, ?)',
+      'USD',
+      'US Dollar',
+      '$',
+      1,
+      now,
+    );
   }
 }

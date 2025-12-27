@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Slider from '@react-native-community/slider';
-import { addMonths, format, parseISO } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears } from 'date-fns';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -21,10 +21,15 @@ import { Button } from '../../components/Button';
 import { PressableScale } from '../../components/PressableScale';
 import { getAccountBalance, listAccounts } from '../../db/repositories/accounts';
 import { listCategories } from '../../db/repositories/categories';
+import { listCurrencies, CurrencyRow } from '../../db/repositories/currencies';
 import { createExpense, getExpense, updateExpense } from '../../db/repositories/expenses';
 import { updateReceiptInbox } from '../../db/repositories/receipts';
 import { createRecurringRule } from '../../db/repositories/recurring';
 import { formatSigned, toMinor } from '../../utils/money';
+import { buildRateMap, convertMinorBetween } from '../../utils/currency';
+import { useSettingsStore } from '../../state/useSettingsStore';
+
+type RecurringFrequency = 'off' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 
 const regretOptions = [
   { value: 0, label: 'Total regret', icon: 'frown' },
@@ -33,6 +38,33 @@ const regretOptions = [
   { value: 75, label: 'Worth it', icon: 'smile' },
   { value: 100, label: 'Absolutely worth it', icon: 'heart' },
 ];
+
+const recurringOptions: { id: RecurringFrequency; name: string; subtitle?: string }[] = [
+  { id: 'off', name: 'Off', subtitle: 'No recurrence' },
+  { id: 'daily', name: 'Daily' },
+  { id: 'weekly', name: 'Weekly' },
+  { id: 'biweekly', name: 'Bi-weekly' },
+  { id: 'monthly', name: 'Monthly' },
+  { id: 'yearly', name: 'Yearly' },
+];
+
+const getRecurringConfig = (frequency: RecurringFrequency, baseDate: number) => {
+  const base = new Date(baseDate);
+  switch (frequency) {
+    case 'daily':
+      return { rrule_text: 'FREQ=DAILY;INTERVAL=1', next_run_ts: addDays(base, 1).getTime() };
+    case 'weekly':
+      return { rrule_text: 'FREQ=WEEKLY;INTERVAL=1', next_run_ts: addWeeks(base, 1).getTime() };
+    case 'biweekly':
+      return { rrule_text: 'FREQ=WEEKLY;INTERVAL=2', next_run_ts: addWeeks(base, 2).getTime() };
+    case 'monthly':
+      return { rrule_text: 'FREQ=MONTHLY;INTERVAL=1', next_run_ts: addMonths(base, 1).getTime() };
+    case 'yearly':
+      return { rrule_text: 'FREQ=YEARLY;INTERVAL=1', next_run_ts: addYears(base, 1).getTime() };
+    default:
+      return null;
+  }
+};
 
 const normalizeRegretValue = (value: number) => {
   const snapped = Math.round(value / 25) * 25;
@@ -111,6 +143,7 @@ export default function AddEditExpenseScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { baseCurrency } = useSettingsStore();
   const route = useRoute();
   const params = route.params as { id?: string; receiptId?: string } | undefined;
   const editingId = params?.id;
@@ -120,52 +153,117 @@ export default function AddEditExpenseScreen() {
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
+  const [currencyCode, setCurrencyCode] = useState<string>('');
   const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
   const [sliderValue, setSliderValue] = useState(50);
   const [notes, setNotes] = useState('');
-  const [recurring, setRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('off');
+  const [errors, setErrors] = useState<{ amount?: string; title?: string }>({});
   const [originalExpense, setOriginalExpense] = useState<{
     amount_minor: number;
     account_id: string;
+    currency_code: string | null;
+    account_currency: string;
   } | null>(null);
 
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [accounts, setAccounts] = useState<{ id: string; name: string; currency: string }[]>([]);
+  const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const heroOffset = useRef(0);
 
   useEffect(() => {
-    Promise.all([listCategories(), listAccounts()]).then(([cats, accts]) => {
-      setCategories(cats.map((cat) => ({ id: cat.id, name: cat.name })));
-      setAccounts(accts.map((acct) => ({ id: acct.id, name: acct.name, currency: acct.currency })));
-      if (!categoryId && cats.length > 0) setCategoryId(cats[0].id);
-      if (!accountId && accts.length > 0) setAccountId(accts[0].id);
-    });
-  }, [accountId, categoryId]);
+    Promise.all([listCategories(), listAccounts(), listCurrencies()]).then(
+      ([cats, accts, currencyRows]) => {
+        setCategories(cats.map((cat) => ({ id: cat.id, name: cat.name })));
+        setAccounts(accts.map((acct) => ({ id: acct.id, name: acct.name, currency: acct.currency })));
+        setCurrencies(currencyRows);
+        if (!categoryId && cats.length > 0) setCategoryId(cats[0].id);
+      },
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!currencyCode && baseCurrency) {
+      setCurrencyCode(baseCurrency);
+    }
+  }, [baseCurrency, currencyCode]);
+
+  useEffect(() => {
+    if (editingId) return;
+    if (!accountId && accounts.length > 0) {
+      const preferred =
+        accounts.find((acct) => acct.currency === (currencyCode || baseCurrency)) ?? accounts[0];
+      setAccountId(preferred.id);
+      if (!currencyCode) {
+        setCurrencyCode(preferred.currency);
+      }
+    }
+  }, [accounts, accountId, currencyCode, baseCurrency, editingId]);
 
   useEffect(() => {
     if (!editingId) return;
     getExpense(editingId).then((expense) => {
       if (!expense) return;
-      setOriginalExpense({ amount_minor: expense.amount_minor, account_id: expense.account_id });
+      setOriginalExpense({
+        amount_minor: expense.amount_minor,
+        account_id: expense.account_id,
+        currency_code: expense.currency_code ?? null,
+        account_currency: expense.account_currency,
+      });
       setTitle(expense.title);
       setAmount(String(expense.amount_minor / 100));
       setCategoryId(expense.category_id);
       setAccountId(expense.account_id);
+      setCurrencyCode(expense.currency_code ?? expense.account_currency ?? baseCurrency);
       setDateInput(new Date(expense.date_ts).toISOString().slice(0, 10));
       setSliderValue(normalizeRegretValue(expense.slider_0_100));
       setNotes(expense.notes ?? '');
     });
-  }, [editingId]);
+  }, [editingId, baseCurrency]);
 
   const handleSave = async () => {
     if (!categoryId || !accountId) return;
+    const trimmedTitle = title.trim();
     const amountMinor = toMinor(amount);
+    const nextErrors: { amount?: string; title?: string } = {};
+    if (!trimmedTitle) {
+      nextErrors.title = 'Required';
+    }
+    if (!amount || amountMinor <= 0) {
+      nextErrors.amount = 'Required';
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({
+          y: Math.max(0, heroOffset.current - 24),
+          animated: true,
+        });
+      });
+      return;
+    }
+    if (Object.keys(errors).length > 0) {
+      setErrors({});
+    }
     const parsedDate = new Date(dateInput);
     const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
     const finalDateTs = safeDate.setHours(12, 0, 0, 0);
     const selectedAccount = accounts.find((acct) => acct.id === accountId);
+    const effectiveCurrencyCode = currencyCode || selectedAccount?.currency || baseCurrency;
+    const rateMap = buildRateMap(currencies, baseCurrency);
+    const amountInAccountMinor = convertMinorBetween(
+      amountMinor,
+      effectiveCurrencyCode,
+      selectedAccount?.currency,
+      rateMap,
+      baseCurrency,
+    );
 
     const warnInsufficient = async (availableMinor: number) => {
       const currency = selectedAccount?.currency ?? 'USD';
@@ -186,21 +284,32 @@ export default function AddEditExpenseScreen() {
 
     if (editingId) {
       const currentBalance = await getAccountBalance(accountId);
+      const originalAmountInAccountMinor =
+        originalExpense && originalExpense.account_id === accountId
+          ? convertMinorBetween(
+              originalExpense.amount_minor,
+              originalExpense.currency_code ?? originalExpense.account_currency,
+              selectedAccount?.currency ?? originalExpense.account_currency,
+              rateMap,
+              baseCurrency,
+            )
+          : 0;
       const availableBalance =
         originalExpense && originalExpense.account_id === accountId
-          ? currentBalance + originalExpense.amount_minor
+          ? currentBalance + originalAmountInAccountMinor
           : currentBalance;
 
-      if (amountMinor > availableBalance) {
+      if (amountInAccountMinor > availableBalance) {
         await warnInsufficient(availableBalance);
         return;
       }
 
       await updateExpense(editingId, {
-        title,
+        title: trimmedTitle,
         amount_minor: amountMinor,
         category_id: categoryId,
         account_id: accountId,
+        currency_code: effectiveCurrencyCode,
         date_ts: finalDateTs,
         slider_0_100: sliderValue,
         notes,
@@ -210,16 +319,17 @@ export default function AddEditExpenseScreen() {
     }
 
     const currentBalance = await getAccountBalance(accountId);
-    if (amountMinor > currentBalance) {
+    if (amountInAccountMinor > currentBalance) {
       await warnInsufficient(currentBalance);
       return;
     }
 
     const id = await createExpense({
-      title,
+      title: trimmedTitle,
       amount_minor: amountMinor,
       category_id: categoryId,
       account_id: accountId,
+      currency_code: effectiveCurrencyCode,
       date_ts: finalDateTs,
       slider_0_100: sliderValue,
       notes,
@@ -229,13 +339,16 @@ export default function AddEditExpenseScreen() {
       await updateReceiptInbox(receiptId, { status: 'processed', linked_expense_id: id });
     }
 
-    if (recurring) {
-      await createRecurringRule({
-        entity_type: 'expense',
-        entity_id: id,
-        rrule_text: 'FREQ=MONTHLY;INTERVAL=1',
-        next_run_ts: addMonths(new Date(finalDateTs), 1).getTime(),
-      });
+    if (recurringFrequency !== 'off') {
+      const config = getRecurringConfig(recurringFrequency, finalDateTs);
+      if (config) {
+        await createRecurringRule({
+          entity_type: 'expense',
+          entity_id: id,
+          rrule_text: config.rrule_text,
+          next_run_ts: config.next_run_ts,
+        });
+      }
     }
 
     navigation.goBack();
@@ -250,30 +363,71 @@ export default function AddEditExpenseScreen() {
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
     >
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero Section */}
-        <View className="pt-8 pb-8 px-6 items-center justify-center">
-          <View className="flex-row items-center justify-center">
-            <Text className="text-4xl font-display text-app-muted dark:text-app-muted-dark mr-1">$</Text>
+        <View
+          className="pt-8 pb-8 px-6 items-center justify-center"
+          onLayout={(event) => {
+            heroOffset.current = event.nativeEvent.layout.y;
+          }}
+        >
+          <View className="flex-row items-center justify-center w-full px-2">
+            <Text className="text-4xl font-display text-app-muted dark:text-app-muted-dark mr-2">$</Text>
+            <View
+              style={{ maxWidth: '78%', minWidth: 0, flexShrink: 1 }}
+              className={errors.amount ? 'border-b-2 border-app-danger dark:border-app-danger-dark pb-1' : ''}
+            >
+              <TextInput
+                value={amount}
+                onChangeText={(value) => {
+                  setAmount(value);
+                  if (errors.amount) {
+                    setErrors((prev) => ({ ...prev, amount: undefined }));
+                  }
+                }}
+                placeholder="0.00"
+                placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
+                keyboardType="decimal-pad"
+                className="text-6xl font-display text-app-text dark:text-app-text-dark text-center w-full"
+                autoFocus={!editingId}
+                adjustsFontSizeToFit
+                numberOfLines={1}
+              />
+            </View>
+          </View>
+          {errors.amount ? (
+            <Text className="text-xs text-app-danger dark:text-app-danger-dark mt-2">
+              Enter an amount
+            </Text>
+          ) : null}
+          <View
+            className={`w-full ${
+              errors.title
+                ? 'mt-4 px-4 py-3 rounded-2xl border border-app-danger/40 dark:border-app-danger-dark/40 bg-app-danger/5'
+                : 'mt-2'
+            }`}
+          >
             <TextInput
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="0.00"
-              placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
-              keyboardType="decimal-pad"
-              className="text-6xl font-display text-app-text dark:text-app-text-dark text-center min-w-[120px]"
-              autoFocus={!editingId}
+              value={title}
+              onChangeText={(value) => {
+                setTitle(value);
+                if (errors.title) {
+                  setErrors((prev) => ({ ...prev, title: undefined }));
+                }
+              }}
+              placeholder="What is this for?"
+              placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
+              className="text-xl text-app-text dark:text-app-text-dark text-center font-medium w-full"
             />
           </View>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="What is this for?"
-            placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
-            className="text-xl text-app-text dark:text-app-text-dark text-center mt-2 font-medium w-full"
-          />
+          {errors.title ? (
+            <Text className="text-xs text-app-danger dark:text-app-danger-dark mt-2">
+              Add a short title
+            </Text>
+          ) : null}
         </View>
 
         {/* Details Card */}
@@ -309,6 +463,24 @@ export default function AddEditExpenseScreen() {
                 <View className="flex-row items-center gap-2">
                   <Text className="text-base text-app-muted dark:text-app-muted-dark">
                     {selectedAccount?.name || 'Select'}
+                  </Text>
+                  <Feather name="chevron-right" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
+                </View>
+              </View>
+            </PressableScale>
+
+            {/* Currency Row */}
+            <PressableScale onPress={() => setShowCurrencyModal(true)}>
+              <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
+                <View className="flex-row items-center gap-4">
+                  <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                    <Feather name="dollar-sign" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
+                  </View>
+                  <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Currency</Text>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-base text-app-muted dark:text-app-muted-dark">
+                    {currencyCode || baseCurrency}
                   </Text>
                   <Feather name="chevron-right" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
                 </View>
@@ -393,36 +565,25 @@ export default function AddEditExpenseScreen() {
             <PressableScale
               onPress={() => {
                 Haptics.selectionAsync();
-                setRecurring(!recurring);
+                setShowRecurringModal(true);
               }}
-              className={`flex-row items-center justify-between p-5 rounded-3xl border ${
-                recurring
-                  ? 'bg-app-soft dark:bg-app-soft-dark border-app-brand dark:border-app-brand-dark'
-                  : 'bg-app-card dark:bg-app-card-dark border-app-border/50 dark:border-app-border-dark/50'
-              }`}
+              className="flex-row items-center justify-between p-5 rounded-3xl border bg-app-card dark:bg-app-card-dark border-app-border/50 dark:border-app-border-dark/50"
             >
               <View className="flex-row items-center gap-4">
-                <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                  recurring ? 'bg-app-brand dark:bg-app-brand-dark' : 'bg-app-soft dark:bg-app-soft-dark'
-                }`}>
-                  <Feather name="repeat" size={18} color={recurring ? '#FFFFFF' : (isDark ? '#E6EDF3' : '#0D1B2A')} />
+                <View className="w-10 h-10 rounded-full items-center justify-center bg-app-soft dark:bg-app-soft-dark">
+                  <Feather name="repeat" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
                 </View>
                 <View>
-                  <Text className={`text-base font-medium ${
-                    recurring ? 'text-app-brand dark:text-app-brand-dark' : 'text-app-text dark:text-app-text-dark'
-                  }`}>
-                    Monthly Recurring
+                  <Text className="text-base font-medium text-app-text dark:text-app-text-dark">
+                    Recurring
                   </Text>
                   <Text className="text-xs text-app-muted dark:text-app-muted-dark">
-                    Repeat this expense every month
+                    {recurringOptions.find((option) => option.id === recurringFrequency)?.name ??
+                      'Off'}
                   </Text>
                 </View>
               </View>
-              <View className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
-                recurring ? 'border-app-brand dark:border-app-brand-dark bg-app-brand dark:bg-app-brand-dark' : 'border-app-muted dark:border-app-muted-dark'
-              }`}>
-                {recurring && <Feather name="check" size={14} color="#FFFFFF" />}
-              </View>
+              <Feather name="chevron-right" size={18} color={isDark ? '#8B949E' : '#6B7A8F'} />
             </PressableScale>
           )}
         </View>
@@ -451,8 +612,43 @@ export default function AddEditExpenseScreen() {
         onClose={() => setShowAccountModal(false)}
         title="Select Account"
         options={accounts.map(a => ({ ...a, subtitle: a.currency }))}
-        onSelect={setAccountId}
+        onSelect={(id) => {
+          setAccountId(id);
+          const selected = accounts.find((acct) => acct.id === id);
+          if (selected) {
+            setCurrencyCode(selected.currency);
+          }
+        }}
         selectedId={accountId}
+      />
+
+      <SelectionModal
+        visible={showCurrencyModal}
+        onClose={() => setShowCurrencyModal(false)}
+        title="Currency"
+        options={currencies.map((currency) => ({
+          id: currency.code,
+          name: `${currency.code} · ${currency.name}`,
+        }))}
+        onSelect={(id) => {
+          setCurrencyCode(id);
+          const match = accounts.find((acct) => acct.currency === id);
+          if (match) {
+            setAccountId(match.id);
+          } else {
+            setAccountId(null);
+          }
+        }}
+        selectedId={currencyCode}
+      />
+
+      <SelectionModal
+        visible={showRecurringModal}
+        onClose={() => setShowRecurringModal(false)}
+        title="Recurring"
+        options={recurringOptions}
+        onSelect={(id) => setRecurringFrequency(id as RecurringFrequency)}
+        selectedId={recurringFrequency}
       />
     </KeyboardAvoidingView>
   );

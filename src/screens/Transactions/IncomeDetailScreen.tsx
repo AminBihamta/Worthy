@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
@@ -6,7 +6,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { PressableScale } from '../../components/PressableScale';
-import { Card } from '../../components/Card';
+import { HeaderIconButton } from '../../components/HeaderIconButton';
 import { deleteIncome, getIncome, IncomeListRow } from '../../db/repositories/incomes';
 import { formatMinor } from '../../utils/money';
 import { formatDate, formatDateTime } from '../../utils/time';
@@ -19,10 +19,38 @@ export default function IncomeDetailScreen() {
   const route = useRoute();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const params = route.params as { id: string } | undefined;
+  const params = route.params as { id: string; origin?: 'home' } | undefined;
   const [income, setIncome] = useState<IncomeListRow | null>(null);
   const [recurringRule, setRecurringRule] = useState<RecurringRuleRow | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const origin = params?.origin;
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderIconButton
+          icon="more-horizontal"
+          onPress={() => setMenuOpen(true)}
+          accessibilityLabel="More options"
+        />
+      ),
+    });
+  }, [navigation]);
+
+  useEffect(() => {
+    if (origin !== 'home') return;
+    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
+      event.preventDefault();
+      const parent = navigation.getParent();
+      if (parent) {
+        parent.navigate('HomeStack' as never);
+      } else {
+        navigation.navigate('HomeStack' as never);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, origin]);
 
   useFocusEffect(
     useCallback(() => {
@@ -71,30 +99,15 @@ export default function IncomeDetailScreen() {
       </View>
     );
   }
+  const incomeCurrency = income.currency_code ?? income.account_currency ?? 'USD';
 
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        {/* Header Actions */}
-        <View className="flex-row justify-between items-center px-6 pt-4">
-          <PressableScale
-            onPress={() => navigation.goBack()}
-            className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center"
-          >
-            <Feather name="arrow-left" size={20} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
-          </PressableScale>
-          <PressableScale
-            onPress={() => setMenuOpen(true)}
-            className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center"
-          >
-            <Feather name="more-horizontal" size={20} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
-          </PressableScale>
-        </View>
-
         {/* Hero Section */}
-        <View className="items-center pt-16 pb-8 px-6">
+        <View className="items-center pt-12 pb-8 px-6">
           <Text className="text-7xl font-display text-app-success dark:text-app-success text-center pt-4 leading-tight">
-            +{formatMinor(income.amount_minor)}
+            +{formatMinor(income.amount_minor, incomeCurrency)}
           </Text>
           <Text className="text-xl text-app-muted dark:text-app-muted-dark text-center mt-2 font-medium">
             {income.source}

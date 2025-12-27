@@ -150,6 +150,11 @@ export default function SettingsScreen() {
               onPress={() => navigation.navigate('Accounts' as never)}
             />
             <SettingsRow
+              icon="globe"
+              label="Currencies"
+              onPress={() => navigation.navigate('Currencies' as never)}
+            />
+            <SettingsRow
               icon="tag"
               label="Categories"
               onPress={() => navigation.navigate('Categories' as never)}

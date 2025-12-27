@@ -1,11 +1,19 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { listAccounts, archiveAccount } from '../../db/repositories/accounts';
+import { useColorScheme } from 'nativewind';
+import { Feather } from '@expo/vector-icons';
+
+import { listAccountsWithBalances, archiveAccount } from '../../db/repositories/accounts';
+import { listCurrencies } from '../../db/repositories/currencies';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { SwipeableRow } from '../../components/SwipeableRow';
 import { EmptyState } from '../../components/EmptyState';
+import { PressableScale } from '../../components/PressableScale';
+import { formatSigned } from '../../utils/money';
+import { useSettingsStore } from '../../state/useSettingsStore';
+import { buildRateMap, convertMinorToBase } from '../../utils/currency';
 
 class AccountsErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -38,41 +46,45 @@ class AccountsErrorBoundary extends React.Component<
   }
 }
 
+const accountIcons: Record<string, keyof typeof Feather.glyphMap> = {
+  cash: 'dollar-sign',
+  bank: 'credit-card',
+  ewallet: 'smartphone',
+  credit: 'credit-card',
+};
+
+const formatType = (type: string) => {
+  if (type === 'ewallet') return 'E-wallet';
+  if (type === 'credit') return 'Credit card';
+  return type.charAt(0).toUpperCase() + type.slice(1);
+};
+
 export default function AccountsScreen() {
   const navigation = useNavigation();
-  const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof listAccounts>>>([]);
-  const [debugStage, setDebugStage] = useState('idle');
-  const [debugMessage, setDebugMessage] = useState('');
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const { baseCurrency } = useSettingsStore();
+  const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof listAccountsWithBalances>>>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [debugDisableSwipe, setDebugDisableSwipe] = useState(__DEV__ ? true : false);
-  const loadIdRef = useRef(0);
+  const [rateMap, setRateMap] = useState<Map<string, number>>(new Map());
 
   const load = useCallback(async () => {
-    const loadId = (loadIdRef.current += 1);
-    if (__DEV__) {
-      console.log('[AccountsScreen] load start', { loadId });
-    }
-    setDebugStage('loading');
-    setDebugMessage('Fetching accounts...');
     setLoadError(null);
     try {
-      const items = await listAccounts();
+      const [items, currencyRows] = await Promise.all([
+        listAccountsWithBalances(),
+        listCurrencies(),
+      ]);
       setAccounts(items);
-      setDebugStage('ready');
-      setDebugMessage(`Loaded ${items.length} accounts`);
-      if (__DEV__) {
-        console.log('[AccountsScreen] load ok', { loadId, count: items.length });
-      }
+      setRateMap(buildRateMap(currencyRows, baseCurrency));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setDebugStage('error');
-      setDebugMessage('Load failed');
       setLoadError(message);
       if (__DEV__) {
-        console.error('[AccountsScreen] load failed', { loadId, message, error });
+        console.error('[AccountsScreen] load failed', { message, error });
       }
     }
-  }, []);
+  }, [baseCurrency]);
 
   useFocusEffect(
     useCallback(() => {
@@ -80,56 +92,63 @@ export default function AccountsScreen() {
     }, [load]),
   );
 
-  useEffect(() => {
-    if (__DEV__) {
-      console.log('[AccountsScreen] mounted');
-      return () => {
-        console.log('[AccountsScreen] unmounted');
-      };
-    }
-    return;
-  }, []);
+  const totalBalance = accounts.reduce((sum, account) => {
+    const balanceMinor = account.balance_minor ?? account.starting_balance_minor;
+    return sum + convertMinorToBase(balanceMinor, account.currency, rateMap, baseCurrency);
+  }, 0);
+  const primaryCurrency = baseCurrency || accounts[0]?.currency || 'USD';
+  const currencySet = new Set(accounts.map((account) => account.currency));
+  const hasMixedCurrencies = currencySet.size > 1;
 
-  useEffect(() => {
-    if (__DEV__) {
-      console.log('[AccountsScreen] debug flags', { disableSwipe: debugDisableSwipe });
-    }
-  }, [debugDisableSwipe]);
-
-  const renderAccount = (account: Awaited<ReturnType<typeof listAccounts>>[number]) => {
+  const renderAccount = (account: Awaited<ReturnType<typeof listAccountsWithBalances>>[number]) => {
+    const icon = accountIcons[account.type] ?? 'credit-card';
     const content = (
-      <Card>
-        <Text className="text-base font-display text-app-text dark:text-app-text-dark">
-          {account.name}
-        </Text>
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
-          {account.type} · {account.currency}
-        </Text>
-      </Card>
+      <PressableScale
+        haptic
+        onPress={() =>
+          navigation.navigate('AccountForm' as never, { id: account.id } as never)
+        }
+      >
+        <Card>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-4">
+              <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                <Feather name={icon} size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
+              </View>
+              <View>
+                <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                  {account.name}
+                </Text>
+                <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
+                  {formatType(account.type)} · {account.currency}
+                </Text>
+              </View>
+            </View>
+            <View className="items-end">
+              <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                {formatSigned(account.balance_minor, account.currency)}
+              </Text>
+              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
+                Balance
+              </Text>
+            </View>
+          </View>
+        </Card>
+      </PressableScale>
     );
 
-    if (debugDisableSwipe) {
-      return (
-        <Pressable
-          onPress={() =>
-            navigation.navigate('AccountForm' as never, { id: account.id } as never)
-          }
+    return (
+      <View key={account.id} className="mb-4">
+        <SwipeableRow
+          onEdit={() => navigation.navigate('AccountForm' as never, { id: account.id } as never)}
+          onDelete={async () => {
+            await archiveAccount(account.id);
+            load();
+          }}
         >
           {content}
-        </Pressable>
-      );
-    }
-
-    return (
-      <SwipeableRow
-        onEdit={() => navigation.navigate('AccountForm' as never, { id: account.id } as never)}
-        onDelete={async () => {
-          await archiveAccount(account.id);
-          load();
-        }}
-      >
-        {content}
-      </SwipeableRow>
+        </SwipeableRow>
+      </View>
     );
   };
 
@@ -137,44 +156,42 @@ export default function AccountsScreen() {
     <AccountsErrorBoundary>
       <ScrollView
         className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-        contentContainerStyle={{ padding: 24 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
       >
-        {__DEV__ ? (
-          <Card className="mb-4">
-            <Text className="text-xs text-app-muted dark:text-app-muted-dark">
-              Debug: {debugStage}
-            </Text>
-            {debugMessage ? (
-              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
-                {debugMessage}
-              </Text>
-            ) : null}
-            {loadError ? (
-              <Text className="text-xs text-app-danger mt-1">Error: {loadError}</Text>
-            ) : null}
-            <View className="flex-row gap-2 mt-3">
-              <Pressable
-                onPress={() => setDebugDisableSwipe((value) => !value)}
-                className="rounded-full px-3 py-2 bg-app-soft dark:bg-app-soft-dark"
-              >
-                <Text className="text-xs text-app-text dark:text-app-text-dark">
-                  Swipe: {debugDisableSwipe ? 'off' : 'on'}
-                </Text>
-              </Pressable>
-            </View>
-          </Card>
-        ) : null}
+        <View className="px-6 pt-8 pb-6 items-center">
+          <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+            Total balance
+          </Text>
+          <Text className="text-7xl font-display text-app-text dark:text-app-text-dark mt-3 text-center leading-tight">
+            {formatSigned(totalBalance, primaryCurrency)}
+          </Text>
+          <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-3 text-center">
+            {accounts.length === 0
+              ? 'No accounts yet'
+              : `${accounts.length} account${accounts.length > 1 ? 's' : ''}${
+                  hasMixedCurrencies ? ' · Mixed currencies' : ''
+                }`}
+          </Text>
+        </View>
 
-        {accounts.length === 0 ? (
-          <EmptyState title="No accounts" subtitle="Create your first account to start tracking." />
-        ) : (
-          accounts.map((account) => (
-            <View key={account.id} className="mb-4">
-              {renderAccount(account)}
-            </View>
-          ))
-        )}
-        <Button title="Add account" onPress={() => navigation.navigate('AccountForm' as never)} />
+        <View className="px-6">
+          {loadError ? (
+            <Card className="mb-4 border-app-danger/40">
+              <Text className="text-sm text-app-danger">{loadError}</Text>
+            </Card>
+          ) : null}
+
+          {accounts.length === 0 ? (
+            <EmptyState title="No accounts" subtitle="Create your first account to start tracking." />
+          ) : (
+            accounts.map((account) => renderAccount(account))
+          )}
+        </View>
+
+        <View className="px-6 mt-6">
+          <Button title="Add account" onPress={() => navigation.navigate('AccountForm' as never)} />
+        </View>
       </ScrollView>
     </AccountsErrorBoundary>
   );

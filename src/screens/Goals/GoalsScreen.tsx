@@ -14,9 +14,11 @@ import { listWishlistItems, archiveWishlistItem } from '../../db/repositories/wi
 import { formatSigned, toMinor } from '../../utils/money';
 import { Input } from '../../components/Input';
 import { SwipeableRow } from '../../components/SwipeableRow';
+import { useSettingsStore } from '../../state/useSettingsStore';
 
 export default function GoalsScreen() {
   const navigation = useNavigation();
+  const { baseCurrency } = useSettingsStore();
   const [buckets, setBuckets] = useState<Awaited<ReturnType<typeof listSavingsBuckets>>>([]);
   const [wishlist, setWishlist] = useState<Awaited<ReturnType<typeof listWishlistItems>>>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -93,11 +95,11 @@ export default function GoalsScreen() {
                     {bucket.category_name}
                   </Text>
                   <Text className="text-xl font-display text-app-text dark:text-app-text-dark mt-3">
-                    {formatSigned(bucket.saved_minor, 'USD')}
+                    {formatSigned(bucket.saved_minor, baseCurrency)}
                   </Text>
                   {bucket.target_amount_minor ? (
                     <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
-                      Target {formatSigned(bucket.target_amount_minor, 'USD')}
+                      Target {formatSigned(bucket.target_amount_minor, baseCurrency)}
                     </Text>
                   ) : null}
                   {bucket.target_amount_minor ? (
@@ -165,11 +167,11 @@ export default function GoalsScreen() {
                   </Text>
                   {item.target_price_minor ? (
                     <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-3">
-                      Target {formatSigned(item.target_price_minor, 'USD')}
+                      Target {formatSigned(item.target_price_minor, baseCurrency)}
                     </Text>
                   ) : null}
                   <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
-                    Saved {formatSigned(item.saved_minor, 'USD')}
+                    Saved {formatSigned(item.saved_minor, baseCurrency)}
                   </Text>
                   <Text
                     className={`text-xs mt-2 ${

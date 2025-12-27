@@ -6,6 +6,7 @@ export interface IncomeRow {
   source: string;
   amount_minor: number;
   account_id: string;
+  currency_code: string | null;
   date_ts: number;
   hours_worked: number | null;
   notes: string | null;
@@ -71,6 +72,7 @@ export async function createIncome(input: {
   source: string;
   amount_minor: number;
   account_id: string;
+  currency_code?: string | null;
   date_ts: number;
   hours_worked?: number | null;
   notes?: string | null;
@@ -79,12 +81,13 @@ export async function createIncome(input: {
   const id = createId('inc_');
   const now = Date.now();
   await db.runAsync(
-    `INSERT INTO incomes (id, source, amount_minor, account_id, date_ts, hours_worked, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO incomes (id, source, amount_minor, account_id, currency_code, date_ts, hours_worked, notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     input.source,
     input.amount_minor,
     input.account_id,
+    input.currency_code ?? null,
     input.date_ts,
     input.hours_worked ?? null,
     input.notes ?? null,
@@ -119,7 +122,11 @@ export async function deleteIncome(id: string): Promise<void> {
 export async function getIncomeTotals(start: number, end: number) {
   const db = await getDb();
   const row = await db.getFirstAsync<{ total_minor: number }>(
-    'SELECT SUM(amount_minor) as total_minor FROM incomes WHERE date_ts BETWEEN ? AND ?',
+    `SELECT ROUND(SUM(i.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor
+     FROM incomes i
+     JOIN accounts a ON a.id = i.account_id
+     LEFT JOIN currencies c ON c.code = COALESCE(i.currency_code, a.currency)
+     WHERE i.date_ts BETWEEN ? AND ?`,
     start,
     end,
   );
@@ -129,7 +136,12 @@ export async function getIncomeTotals(start: number, end: number) {
 export async function getIncomeHoursTotals(start: number, end: number) {
   const db = await getDb();
   const row = await db.getFirstAsync<{ total_minor: number; total_hours: number }>(
-    'SELECT SUM(amount_minor) as total_minor, SUM(hours_worked) as total_hours FROM incomes WHERE date_ts BETWEEN ? AND ? AND hours_worked IS NOT NULL',
+    `SELECT ROUND(SUM(i.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor,
+      SUM(i.hours_worked) as total_hours
+     FROM incomes i
+     JOIN accounts a ON a.id = i.account_id
+     LEFT JOIN currencies c ON c.code = COALESCE(i.currency_code, a.currency)
+     WHERE i.date_ts BETWEEN ? AND ? AND i.hours_worked IS NOT NULL`,
     start,
     end,
   );

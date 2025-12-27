@@ -44,7 +44,7 @@ export async function listTransactions(filters?: {
     `SELECT * FROM (
       SELECT e.id as id, 'expense' as type, e.title as title, e.amount_minor as amount_minor, e.date_ts as date_ts,
         c.name as category_name, c.color as category_color, c.icon as category_icon,
-        a.name as account_name, a.currency as account_currency, e.slider_0_100 as slider_0_100, e.notes as notes,
+        a.name as account_name, COALESCE(e.currency_code, a.currency) as account_currency, e.slider_0_100 as slider_0_100, e.notes as notes,
         NULL as from_account_name, NULL as to_account_name
       FROM expenses e
       JOIN categories c ON c.id = e.category_id
@@ -52,7 +52,7 @@ export async function listTransactions(filters?: {
       UNION ALL
       SELECT i.id as id, 'income' as type, i.source as title, i.amount_minor as amount_minor, i.date_ts as date_ts,
         NULL as category_name, NULL as category_color, NULL as category_icon,
-        a.name as account_name, a.currency as account_currency, NULL as slider_0_100, i.notes as notes,
+        a.name as account_name, COALESCE(i.currency_code, a.currency) as account_currency, NULL as slider_0_100, i.notes as notes,
         NULL as from_account_name, NULL as to_account_name
       FROM incomes i
       JOIN accounts a ON a.id = i.account_id

@@ -32,8 +32,28 @@ export async function listAccountsWithBalances(
     `SELECT a.*,
       (
         a.starting_balance_minor
-        + COALESCE((SELECT SUM(amount_minor) FROM incomes WHERE account_id = a.id), 0)
-        - COALESCE((SELECT SUM(amount_minor) FROM expenses WHERE account_id = a.id), 0)
+        + COALESCE((
+            SELECT ROUND(SUM(
+              i.amount_minor
+              * COALESCE(ct.rate_to_base, 1)
+              / COALESCE(NULLIF(ca.rate_to_base, 0), 1)
+            ))
+            FROM incomes i
+            LEFT JOIN currencies ct ON ct.code = COALESCE(i.currency_code, a.currency)
+            LEFT JOIN currencies ca ON ca.code = a.currency
+            WHERE i.account_id = a.id
+          ), 0)
+        - COALESCE((
+            SELECT ROUND(SUM(
+              e.amount_minor
+              * COALESCE(ct.rate_to_base, 1)
+              / COALESCE(NULLIF(ca.rate_to_base, 0), 1)
+            ))
+            FROM expenses e
+            LEFT JOIN currencies ct ON ct.code = COALESCE(e.currency_code, a.currency)
+            LEFT JOIN currencies ca ON ca.code = a.currency
+            WHERE e.account_id = a.id
+          ), 0)
         + COALESCE((SELECT SUM(amount_minor) FROM transfers WHERE to_account_id = a.id), 0)
         - COALESCE((SELECT SUM(amount_minor) FROM transfers WHERE from_account_id = a.id), 0)
       ) AS balance_minor
@@ -54,8 +74,28 @@ export async function getAccountBalance(id: string): Promise<number> {
   const row = await db.getFirstAsync<{ balance_minor: number }>(
     `SELECT (
         a.starting_balance_minor
-        + COALESCE((SELECT SUM(amount_minor) FROM incomes WHERE account_id = a.id), 0)
-        - COALESCE((SELECT SUM(amount_minor) FROM expenses WHERE account_id = a.id), 0)
+        + COALESCE((
+            SELECT ROUND(SUM(
+              i.amount_minor
+              * COALESCE(ct.rate_to_base, 1)
+              / COALESCE(NULLIF(ca.rate_to_base, 0), 1)
+            ))
+            FROM incomes i
+            LEFT JOIN currencies ct ON ct.code = COALESCE(i.currency_code, a.currency)
+            LEFT JOIN currencies ca ON ca.code = a.currency
+            WHERE i.account_id = a.id
+          ), 0)
+        - COALESCE((
+            SELECT ROUND(SUM(
+              e.amount_minor
+              * COALESCE(ct.rate_to_base, 1)
+              / COALESCE(NULLIF(ca.rate_to_base, 0), 1)
+            ))
+            FROM expenses e
+            LEFT JOIN currencies ct ON ct.code = COALESCE(e.currency_code, a.currency)
+            LEFT JOIN currencies ca ON ca.code = a.currency
+            WHERE e.account_id = a.id
+          ), 0)
         + COALESCE((SELECT SUM(amount_minor) FROM transfers WHERE to_account_id = a.id), 0)
         - COALESCE((SELECT SUM(amount_minor) FROM transfers WHERE from_account_id = a.id), 0)
       ) AS balance_minor

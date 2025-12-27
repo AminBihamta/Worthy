@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
@@ -7,7 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { PressableScale } from '../../components/PressableScale';
-import { Card } from '../../components/Card';
+import { HeaderIconButton } from '../../components/HeaderIconButton';
 import { LifeCostPill } from '../../components/LifeCostPill';
 import {
   deleteExpense,
@@ -16,8 +16,9 @@ import {
   sumExpensesByCategory,
   ExpenseListRow,
 } from '../../db/repositories/expenses';
+import { listCurrencies } from '../../db/repositories/currencies';
 import { listBudgets } from '../../db/repositories/budgets';
-import { formatMinor, formatSigned } from '../../utils/money';
+import { formatMinor } from '../../utils/money';
 import { getPeriodRange } from '../../utils/period';
 import { formatDate, formatDateTime } from '../../utils/time';
 import { getEffectiveHourlyRate } from '../../db/repositories/analytics';
@@ -27,6 +28,7 @@ import { Button } from '../../components/Button';
 import { getRecurringRuleForEntity, RecurringRuleRow } from '../../db/repositories/recurring';
 import { formatRRule } from '../../utils/recurring';
 import { getReceiptForExpense, ReceiptInboxRow } from '../../db/repositories/receipts';
+import { buildRateMap, convertMinorToBase } from '../../utils/currency';
 
 const regretOptions = [
   { value: 0, label: 'Total regret', icon: 'frown' },
@@ -54,7 +56,7 @@ export default function ExpenseDetailScreen() {
   const route = useRoute();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const params = route.params as { id: string } | undefined;
+  const params = route.params as { id: string; origin?: 'home' } | undefined;
   const [expense, setExpense] = useState<ExpenseListRow | null>(null);
   const [lifeCost, setLifeCost] = useState<string | null>(null);
   const [recurringRule, setRecurringRule] = useState<RecurringRuleRow | null>(null);
@@ -62,7 +64,35 @@ export default function ExpenseDetailScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [budgetMeta, setBudgetMeta] = useState<BudgetMeta | null>(null);
   const [categoryStats, setCategoryStats] = useState<CategoryStats | null>(null);
-  const { hoursPerDay } = useSettingsStore();
+  const { hoursPerDay, baseCurrency } = useSettingsStore();
+  const origin = params?.origin;
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderIconButton
+          icon="more-horizontal"
+          onPress={() => setMenuOpen(true)}
+          accessibilityLabel="More options"
+        />
+      ),
+    });
+  }, [navigation]);
+
+  useEffect(() => {
+    if (origin !== 'home') return;
+    const unsubscribe = navigation.addListener('beforeRemove', (event) => {
+      event.preventDefault();
+      const parent = navigation.getParent();
+      if (parent) {
+        parent.navigate('HomeStack' as never);
+      } else {
+        navigation.navigate('HomeStack' as never);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, origin]);
 
   useFocusEffect(
     useCallback(() => {
@@ -70,16 +100,18 @@ export default function ExpenseDetailScreen() {
       let active = true;
 
       const load = async () => {
-        const [row, hourly, recurring, linkedReceipt] = await Promise.all([
+        const [row, hourly, recurring, linkedReceipt, currencyRows] = await Promise.all([
           getExpense(params.id),
           getEffectiveHourlyRate(),
           getRecurringRuleForEntity('expense', params.id),
           getReceiptForExpense(params.id),
+          listCurrencies(),
         ]);
 
         if (!active) return;
 
         setExpense(row);
+        const rateLookup = buildRateMap(currencyRows, baseCurrency);
         setRecurringRule(recurring);
         setReceipt(linkedReceipt);
         setLifeCost(null);
@@ -88,7 +120,9 @@ export default function ExpenseDetailScreen() {
 
         const rate = hourly.hourly_rate_minor ?? null;
         if (row && rate) {
-          setLifeCost(formatLifeCost(row.amount_minor, rate, hoursPerDay));
+          const expenseCurrency = row.currency_code ?? row.account_currency ?? baseCurrency;
+          const amountBase = convertMinorToBase(row.amount_minor, expenseCurrency, rateLookup, baseCurrency);
+          setLifeCost(formatLifeCost(amountBase, rate, hoursPerDay));
         }
 
         if (!row) return;
@@ -118,7 +152,9 @@ export default function ExpenseDetailScreen() {
                 : budget.period_type === 'year'
                   ? 'yearly'
                   : budget.period_type;
-          const impactPct = Math.max(0, Math.round((row.amount_minor / budget.amount_minor) * 100));
+          const expenseCurrency = row.currency_code ?? row.account_currency ?? baseCurrency;
+          const amountBase = convertMinorToBase(row.amount_minor, expenseCurrency, rateLookup, baseCurrency);
+          const impactPct = Math.max(0, Math.round((amountBase / budget.amount_minor) * 100));
           setBudgetMeta({
             periodLabel,
             budgetAmountMinor: budget.amount_minor,
@@ -128,12 +164,17 @@ export default function ExpenseDetailScreen() {
         }
 
         if (categoryExpenses.length) {
-          const total = categoryExpenses.reduce((sum, item) => sum + item.amount_minor, 0);
-          const averageMinor = Math.round(total / categoryExpenses.length);
-          const maxMinor = categoryExpenses.reduce(
-            (max, item) => Math.max(max, item.amount_minor),
-            0,
+          const totals = categoryExpenses.map((item) =>
+            convertMinorToBase(
+              item.amount_minor,
+              item.currency_code ?? item.account_currency ?? baseCurrency,
+              rateLookup,
+              baseCurrency,
+            ),
           );
+          const total = totals.reduce((sum, value) => sum + value, 0);
+          const averageMinor = Math.round(total / totals.length);
+          const maxMinor = totals.reduce((max, value) => Math.max(max, value), 0);
           setCategoryStats({
             averageMinor,
             maxMinor,
@@ -147,7 +188,7 @@ export default function ExpenseDetailScreen() {
       return () => {
         active = false;
       };
-    }, [params?.id, hoursPerDay]),
+    }, [params?.id, hoursPerDay, baseCurrency]),
   );
 
   const handleDelete = async () => {
@@ -173,6 +214,8 @@ export default function ExpenseDetailScreen() {
     );
   }
 
+  const expenseCurrency = expense.currency_code ?? expense.account_currency ?? baseCurrency;
+
   const regretOption =
     regretOptions.find((o) => o.value === (Math.round(expense.slider_0_100 / 25) * 25)) ??
     regretOptions[2];
@@ -185,24 +228,24 @@ export default function ExpenseDetailScreen() {
     const items: string[] = [];
     if (budgetMeta) {
       const remaining = budgetMeta.budgetAmountMinor - budgetMeta.spentTotalMinor;
-      items.push(
-        `Spent ${formatMinor(
-          budgetMeta.spentTotalMinor,
-          expense.account_currency,
-        )} ${budgetMeta.periodLabel} to date.`,
-      );
+        items.push(
+          `Spent ${formatMinor(
+            budgetMeta.spentTotalMinor,
+            baseCurrency,
+          )} ${budgetMeta.periodLabel} to date.`,
+        );
       if (remaining >= 0) {
         items.push(
           `${formatMinor(
             remaining,
-            expense.account_currency,
+            baseCurrency,
           )} left in this budget after this expense.`,
         );
       } else {
         items.push(
           `Over budget by ${formatMinor(
             Math.abs(remaining),
-            expense.account_currency,
+            baseCurrency,
           )} after this expense.`,
         );
       }
@@ -214,7 +257,7 @@ export default function ExpenseDetailScreen() {
         items.push(
           `Above your average ${expense.category_name} spend (${formatMinor(
             average,
-            expense.account_currency,
+            baseCurrency,
           )}).`,
         );
       }
@@ -234,26 +277,10 @@ export default function ExpenseDetailScreen() {
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        {/* Header Actions */}
-        <View className="flex-row justify-between items-center px-6 pt-4">
-          <PressableScale
-            onPress={() => navigation.goBack()}
-            className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center"
-          >
-            <Feather name="arrow-left" size={20} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
-          </PressableScale>
-          <PressableScale
-            onPress={() => setMenuOpen(true)}
-            className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center"
-          >
-            <Feather name="more-horizontal" size={20} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
-          </PressableScale>
-        </View>
-
         {/* Hero Section */}
-        <View className="items-center pt-16 pb-8 px-6">
+        <View className="items-center pt-12 pb-8 px-6">
           <Text className="text-7xl font-display text-app-text dark:text-app-text-dark text-center pt-4 leading-tight">
-            {formatMinor(expense.amount_minor)}
+            {formatMinor(expense.amount_minor, expenseCurrency)}
           </Text>
           <Text className="text-xl text-app-muted dark:text-app-muted-dark text-center mt-2 font-medium">
             {expense.title}

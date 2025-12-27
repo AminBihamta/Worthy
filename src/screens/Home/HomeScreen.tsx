@@ -11,21 +11,25 @@ import { getEffectiveHourlyRate } from '../../db/repositories/analytics';
 import { getExpenseTotals } from '../../db/repositories/expenses';
 import { getIncomeTotals } from '../../db/repositories/incomes';
 import { listAccountsWithBalances } from '../../db/repositories/accounts';
+import { listCurrencies } from '../../db/repositories/currencies';
 import { listTransactions } from '../../db/repositories/transactions';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { formatSigned } from '../../utils/money';
 import { getPeriodRange } from '../../utils/period';
 import { TransactionRow } from '../../components/TransactionRow';
 import { formatShortDate } from '../../utils/time';
+import { formatLifeCost } from '../../utils/lifeCost';
+import { buildRateMap, convertMinorToBase } from '../../utils/currency';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
-  const { hoursPerDay } = useSettingsStore();
+  const { hoursPerDay, baseCurrency } = useSettingsStore();
   const [summary, setSummary] = useState({ spent: 0, income: 0 });
   const [recent, setRecent] = useState<Awaited<ReturnType<typeof listTransactions>>>([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
   const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof listAccountsWithBalances>>>([]);
+  const [rateMap, setRateMap] = useState<Map<string, number>>(new Map());
 
   const load = useCallback(() => {
     const now = new Date();
@@ -36,13 +40,15 @@ export default function HomeScreen() {
       listAccountsWithBalances(),
       listTransactions({ limit: 5 }),
       getEffectiveHourlyRate(),
-    ]).then(([spent, income, accountsRows, recentRows, hourly]) => {
+      listCurrencies(),
+    ]).then(([spent, income, accountsRows, recentRows, hourly, currencyRows]) => {
       setSummary({ spent, income });
       setAccounts(accountsRows);
       setRecent(recentRows);
       setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
+      setRateMap(buildRateMap(currencyRows, baseCurrency));
     });
-  }, []);
+  }, [baseCurrency]);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,11 +57,11 @@ export default function HomeScreen() {
   );
 
   const primaryAccount = accounts[0] ?? null;
-  const balanceCurrency = primaryAccount?.currency ?? 'USD';
-  const totalBalance = accounts.reduce(
-    (sum, account) => sum + (account.balance_minor ?? account.starting_balance_minor),
-    0,
-  );
+  const balanceCurrency = baseCurrency || primaryAccount?.currency || 'USD';
+  const totalBalance = accounts.reduce((sum, account) => {
+    const balanceMinor = account.balance_minor ?? account.starting_balance_minor;
+    return sum + convertMinorToBase(balanceMinor, account.currency, rateMap, baseCurrency);
+  }, 0);
   const brandColor = colorScheme === 'dark' ? '#58D5D8' : '#0A9396';
   const accentColor = colorScheme === 'dark' ? '#FFB703' : '#EE9B00';
   const cardAccents = useMemo(
@@ -231,24 +237,29 @@ export default function HomeScreen() {
                     transaction={item}
                     dateLabel={formatShortDate(item.date_ts)}
                     lifeCost={
-                      item.type === 'expense' && hourlyRateMinor
-                        ? `${(
-                            Math.abs(item.amount_minor) /
-                            hourlyRateMinor /
-                            (hoursPerDay > 0 ? hoursPerDay : 8)
-                          ).toFixed(1)}d`
+                      item.type === 'expense'
+                        ? formatLifeCost(
+                            convertMinorToBase(
+                              item.amount_minor,
+                              item.account_currency,
+                              rateMap,
+                              baseCurrency,
+                            ),
+                            hourlyRateMinor,
+                            hoursPerDay,
+                          )
                         : null
                     }
                     onPress={() => {
                       if (item.type === 'expense') {
                         navigation.navigate(
                           'TransactionsStack' as never,
-                          { screen: 'ExpenseDetail', params: { id: item.id } } as never,
+                          { screen: 'ExpenseDetail', params: { id: item.id, origin: 'home' } } as never,
                         );
                       } else if (item.type === 'income') {
                         navigation.navigate(
                           'TransactionsStack' as never,
-                          { screen: 'IncomeDetail', params: { id: item.id } } as never,
+                          { screen: 'IncomeDetail', params: { id: item.id, origin: 'home' } } as never,
                         );
                       }
                     }}

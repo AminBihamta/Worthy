@@ -13,12 +13,14 @@ import { DateRangeSelector } from '../../components/DateRangeSelector';
 import { useUIStore } from '../../state/useUIStore';
 import { formatSigned } from '../../utils/money';
 import { SwipeableRow } from '../../components/SwipeableRow';
+import { useSettingsStore } from '../../state/useSettingsStore';
 
 export default function BudgetsScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { budgetPeriod, setBudgetPeriod } = useUIStore();
+  const { baseCurrency } = useSettingsStore();
   const [date, setDate] = useState(new Date());
   const [budgets, setBudgets] = useState<
     {
@@ -97,7 +99,7 @@ export default function BudgetsScreen() {
                 Total Remaining
               </Text>
               <Text className="text-4xl font-display text-app-text dark:text-app-text-dark mb-4">
-                {formatSigned(totalRemaining, 'USD')}
+                {formatSigned(totalRemaining, baseCurrency)}
               </Text>
               
               <View className="h-3 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden mb-2">
@@ -111,7 +113,7 @@ export default function BudgetsScreen() {
                   {Math.round(totalProgress * 100)}% used
                 </Text>
                 <Text className="text-xs text-app-muted dark:text-app-muted-dark">
-                  {formatSigned(totalLimit, 'USD')} limit
+                  {formatSigned(totalLimit, baseCurrency)} limit
                 </Text>
               </View>
             </View>
@@ -157,7 +159,7 @@ export default function BudgetsScreen() {
                           <Text className="text-xs text-app-muted dark:text-app-muted-dark">
                             {overspent ? 'Over budget by ' : 'Left: '}
                             <Text className={overspent ? 'text-red-500 font-bold' : ''}>
-                              {formatSigned(overspent ? budget.spent - budget.limit : remaining, 'USD')}
+                              {formatSigned(overspent ? budget.spent - budget.limit : remaining, baseCurrency)}
                             </Text>
                           </Text>
                         </View>

@@ -7,6 +7,7 @@ export interface ExpenseRow {
   amount_minor: number;
   category_id: string;
   account_id: string;
+  currency_code: string | null;
   date_ts: number;
   slider_0_100: number;
   notes: string | null;
@@ -83,6 +84,7 @@ export async function createExpense(input: {
   amount_minor: number;
   category_id: string;
   account_id: string;
+  currency_code?: string | null;
   date_ts: number;
   slider_0_100: number;
   notes?: string | null;
@@ -91,13 +93,14 @@ export async function createExpense(input: {
   const id = createId('exp_');
   const now = Date.now();
   await db.runAsync(
-    `INSERT INTO expenses (id, title, amount_minor, category_id, account_id, date_ts, slider_0_100, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO expenses (id, title, amount_minor, category_id, account_id, currency_code, date_ts, slider_0_100, notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     input.title,
     input.amount_minor,
     input.category_id,
     input.account_id,
+    input.currency_code ?? null,
     input.date_ts,
     input.slider_0_100,
     input.notes ?? null,
@@ -132,10 +135,12 @@ export async function deleteExpense(id: string): Promise<void> {
 export async function sumExpensesByCategory(start: number, end: number) {
   const db = await getDb();
   return db.getAllAsync<{ category_id: string; total_minor: number }>(
-    `SELECT category_id, SUM(amount_minor) as total_minor
-     FROM expenses
-     WHERE date_ts BETWEEN ? AND ?
-     GROUP BY category_id`,
+    `SELECT e.category_id, ROUND(SUM(e.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor
+     FROM expenses e
+     JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN currencies c ON c.code = COALESCE(e.currency_code, a.currency)
+     WHERE e.date_ts BETWEEN ? AND ?
+     GROUP BY e.category_id`,
     start,
     end,
   );
@@ -144,7 +149,11 @@ export async function sumExpensesByCategory(start: number, end: number) {
 export async function getExpenseTotals(start: number, end: number) {
   const db = await getDb();
   const row = await db.getFirstAsync<{ total_minor: number }>(
-    'SELECT SUM(amount_minor) as total_minor FROM expenses WHERE date_ts BETWEEN ? AND ?',
+    `SELECT ROUND(SUM(e.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor
+     FROM expenses e
+     JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN currencies c ON c.code = COALESCE(e.currency_code, a.currency)
+     WHERE e.date_ts BETWEEN ? AND ?`,
     start,
     end,
   );
