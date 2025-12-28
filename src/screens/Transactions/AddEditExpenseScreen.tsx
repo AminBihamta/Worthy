@@ -356,6 +356,11 @@ export default function AddEditExpenseScreen() {
 
   const selectedCategory = categories.find(c => c.id === categoryId);
   const selectedAccount = accounts.find(a => a.id === accountId);
+  const resolvedCurrency = currencyCode || selectedAccount?.currency || baseCurrency;
+  const selectedCurrency = currencies.find((currency) => currency.code === resolvedCurrency);
+  const currencySymbol =
+    selectedCurrency?.symbol ??
+    (resolvedCurrency === 'EUR' ? '€' : resolvedCurrency === 'USD' ? '$' : resolvedCurrency);
 
   return (
     <KeyboardAvoidingView
@@ -375,7 +380,9 @@ export default function AddEditExpenseScreen() {
           }}
         >
           <View className="flex-row items-center justify-center w-full px-2">
-            <Text className="text-4xl font-display text-app-muted dark:text-app-muted-dark mr-2">$</Text>
+            <Text className="text-4xl font-display text-app-muted dark:text-app-muted-dark mr-2">
+              {currencySymbol}
+            </Text>
             <View
               style={{ maxWidth: '78%', minWidth: 0, flexShrink: 1 }}
               className={errors.amount ? 'border-b-2 border-app-danger dark:border-app-danger-dark pb-1' : ''}

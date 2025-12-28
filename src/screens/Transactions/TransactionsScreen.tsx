@@ -23,6 +23,9 @@ import { formatLifeCost } from '../../utils/lifeCost';
 import { formatShortDate } from '../../utils/time';
 import { formatSigned } from '../../utils/money';
 import { buildRateMap, convertMinorToBase } from '../../utils/currency';
+import { DateRangeSelector } from '../../components/DateRangeSelector';
+import { getPeriodRange } from '../../utils/period';
+import { useUIStore } from '../../state/useUIStore';
 
 class TransactionsErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -62,6 +65,7 @@ type ListItem =
 export default function TransactionsScreen() {
   const navigation = useNavigation();
   const { hoursPerDay, baseCurrency } = useSettingsStore();
+  const { transactionsPeriod, setTransactionsPeriod } = useUIStore();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [rows, setRows] = useState<Transaction[]>([]);
@@ -69,13 +73,15 @@ export default function TransactionsScreen() {
   const [query, setQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
   const [rateMap, setRateMap] = useState<Map<string, number>>(new Map());
+  const [date, setDate] = useState(new Date());
   const loadIdRef = useRef(0);
 
   const load = useCallback(async () => {
     const loadId = (loadIdRef.current += 1);
     try {
+      const range = getPeriodRange(date, transactionsPeriod);
       const [items, hourly, currencyRows] = await Promise.all([
-        listTransactions(),
+        listTransactions({ start: range.start, end: range.end }),
         getEffectiveHourlyRate(),
         listCurrencies(),
       ]);
@@ -85,7 +91,7 @@ export default function TransactionsScreen() {
     } catch (error) {
       console.error('[TransactionsScreen] load failed', error);
     }
-  }, [baseCurrency]);
+  }, [baseCurrency, date, transactionsPeriod]);
 
   useFocusEffect(
     useCallback(() => {
@@ -220,6 +226,13 @@ export default function TransactionsScreen() {
           Activity
         </Text>
       </View>
+
+      <DateRangeSelector
+        period={transactionsPeriod}
+        date={date}
+        onChangeDate={setDate}
+        onChangePeriod={setTransactionsPeriod}
+      />
 
       {/* Summary Card */}
       <View className="flex-row gap-4 mb-6">

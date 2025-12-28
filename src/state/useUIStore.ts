@@ -6,6 +6,8 @@ interface UIState {
   setInsightsPeriod: (period: PeriodType) => void;
   budgetPeriod: PeriodType;
   setBudgetPeriod: (period: PeriodType) => void;
+  transactionsPeriod: PeriodType;
+  setTransactionsPeriod: (period: PeriodType) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -13,4 +15,6 @@ export const useUIStore = create<UIState>((set) => ({
   setInsightsPeriod: (period) => set({ insightsPeriod: period }),
   budgetPeriod: 'month',
   setBudgetPeriod: (period) => set({ budgetPeriod: period }),
+  transactionsPeriod: 'month',
+  setTransactionsPeriod: (period) => set({ transactionsPeriod: period }),
 }));
