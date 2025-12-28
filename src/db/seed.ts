@@ -33,21 +33,25 @@ export async function seedDefaultData(): Promise<void> {
     }
   }
 
-  const accountCount = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) as count FROM accounts',
-  );
-  if (!accountCount || accountCount.count === 0) {
-    const now = Date.now();
-    await db.runAsync(
-      'INSERT INTO accounts (id, name, type, currency, starting_balance_minor, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      createId('acct_'),
-      'Cash',
-      'cash',
-      'USD',
-      0,
-      now,
-    );
-  }
+  /*
+   * Default account creation is removed for new onboarding flow.
+   * Users will create their first accounts during the onboarding process.
+   */
+  // const accountCount = await db.getFirstAsync<{ count: number }>(
+  //   'SELECT COUNT(*) as count FROM accounts',
+  // );
+  // if (!accountCount || accountCount.count === 0) {
+  //   const now = Date.now();
+  //   await db.runAsync(
+  //     'INSERT INTO accounts (id, name, type, currency, starting_balance_minor, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+  //     createId('acct_'),
+  //     'Cash',
+  //     'cash',
+  //     'USD',
+  //     0,
+  //     now,
+  //   );
+  // }
 
   const settingsCount = await db.getFirstAsync<{ count: number }>(
     'SELECT COUNT(*) as count FROM settings',
@@ -60,21 +64,31 @@ export async function seedDefaultData(): Promise<void> {
       'fixed_hourly_rate_minor',
       '0',
     );
-    await db.runAsync('INSERT INTO settings (key, value) VALUES (?, ?)', 'base_currency', 'USD');
+    // Base currency will be set during onboarding
+    // await db.runAsync('INSERT INTO settings (key, value) VALUES (?, ?)', 'base_currency', 'USD');
   }
 
-  const currencyCount = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) as count FROM currencies',
-  );
-  if (!currencyCount || currencyCount.count === 0) {
-    const now = Date.now();
-    await db.runAsync(
-      'INSERT INTO currencies (code, name, symbol, rate_to_base, created_at) VALUES (?, ?, ?, ?, ?)',
-      'USD',
-      'US Dollar',
-      '$',
-      1,
-      now,
-    );
-  }
+  /*
+   * Default currency seeding is removed/modified.
+   * We might still want to seed the currencies table with available currencies if it's a list of ALL currencies,
+   * but if it marks the *user's* currencies, we wait.
+   * For now, assuming 'currencies' table holds *definitions* or *user added* currencies.
+   * If it holds definitions, we should probably seed a basic list or fetch it.
+   * Based on previous exploration, it seems to store ONE default USD.
+   * Let's comment this out so the user starts fresh.
+   */
+  // const currencyCount = await db.getFirstAsync<{ count: number }>(
+  //   'SELECT COUNT(*) as count FROM currencies',
+  // );
+  // if (!currencyCount || currencyCount.count === 0) {
+  //   const now = Date.now();
+  //   await db.runAsync(
+  //     'INSERT INTO currencies (code, name, symbol, rate_to_base, created_at) VALUES (?, ?, ?, ?, ?)',
+  //     'USD',
+  //     'US Dollar',
+  //     '$',
+  //     1,
+  //     now,
+  //   );
+  // }
 }

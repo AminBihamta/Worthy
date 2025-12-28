@@ -62,29 +62,29 @@ const STACK_ROOTS: Record<string, string> = {
 
 const createStackScreenOptions =
   (palette: typeof colors.light) =>
-  ({ navigation }: { navigation: any }) => ({
-    headerShown: true,
-    headerBackTitleVisible: false,
-    headerTitleAlign: 'center' as const,
-    headerStyle: { backgroundColor: palette.bg },
-    headerTintColor: palette.text,
-    headerShadowVisible: false,
-    headerTitleStyle: {
-      fontFamily: 'Manrope_600SemiBold',
-      fontSize: 20,
-      color: palette.text,
-    },
-    headerLeftContainerStyle: { paddingLeft: 16 },
-    headerRightContainerStyle: { paddingRight: 16 },
-    headerLeft: ({ canGoBack }: { canGoBack: boolean }) =>
-      canGoBack ? (
-        <HeaderIconButton
-          icon="arrow-left"
-          onPress={() => navigation.goBack()}
-          accessibilityLabel="Back"
-        />
-      ) : null,
-  });
+    ({ navigation }: { navigation: any }) => ({
+      headerShown: true,
+      headerBackTitleVisible: false,
+      headerTitleAlign: 'center' as const,
+      headerStyle: { backgroundColor: palette.bg },
+      headerTintColor: palette.text,
+      headerShadowVisible: false,
+      headerTitleStyle: {
+        fontFamily: 'Manrope_600SemiBold',
+        fontSize: 20,
+        color: palette.text,
+      },
+      headerLeftContainerStyle: { paddingLeft: 16 },
+      headerRightContainerStyle: { paddingRight: 16 },
+      headerLeft: ({ canGoBack }: { canGoBack?: boolean }) =>
+        canGoBack ? (
+          <HeaderIconButton
+            icon="arrow-left"
+            onPress={() => navigation.goBack()}
+            accessibilityLabel="Back"
+          />
+        ) : null,
+    });
 
 function HomeStack() {
   const { colorScheme } = useColorScheme();
@@ -235,7 +235,13 @@ function InsightsStack() {
   );
 }
 
-function TabBarItem({ route, index, state, navigation, descriptors }) {
+function TabBarItem({ route, index, state, navigation, descriptors }: {
+  route: any,
+  index: number,
+  state: any,
+  navigation: any,
+  descriptors: any
+}) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const palette = isDark ? colors.dark : colors.light;
@@ -273,8 +279,8 @@ function TabBarItem({ route, index, state, navigation, descriptors }) {
     typeof options.tabBarLabel === 'string'
       ? options.tabBarLabel
       : typeof options.title === 'string'
-      ? options.title
-      : config.label;
+        ? options.title
+        : config.label;
 
   const progress = useSharedValue(focused ? 1 : 0);
 
@@ -394,44 +400,58 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   );
 }
 
+import OnboardingNavigator from './OnboardingNavigator';
+import { useSettingsStore } from '../state/useSettingsStore';
+import { TutorialProvider } from '../components/tutorial/TutorialProvider';
+import { TutorialOverlay } from '../components/tutorial/TutorialOverlay';
+
 export default function RootNavigator() {
+  const { isOnboarded } = useSettingsStore();
+
+  if (!isOnboarded) {
+    return <OnboardingNavigator />;
+  }
+
   return (
-    <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
-      <Tab.Screen
-        name="HomeStack"
-        component={HomeStack}
-        options={{
-          title: 'Home',
-        }}
-      />
-      <Tab.Screen
-        name="TransactionsStack"
-        component={TransactionsStack}
-        options={{
-          title: 'Transactions',
-        }}
-      />
-      <Tab.Screen
-        name="BudgetsStack"
-        component={BudgetsStack}
-        options={{
-          title: 'Budgets',
-        }}
-      />
-      <Tab.Screen
-        name="GoalsStack"
-        component={GoalsStack}
-        options={{
-          title: 'Goals',
-        }}
-      />
-      <Tab.Screen
-        name="InsightsStack"
-        component={InsightsStack}
-        options={{
-          title: 'Insights',
-        }}
-      />
-    </Tab.Navigator>
+    <TutorialProvider>
+      <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
+        <Tab.Screen
+          name="HomeStack"
+          component={HomeStack}
+          options={{
+            title: 'Home',
+          }}
+        />
+        <Tab.Screen
+          name="TransactionsStack"
+          component={TransactionsStack}
+          options={{
+            title: 'Transactions',
+          }}
+        />
+        <Tab.Screen
+          name="BudgetsStack"
+          component={BudgetsStack}
+          options={{
+            title: 'Budgets',
+          }}
+        />
+        <Tab.Screen
+          name="GoalsStack"
+          component={GoalsStack}
+          options={{
+            title: 'Goals',
+          }}
+        />
+        <Tab.Screen
+          name="InsightsStack"
+          component={InsightsStack}
+          options={{
+            title: 'Insights',
+          }}
+        />
+      </Tab.Navigator>
+      <TutorialOverlay />
+    </TutorialProvider>
   );
 }

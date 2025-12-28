@@ -20,9 +20,10 @@ import { TransactionRow } from '../../components/TransactionRow';
 import { formatShortDate } from '../../utils/time';
 import { formatLifeCost } from '../../utils/lifeCost';
 import { buildRateMap, convertMinorToBase } from '../../utils/currency';
+import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 
 export default function HomeScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { colorScheme } = useColorScheme();
   const { hoursPerDay, baseCurrency } = useSettingsStore();
   const [summary, setSummary] = useState({ spent: 0, income: 0 });
@@ -30,6 +31,11 @@ export default function HomeScreen() {
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
   const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof listAccountsWithBalances>>>([]);
   const [rateMap, setRateMap] = useState<Map<string, number>>(new Map());
+
+  // Tutorial Targets
+  const balanceTarget = useTutorialTarget('home_balance');
+  const actionsTarget = useTutorialTarget('home_actions');
+  const transactionsTarget = useTutorialTarget('home_transactions_list');
 
   const load = useCallback(() => {
     const now = new Date();
@@ -106,7 +112,11 @@ export default function HomeScreen() {
           {/* Header Section */}
           <View className="px-6 pt-4 pb-6">
             <View className="flex-row justify-between items-start">
-              <View>
+              <View
+                ref={balanceTarget.ref}
+                onLayout={balanceTarget.onLayout}
+                collapsable={false} // Ensure measurement works on Android/optimization
+              >
                 <Text className="text-sm font-medium text-app-muted dark:text-app-muted-dark mb-1">
                   Total balance
                 </Text>
@@ -152,29 +162,29 @@ export default function HomeScreen() {
                       haptic
                     >
                       <View className="w-72 h-44 rounded-[32px] bg-app-text dark:bg-app-card-dark overflow-hidden relative p-6 justify-between shadow-sm">
-                         {/* Dark card background for contrast */}
-                         <View className="absolute inset-0 bg-[#0D1B2A] dark:bg-[#1C2432]" />
-                         
-                         {/* Decorative Blobs */}
-                         <View
-                            className="absolute -top-10 -right-10 h-40 w-40 rounded-full blur-2xl"
-                            style={{ backgroundColor: accent, opacity: 0.3 }}
-                          />
-                          <View
-                            className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full blur-xl"
-                            style={{ backgroundColor: accent, opacity: 0.2 }}
-                          />
+                        {/* Dark card background for contrast */}
+                        <View className="absolute inset-0 bg-[#0D1B2A] dark:bg-[#1C2432]" />
+
+                        {/* Decorative Blobs */}
+                        <View
+                          className="absolute -top-10 -right-10 h-40 w-40 rounded-full blur-2xl"
+                          style={{ backgroundColor: accent, opacity: 0.3 }}
+                        />
+                        <View
+                          className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full blur-xl"
+                          style={{ backgroundColor: accent, opacity: 0.2 }}
+                        />
 
                         <View className="flex-row justify-between items-center">
-                           <View className="flex-row items-center gap-2">
-                              <Feather name="credit-card" size={16} color="white" opacity={0.8} />
-                              <Text className="text-white/80 text-sm font-medium">{account.name}</Text>
-                           </View>
-                           <Text className="text-white/60 text-xs font-medium">{account.currency}</Text>
+                          <View className="flex-row items-center gap-2">
+                            <Feather name="credit-card" size={16} color="white" opacity={0.8} />
+                            <Text className="text-white/80 text-sm font-medium">{account.name}</Text>
+                          </View>
+                          <Text className="text-white/60 text-xs font-medium">{account.currency}</Text>
                         </View>
 
                         <View>
-                         
+
                           <Text className="text-3xl font-display font-bold text-white">
                             {formatSigned(account.balance_minor, account.currency)}
                           </Text>
@@ -185,7 +195,7 @@ export default function HomeScreen() {
                 })
               )}
               {accounts.length > 0 && (
-                 <PressableScale onPress={() => navigation.navigate('AccountForm' as never)}>
+                <PressableScale onPress={() => navigation.navigate('AccountForm' as never)}>
                   <View className="w-20 h-44 rounded-[32px] bg-app-soft dark:bg-app-soft-dark items-center justify-center border border-app-border dark:border-app-border-dark">
                     <Feather name="plus" size={24} color={brandColor} />
                   </View>
@@ -195,7 +205,12 @@ export default function HomeScreen() {
           </View>
 
           {/* Action Buttons */}
-          <View className="flex-row justify-between px-8 mb-10">
+          <View
+            className="flex-row justify-between px-8 mb-10"
+            ref={actionsTarget.ref}
+            onLayout={actionsTarget.onLayout}
+            collapsable={false}
+          >
             {actions.map((action) => (
               <PressableScale key={action.label} onPress={action.onPress} haptic>
                 <View className="items-center gap-2">
@@ -223,7 +238,12 @@ export default function HomeScreen() {
               </PressableScale>
             </View>
 
-            <View className="gap-4">
+            <View
+              className="gap-4"
+              ref={transactionsTarget.ref}
+              onLayout={transactionsTarget.onLayout}
+              collapsable={false}
+            >
               {recent.length === 0 ? (
                 <View className="p-6 rounded-3xl bg-app-card dark:bg-app-card-dark items-center border border-app-border dark:border-app-border-dark">
                   <Text className="text-app-muted dark:text-app-muted-dark text-center">
@@ -239,15 +259,15 @@ export default function HomeScreen() {
                     lifeCost={
                       item.type === 'expense'
                         ? formatLifeCost(
-                            convertMinorToBase(
-                              item.amount_minor,
-                              item.account_currency,
-                              rateMap,
-                              baseCurrency,
-                            ),
-                            hourlyRateMinor,
-                            hoursPerDay,
-                          )
+                          convertMinorToBase(
+                            item.amount_minor,
+                            item.account_currency,
+                            rateMap,
+                            baseCurrency,
+                          ),
+                          hourlyRateMinor,
+                          hoursPerDay,
+                        )
                         : null
                     }
                     onPress={() => {
@@ -270,6 +290,7 @@ export default function HomeScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+      {/* Removed local TutorialOverlay */}
     </View>
   );
 }

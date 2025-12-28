@@ -45,15 +45,13 @@ function SettingsRow({
   return (
     <PressableScale onPress={onPress}>
       <View
-        className={`flex-row items-center justify-between p-4 ${
-          !isLast ? 'border-b border-app-border/30 dark:border-app-border-dark/30' : ''
-        }`}
+        className={`flex-row items-center justify-between p-4 ${!isLast ? 'border-b border-app-border/30 dark:border-app-border-dark/30' : ''
+          }`}
       >
         <View className="flex-row items-center gap-4">
           <View
-            className={`w-10 h-10 rounded-full items-center justify-center ${
-              isDestructive ? 'bg-app-danger/10' : 'bg-app-soft dark:bg-app-soft-dark'
-            }`}
+            className={`w-10 h-10 rounded-full items-center justify-center ${isDestructive ? 'bg-app-danger/10' : 'bg-app-soft dark:bg-app-soft-dark'
+              }`}
           >
             <Feather
               name={icon}
@@ -62,9 +60,8 @@ function SettingsRow({
             />
           </View>
           <Text
-            className={`text-base font-medium ${
-              isDestructive ? 'text-app-danger' : 'text-app-text dark:text-app-text-dark'
-            }`}
+            className={`text-base font-medium ${isDestructive ? 'text-app-danger' : 'text-app-text dark:text-app-text-dark'
+              }`}
           >
             {label}
           </Text>
@@ -84,7 +81,7 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  
+
   const {
     themeMode,
     setThemeMode,
@@ -103,7 +100,7 @@ export default function SettingsScreen() {
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <ScrollView contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }}>
-        
+
         {/* Header */}
         <View className="px-6 mb-8">
           <Text className="text-4xl font-display text-app-text dark:text-app-text-dark">
@@ -182,11 +179,19 @@ export default function SettingsScreen() {
                   await generateSampleData();
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 }}
+              />
+              <SettingsRow
+                icon="rotate-ccw"
+                label="Reset Onboarding Action"
+                onPress={async () => {
+                  // This will flip the switch and RootNavigator should take over
+                  await useSettingsStore.getState().resetOnboarding();
+                }}
                 isLast
               />
             </SettingsSection>
           )}
-          
+
           <View className="items-center mt-4 mb-8">
             <Text className="text-xs text-app-muted dark:text-app-muted-dark">
               Worthy v1.0.0

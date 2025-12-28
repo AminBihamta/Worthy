@@ -14,11 +14,13 @@ export function SelectField({
   value,
   options,
   onChange,
+  placeholder,
 }: {
   label: string;
   value: string | null;
   options: SelectOption[];
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   const [visible, setVisible] = useState(false);
   const selected = options.find((option) => option.value === value);
@@ -36,7 +38,7 @@ export function SelectField({
         onPress={() => setVisible(true)}
       >
         <Text className="text-base text-app-text dark:text-app-text-dark">
-          {selected?.label ?? 'Select'}
+          {selected?.label ?? placeholder ?? 'Select'}
         </Text>
         <Feather name="chevron-down" size={18} color={iconColor} />
       </Pressable>

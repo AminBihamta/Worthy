@@ -9,6 +9,7 @@ export function Input({
   placeholder,
   keyboardType,
   multiline,
+  autoFocus,
 }: {
   label: string;
   value: string;
@@ -16,6 +17,7 @@ export function Input({
   placeholder?: string;
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'decimal-pad';
   multiline?: boolean;
+  autoFocus?: boolean;
 }) {
   const { colorScheme } = useColorScheme();
   const placeholderColor = colorScheme === 'dark' ? '#8B949E' : '#6B7A8F';
@@ -26,15 +28,15 @@ export function Input({
         {label}
       </Text>
       <TextInput
-        className={`rounded-2xl border border-transparent bg-app-soft dark:bg-app-soft-dark px-4 py-3 text-base text-app-text dark:text-app-text-dark ${
-          multiline ? 'h-28' : ''
-        }`}
+        className={`rounded-2xl border border-transparent bg-app-soft dark:bg-app-soft-dark px-4 py-3 text-base text-app-text dark:text-app-text-dark ${multiline ? 'h-28' : ''
+          }`}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={placeholderColor}
         keyboardType={keyboardType}
         multiline={multiline}
+        autoFocus={autoFocus}
       />
     </View>
   );

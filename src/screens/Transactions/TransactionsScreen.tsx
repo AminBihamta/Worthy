@@ -26,12 +26,13 @@ import { buildRateMap, convertMinorToBase } from '../../utils/currency';
 import { DateRangeSelector } from '../../components/DateRangeSelector';
 import { getPeriodRange } from '../../utils/period';
 import { useUIStore } from '../../state/useUIStore';
+import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 
 class TransactionsErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { error: Error | null }
 > {
-  state = { error: null };
+  state: { error: Error | null } = { error: null };
 
   static getDerivedStateFromError(error: Error) {
     return { error };
@@ -63,7 +64,7 @@ type ListItem =
   | { type: 'transaction'; data: Transaction };
 
 export default function TransactionsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { hoursPerDay, baseCurrency } = useSettingsStore();
   const { transactionsPeriod, setTransactionsPeriod } = useUIStore();
   const { colorScheme } = useColorScheme();
@@ -75,6 +76,7 @@ export default function TransactionsScreen() {
   const [rateMap, setRateMap] = useState<Map<string, number>>(new Map());
   const [date, setDate] = useState(new Date());
   const loadIdRef = useRef(0);
+  const headerTarget = useTutorialTarget('transactions_header');
 
   const load = useCallback(async () => {
     const loadId = (loadIdRef.current += 1);
@@ -200,18 +202,16 @@ export default function TransactionsScreen() {
           Haptics.selectionAsync();
           setFilterType(value);
         }}
-        className={`px-4 py-2 rounded-full border mr-2 ${
-          isActive
-            ? 'bg-app-text dark:bg-app-text-dark border-transparent'
-            : 'bg-transparent border-app-border dark:border-app-border-dark'
-        }`}
+        className={`px-4 py-2 rounded-full border mr-2 ${isActive
+          ? 'bg-app-text dark:bg-app-text-dark border-transparent'
+          : 'bg-transparent border-app-border dark:border-app-border-dark'
+          }`}
       >
         <Text
-          className={`text-sm font-medium ${
-            isActive
-              ? 'text-app-bg dark:text-app-bg-dark'
-              : 'text-app-text dark:text-app-text-dark'
-          }`}
+          className={`text-sm font-medium ${isActive
+            ? 'text-app-bg dark:text-app-bg-dark'
+            : 'text-app-text dark:text-app-text-dark'
+            }`}
         >
           {label}
         </Text>
@@ -221,7 +221,12 @@ export default function TransactionsScreen() {
 
   const header = (
     <View className="mb-6">
-      <View className="flex-row items-center justify-between mb-6">
+      <View
+        className="flex-row items-center justify-between mb-6"
+        ref={headerTarget.ref}
+        onLayout={headerTarget.onLayout}
+        collapsable={false}
+      >
         <Text className="text-4xl font-display text-app-text dark:text-app-text-dark">
           Activity
         </Text>
@@ -324,15 +329,15 @@ export default function TransactionsScreen() {
             lifeCost={
               transaction.type === 'expense'
                 ? formatLifeCost(
-                    convertMinorToBase(
-                      transaction.amount_minor,
-                      transaction.account_currency,
-                      rateMap,
-                      baseCurrency,
-                    ),
-                    hourlyRateMinor,
-                    hoursPerDay,
-                  )
+                  convertMinorToBase(
+                    transaction.amount_minor,
+                    transaction.account_currency,
+                    rateMap,
+                    baseCurrency,
+                  ),
+                  hourlyRateMinor,
+                  hoursPerDay,
+                )
                 : null
             }
             onPress={() => {
@@ -370,7 +375,7 @@ export default function TransactionsScreen() {
           renderItem={renderItem}
           getItemType={(item) => item.type}
         />
-        
+
         {/* Floating Action Buttons */}
         <View className="absolute bottom-20 right-6 flex-row items-center gap-4">
           <PressableScale
@@ -385,7 +390,7 @@ export default function TransactionsScreen() {
               Scan
             </Text>
           </PressableScale>
-          
+
           <PressableScale
             className="h-14 w-14 rounded-full bg-app-brand dark:bg-app-brand-dark items-center justify-center shadow-lg shadow-app-brand/30"
             onPress={() => {
