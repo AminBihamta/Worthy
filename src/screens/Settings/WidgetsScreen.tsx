@@ -6,7 +6,7 @@ export default function WidgetsScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24 }}
+      contentContainerStyle={{ padding: 24, paddingBottom: 140 }}
     >
       <Card>
         <Text className="text-lg font-display text-app-text dark:text-app-text-dark mb-2">

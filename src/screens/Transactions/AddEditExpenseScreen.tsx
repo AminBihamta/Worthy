@@ -398,7 +398,7 @@ export default function AddEditExpenseScreen() {
                 placeholder="0.00"
                 placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
                 keyboardType="decimal-pad"
-                className="text-6xl font-display text-app-text dark:text-app-text-dark text-center w-full"
+                className="text-5xl font-display text-app-text dark:text-app-text-dark text-center w-full"
                 autoFocus={!editingId}
                 adjustsFontSizeToFit
                 numberOfLines={1}

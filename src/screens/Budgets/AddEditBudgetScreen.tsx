@@ -15,6 +15,8 @@ import { PressableScale } from '../../components/PressableScale';
 import { SelectionModal } from '../../components/SelectionModal';
 import { listCategories } from '../../db/repositories/categories';
 import { createBudget, listBudgets, updateBudget } from '../../db/repositories/budgets';
+import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
+import { useSettingsStore } from '../../state/useSettingsStore';
 import { toMinor } from '../../utils/money';
 
 export default function AddEditBudgetScreen() {
@@ -22,6 +24,7 @@ export default function AddEditBudgetScreen() {
   const route = useRoute();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { baseCurrency } = useSettingsStore();
   const params = route.params as { id?: string } | undefined;
   const editingId = params?.id;
 
@@ -29,6 +32,7 @@ export default function AddEditBudgetScreen() {
   const [amount, setAmount] = useState('');
   const [periodType, setPeriodType] = useState('month');
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
   
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
@@ -39,6 +43,10 @@ export default function AddEditBudgetScreen() {
       if (!categoryId && cats.length > 0) setCategoryId(cats[0].id);
     });
   }, [categoryId]);
+
+  useEffect(() => {
+    listCurrencies().then(setCurrencies);
+  }, []);
 
   useEffect(() => {
     if (!editingId) return;
@@ -74,6 +82,10 @@ export default function AddEditBudgetScreen() {
   };
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
+  const selectedCurrency = currencies.find((currency) => currency.code === baseCurrency);
+  const currencySymbol =
+    selectedCurrency?.symbol ??
+    (baseCurrency === 'EUR' ? '€' : baseCurrency === 'USD' ? '$' : baseCurrency);
   const periodOptions = [
     { id: 'month', name: 'Monthly' },
     { id: 'week', name: 'Weekly (coming soon)' },
@@ -94,7 +106,7 @@ export default function AddEditBudgetScreen() {
         <View className="pt-8 pb-8 px-6 items-center justify-center">
           <View className="flex-row items-baseline justify-center">
             <Text className="text-4xl font-display text-app-muted dark:text-app-muted-dark mr-1">
-              $
+              {currencySymbol}
             </Text>
             <TextInput
               value={amount}

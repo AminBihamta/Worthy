@@ -50,7 +50,7 @@ export default function AddEditCategoryScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24 }}
+      contentContainerStyle={{ padding: 24, paddingBottom: 140 }}
     >
       <Input label="Name" value={name} onChangeText={setName} placeholder="e.g. Grocery" />
       <Input label="Icon" value={icon} onChangeText={setIcon} placeholder="Feather icon name" />

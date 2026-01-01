@@ -190,7 +190,7 @@ export default function AddEditAccountScreen() {
           <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
             Account balance
           </Text>
-          <Text className="text-7xl font-display text-app-text dark:text-app-text-dark mt-3 text-center leading-tight">
+          <Text className="text-5xl font-display text-app-text dark:text-app-text-dark mt-3 text-center leading-tight">
             {formatSigned(heroBalanceMinor, currency || baseCurrency || 'USD')}
           </Text>
           <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-3 text-center">

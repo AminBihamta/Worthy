@@ -35,7 +35,7 @@ export default function AddEditBucketScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24 }}
+      contentContainerStyle={{ padding: 24, paddingBottom: 140 }}
     >
       <SelectField
         label="Category"

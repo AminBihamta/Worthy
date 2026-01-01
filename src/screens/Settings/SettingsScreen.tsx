@@ -163,7 +163,7 @@ export default function SettingsScreen() {
             />
             <SettingsRow
               icon="inbox"
-              label="Receipt Inbox"
+              label="Quick Capture"
               onPress={() => navigation.navigate('ReceiptInbox' as never)}
               isLast
             />

@@ -59,6 +59,11 @@ export default function ExpenseDetailScreen() {
   const params = route.params as { id: string; origin?: 'home' } | undefined;
   const [expense, setExpense] = useState<ExpenseListRow | null>(null);
   const [lifeCost, setLifeCost] = useState<string | null>(null);
+  const [lifeCostMeta, setLifeCostMeta] = useState<{
+    totalIncomeMinor: number;
+    totalHours: number;
+    amountBaseMinor: number;
+  } | null>(null);
   const [recurringRule, setRecurringRule] = useState<RecurringRuleRow | null>(null);
   const [receipt, setReceipt] = useState<ReceiptInboxRow | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -115,6 +120,7 @@ export default function ExpenseDetailScreen() {
         setRecurringRule(recurring);
         setReceipt(linkedReceipt);
         setLifeCost(null);
+        setLifeCostMeta(null);
         setBudgetMeta(null);
         setCategoryStats(null);
 
@@ -123,6 +129,11 @@ export default function ExpenseDetailScreen() {
           const expenseCurrency = row.currency_code ?? row.account_currency ?? baseCurrency;
           const amountBase = convertMinorToBase(row.amount_minor, expenseCurrency, rateLookup, baseCurrency);
           setLifeCost(formatLifeCost(amountBase, rate, hoursPerDay));
+          setLifeCostMeta({
+            totalIncomeMinor: hourly.total_income_minor,
+            totalHours: hourly.total_hours,
+            amountBaseMinor: amountBase,
+          });
         }
 
         if (!row) return;
@@ -224,6 +235,26 @@ export default function ExpenseDetailScreen() {
     ? `${budgetMeta.impactPct}% of your ${budgetMeta.periodLabel} ${expense.category_name} budget`
     : null;
 
+  const handleLifeCostInfo = () => {
+    if (!lifeCostMeta || !lifeCost) {
+      Alert.alert(
+        'Life cost',
+        'Add income with hours worked to see how long an expense costs in time.',
+      );
+      return;
+    }
+    const hoursText = Number.isFinite(lifeCostMeta.totalHours)
+      ? lifeCostMeta.totalHours.toFixed(1).replace(/\.0$/, '')
+      : String(lifeCostMeta.totalHours);
+    const incomeText = formatMinor(lifeCostMeta.totalIncomeMinor, baseCurrency);
+    const amountText = formatMinor(lifeCostMeta.amountBaseMinor, baseCurrency);
+    const dayNote = `Days assume ${hoursPerDay} working hours/day.`;
+    Alert.alert(
+      'Life cost calculation',
+      `We estimate this from your last 30 days of income entries with hours worked.\n\nFormula:\n(${hoursText} hours / ${incomeText}) * ${amountText} = ${lifeCost}\n\n${dayNote}`,
+    );
+  };
+
   const insightItems = (() => {
     const items: string[] = [];
     if (budgetMeta) {
@@ -279,7 +310,7 @@ export default function ExpenseDetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <View className="items-center pt-12 pb-8 px-6">
-          <Text className="text-7xl font-display text-app-text dark:text-app-text-dark text-center pt-4 leading-tight">
+          <Text className="text-5xl font-display text-app-text dark:text-app-text-dark text-center pt-4 leading-tight">
             {formatMinor(expense.amount_minor, expenseCurrency)}
           </Text>
           <Text className="text-xl text-app-muted dark:text-app-muted-dark text-center mt-2 font-medium">
@@ -329,13 +360,20 @@ export default function ExpenseDetailScreen() {
               </Text>
             </View>
 
-             {/* Life Cost */}
+            {/* Life Cost */}
             <View className="flex-row items-center justify-between p-5">
               <View className="flex-row items-center gap-4">
                 <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
                   <Feather name="clock" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />
                 </View>
-                <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Life Cost</Text>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-base font-medium text-app-text dark:text-app-text-dark">
+                    Life Cost
+                  </Text>
+                  <Pressable onPress={handleLifeCostInfo} className="p-1">
+                    <Feather name="help-circle" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
+                  </Pressable>
+                </View>
               </View>
               <Text className="text-base text-app-muted dark:text-app-muted-dark">
          {lifeCost}
@@ -422,7 +460,7 @@ export default function ExpenseDetailScreen() {
           {receipt && (
             <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
               <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-3">
-                Receipt
+                Quick capture
               </Text>
               <Image
                 source={{ uri: receipt.image_uri }}
@@ -439,7 +477,7 @@ export default function ExpenseDetailScreen() {
         <View className="px-6 mt-8">
           <Button
             title="Edit Expense"
-            onPress={() => navigation.navigate('AddEditExpense', { id: expense.id })}
+            onPress={() => navigation.navigate('AddExpense' as never, { id: expense.id } as never)}
             variant="secondary"
             icon={<Feather name="edit-2" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />}
           />

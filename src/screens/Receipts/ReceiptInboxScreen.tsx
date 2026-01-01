@@ -49,14 +49,25 @@ export default function ReceiptInboxScreen() {
       quality: 0.8,
     });
 
-    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets?.[0];
+    if (result.canceled || !asset?.uri) return;
 
     await ensureDir();
-    const asset = result.assets[0];
     const fileName = `${createId('rcpt_')}.jpg`;
     const target = `${receiptDir}/${fileName}`;
-    await FileSystem.copyAsync({ from: asset.uri, to: target });
-    await createReceiptInboxItem({ image_uri: target });
+    let storedUri = asset.uri;
+    try {
+      await FileSystem.copyAsync({ from: asset.uri, to: target });
+      storedUri = target;
+    } catch (error) {
+      try {
+        await FileSystem.moveAsync({ from: asset.uri, to: target });
+        storedUri = target;
+      } catch (moveError) {
+        storedUri = asset.uri;
+      }
+    }
+    await createReceiptInboxItem({ image_uri: storedUri });
     load();
   };
 
@@ -88,15 +99,15 @@ export default function ReceiptInboxScreen() {
 
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
-      <ScrollView contentContainerStyle={{ padding: 24 }}>
+      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 140 }}>
         <Button
-          title="Quick add receipt"
+          title="Quick capture"
           onPress={handleCapture}
           icon={(color) => <Feather name="camera" size={16} color={color} />}
         />
         <View className="mt-6">
           {receipts.length === 0 ? (
-            <EmptyState title="Inbox is empty" subtitle="Add a receipt photo to capture later." />
+            <EmptyState title="No captures yet" subtitle="Add a quick capture to log later." />
           ) : (
             receipts.map((item) => (
               <Pressable key={item.id} onPress={() => toggleSelect(item.id)} className="mb-4">

@@ -45,7 +45,7 @@ export default function CategoriesScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24 }}
+      contentContainerStyle={{ padding: 24, paddingBottom: 140 }}
     >
       {categories.length === 0 ? (
         <EmptyState title="No categories" subtitle="Add a category to organize spending." />
@@ -62,13 +62,36 @@ export default function CategoriesScreen() {
               }}
             >
               <Card className="flex-row items-center justify-between">
-                <View>
+                <View className="flex-1 pr-4">
                   <Text className="text-base font-display text-app-text dark:text-app-text-dark">
                     {category.name}
                   </Text>
                   <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
                     {category.icon}
                   </Text>
+                  <View className="flex-row items-center gap-2 mt-3">
+                    <Pressable
+                      className="px-3 py-1.5 rounded-full border border-app-border dark:border-app-border-dark bg-app-soft dark:bg-app-soft-dark flex-row items-center"
+                      onPress={() =>
+                        navigation.navigate('CategoryForm' as never, { id: category.id } as never)
+                      }
+                    >
+                      <Feather name="edit-2" size={14} color={iconColor} />
+                      <Text className="text-xs text-app-text dark:text-app-text-dark ml-1.5">
+                        Edit
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      className="px-3 py-1.5 rounded-full border border-app-danger/30 bg-app-danger/10 flex-row items-center"
+                      onPress={async () => {
+                        await archiveCategory(category.id);
+                        load();
+                      }}
+                    >
+                      <Feather name="trash-2" size={14} color="#EF4444" />
+                      <Text className="text-xs text-app-danger ml-1.5">Delete</Text>
+                    </Pressable>
+                  </View>
                 </View>
                 <View className="flex-row items-center">
                   <Pressable

@@ -16,6 +16,8 @@ import { Input } from '../../components/Input';
 import { SwipeableRow } from '../../components/SwipeableRow';
 import { useSettingsStore } from '../../state/useSettingsStore';
 
+import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
+
 export default function GoalsScreen() {
   const navigation = useNavigation();
   const { baseCurrency } = useSettingsStore();
@@ -25,6 +27,8 @@ export default function GoalsScreen() {
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
+
+  const { ref: addRef, onLayout: onAddLayout } = useTutorialTarget('goals_add_button');
 
   const load = useCallback(() => {
     Promise.all([listSavingsBuckets(), listWishlistItems()]).then(([bucketsRows, wishlistRows]) => {
@@ -56,16 +60,18 @@ export default function GoalsScreen() {
   return (
     <ScrollView
       className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24 }}
+      contentContainerStyle={{ padding: 24, paddingBottom: 140 }}
     >
       <SectionHeader
         title="Savings buckets"
         action={
-          <Button
-            title="Add"
-            variant="secondary"
-            onPress={() => navigation.navigate('BucketForm' as never)}
-          />
+          <View ref={addRef} onLayout={onAddLayout} collapsable={false}>
+            <Button
+              title="Add"
+              variant="secondary"
+              onPress={() => navigation.navigate('BucketForm' as never)}
+            />
+          </View>
         }
       />
       {buckets.length === 0 ? (
@@ -158,7 +164,11 @@ export default function GoalsScreen() {
                   load();
                 }}
               >
-                <Card>
+                <Card
+                  className={
+                    affordable ? 'border-app-success/60 shadow-lg shadow-app-success/30' : ''
+                  }
+                >
                   <Text className="text-base font-display text-app-text dark:text-app-text-dark">
                     {item.title}
                   </Text>
@@ -174,9 +184,8 @@ export default function GoalsScreen() {
                     Saved {formatSigned(item.saved_minor, baseCurrency)}
                   </Text>
                   <Text
-                    className={`text-xs mt-2 ${
-                      affordable ? 'text-app-success' : 'text-app-muted dark:text-app-muted-dark'
-                    }`}
+                    className={`text-xs mt-2 ${affordable ? 'text-app-success' : 'text-app-muted dark:text-app-muted-dark'
+                      }`}
                   >
                     {affordable ? 'Affordable now' : 'Keep saving to unlock'}
                   </Text>

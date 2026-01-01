@@ -46,7 +46,7 @@ function SelectionModal({ visible, onClose, title, options, onSelect, selectedId
                 <Feather name="x" size={24} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
               </Pressable>
             </View>
-            <ScrollView contentContainerStyle={{ padding: 24 }}>
+            <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 140 }}>
               {options.map((option) => (
                 <PressableScale
                   key={option.id}

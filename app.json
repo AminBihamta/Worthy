@@ -28,6 +28,15 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-sqlite", "expo-font"]
+    "plugins": [
+      "expo-sqlite",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "71f86a3d-fc2b-4c88-af39-723842d49868"
+      }
+    },
+    "owner": "amin81s-organization"
   }
 }

@@ -113,7 +113,7 @@ function HomeStack() {
       <Stack.Screen
         name="ReceiptInbox"
         component={ReceiptInboxScreen}
-        options={{ title: 'Receipt Inbox' }}
+        options={{ title: 'Quick Capture' }}
       />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       <Stack.Screen name="Currencies" component={CurrenciesScreen} options={{ title: 'Currencies' }} />
@@ -178,7 +178,7 @@ function TransactionsStack() {
       <Stack.Screen
         name="ReceiptInbox"
         component={ReceiptInboxScreen}
-        options={{ title: 'Receipt Inbox' }}
+        options={{ title: 'Quick Capture' }}
       />
     </Stack.Navigator>
   );

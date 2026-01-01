@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { addMonths } from 'date-fns';
+import { addDays, addMonths, addWeeks, addYears } from 'date-fns';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -23,6 +23,35 @@ import { createIncome, getIncome, updateIncome } from '../../db/repositories/inc
 import { createRecurringRule } from '../../db/repositories/recurring';
 import { toMinor } from '../../utils/money';
 import { useSettingsStore } from '../../state/useSettingsStore';
+
+type RecurringFrequency = 'off' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+
+const recurringOptions: { id: RecurringFrequency; name: string; subtitle?: string }[] = [
+  { id: 'off', name: 'Off', subtitle: 'No recurrence' },
+  { id: 'daily', name: 'Daily' },
+  { id: 'weekly', name: 'Weekly' },
+  { id: 'biweekly', name: 'Bi-weekly' },
+  { id: 'monthly', name: 'Monthly' },
+  { id: 'yearly', name: 'Yearly' },
+];
+
+const getRecurringConfig = (frequency: RecurringFrequency, baseDate: number) => {
+  const base = new Date(baseDate);
+  switch (frequency) {
+    case 'daily':
+      return { rrule_text: 'FREQ=DAILY;INTERVAL=1', next_run_ts: addDays(base, 1).getTime() };
+    case 'weekly':
+      return { rrule_text: 'FREQ=WEEKLY;INTERVAL=1', next_run_ts: addWeeks(base, 1).getTime() };
+    case 'biweekly':
+      return { rrule_text: 'FREQ=WEEKLY;INTERVAL=2', next_run_ts: addWeeks(base, 2).getTime() };
+    case 'monthly':
+      return { rrule_text: 'FREQ=MONTHLY;INTERVAL=1', next_run_ts: addMonths(base, 1).getTime() };
+    case 'yearly':
+      return { rrule_text: 'FREQ=YEARLY;INTERVAL=1', next_run_ts: addYears(base, 1).getTime() };
+    default:
+      return null;
+  }
+};
 
 interface SelectionModalProps {
   visible: boolean;
@@ -108,13 +137,14 @@ export default function AddEditIncomeScreen() {
   const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
   const [hoursWorked, setHoursWorked] = useState('');
   const [notes, setNotes] = useState('');
-  const [recurring, setRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('off');
   const [errors, setErrors] = useState<{ amount?: string; source?: string }>({});
 
   const [accounts, setAccounts] = useState<{ id: string; name: string; currency: string }[]>([]);
   const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
   const heroOffset = useRef(0);
 
@@ -213,13 +243,16 @@ export default function AddEditIncomeScreen() {
         notes,
       });
 
-      if (recurring) {
-        await createRecurringRule({
-          entity_type: 'income',
-          entity_id: id,
-          rrule_text: 'FREQ=MONTHLY;INTERVAL=1',
-          next_run_ts: addMonths(new Date(finalDateTs), 1).getTime(),
-        });
+      if (recurringFrequency !== 'off') {
+        const config = getRecurringConfig(recurringFrequency, finalDateTs);
+        if (config) {
+          await createRecurringRule({
+            entity_type: 'income',
+            entity_id: id,
+            rrule_text: config.rrule_text,
+            next_run_ts: config.next_run_ts,
+          });
+        }
       }
     }
 
@@ -269,7 +302,7 @@ export default function AddEditIncomeScreen() {
                 placeholder="0.00"
                 placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
                 keyboardType="decimal-pad"
-                className="text-6xl font-display text-app-text dark:text-app-text-dark text-center w-full"
+                className="text-5xl font-display text-app-text dark:text-app-text-dark text-center w-full"
                 autoFocus={!editingId}
                 adjustsFontSizeToFit
                 numberOfLines={1}
@@ -404,36 +437,24 @@ export default function AddEditIncomeScreen() {
             <PressableScale
               onPress={() => {
                 Haptics.selectionAsync();
-                setRecurring(!recurring);
+                setShowRecurringModal(true);
               }}
-              className={`flex-row items-center justify-between p-5 rounded-3xl border ${
-                recurring
-                  ? 'bg-app-soft dark:bg-app-soft-dark border-app-brand dark:border-app-brand-dark'
-                  : 'bg-app-card dark:bg-app-card-dark border-app-border/50 dark:border-app-border-dark/50'
-              }`}
+              className="flex-row items-center justify-between p-5 rounded-3xl border bg-app-card dark:bg-app-card-dark border-app-border/50 dark:border-app-border-dark/50"
             >
               <View className="flex-row items-center gap-4">
-                <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                  recurring ? 'bg-app-brand dark:bg-app-brand-dark' : 'bg-app-soft dark:bg-app-soft-dark'
-                }`}>
-                  <Feather name="repeat" size={18} color={recurring ? '#FFFFFF' : (isDark ? '#E6EDF3' : '#0D1B2A')} />
+                <View className="w-10 h-10 rounded-full items-center justify-center bg-app-soft dark:bg-app-soft-dark">
+                  <Feather name="repeat" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
                 </View>
                 <View>
-                  <Text className={`text-base font-medium ${
-                    recurring ? 'text-app-brand dark:text-app-brand-dark' : 'text-app-text dark:text-app-text-dark'
-                  }`}>
-                    Monthly Recurring
+                  <Text className="text-base font-medium text-app-text dark:text-app-text-dark">
+                    Recurring
                   </Text>
                   <Text className="text-xs text-app-muted dark:text-app-muted-dark">
-                    Repeat this income every month
+                    {recurringOptions.find((option) => option.id === recurringFrequency)?.name ?? 'Off'}
                   </Text>
                 </View>
               </View>
-              <View className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
-                recurring ? 'border-app-brand dark:border-app-brand-dark bg-app-brand dark:bg-app-brand-dark' : 'border-app-muted dark:border-app-muted-dark'
-              }`}>
-                {recurring && <Feather name="check" size={14} color="#FFFFFF" />}
-              </View>
+              <Feather name="chevron-right" size={18} color={isDark ? '#8B949E' : '#6B7A8F'} />
             </PressableScale>
           )}
         </View>
@@ -481,6 +502,15 @@ export default function AddEditIncomeScreen() {
           }
         }}
         selectedId={currencyCode || baseCurrency}
+      />
+
+      <SelectionModal
+        visible={showRecurringModal}
+        onClose={() => setShowRecurringModal(false)}
+        title="Recurring"
+        options={recurringOptions}
+        onSelect={(id) => setRecurringFrequency(id as RecurringFrequency)}
+        selectedId={recurringFrequency}
       />
     </KeyboardAvoidingView>
   );

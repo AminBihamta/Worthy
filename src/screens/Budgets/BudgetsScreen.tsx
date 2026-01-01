@@ -15,6 +15,8 @@ import { formatSigned } from '../../utils/money';
 import { SwipeableRow } from '../../components/SwipeableRow';
 import { useSettingsStore } from '../../state/useSettingsStore';
 
+import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
+
 export default function BudgetsScreen() {
   const navigation = useNavigation();
   const { colorScheme } = useColorScheme();
@@ -22,6 +24,9 @@ export default function BudgetsScreen() {
   const { budgetPeriod, setBudgetPeriod } = useUIStore();
   const { baseCurrency } = useSettingsStore();
   const [date, setDate] = useState(new Date());
+
+  const { ref: fabRef, onLayout: onFabLayout } = useTutorialTarget('budgets_fab');
+
   const [budgets, setBudgets] = useState<
     {
       id: string;
@@ -101,7 +106,7 @@ export default function BudgetsScreen() {
               <Text className="text-4xl font-display text-app-text dark:text-app-text-dark mb-4">
                 {formatSigned(totalRemaining, baseCurrency)}
               </Text>
-              
+
               <View className="h-3 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden mb-2">
                 <View
                   className="h-full rounded-full bg-app-brand dark:bg-app-brand-dark"
@@ -130,7 +135,7 @@ export default function BudgetsScreen() {
                 const progress = Math.min(1, budget.spent / budget.limit);
                 const overspent = budget.spent > budget.limit;
                 const remaining = Math.max(0, budget.limit - budget.spent);
-                
+
                 return (
                   <SwipeableRow
                     key={budget.id}
@@ -186,7 +191,7 @@ export default function BudgetsScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      <View className="absolute bottom-32 right-6 z-50">
+      <View className="absolute bottom-32 right-6 z-50" ref={fabRef} onLayout={onFabLayout} collapsable={false}>
         <PressableScale
           className="h-14 w-14 rounded-full bg-app-brand dark:bg-app-brand-dark items-center justify-center shadow-lg shadow-app-brand/30"
           onPress={() => {

@@ -21,49 +21,60 @@ export function TutorialOverlay() {
     // To avoid flashing, let's wait until activeLayout is ready before showing the "Spotlight".
     // Or we show a generic modal in center if layout takes too long? 
     // For now, let's render nothing until we lock onto the target.
-    if (!activeLayout) return null;
+    // If activeLayout is missing, we show the tooltip in the center of the screen
+    // This serves as a fallback so the tutorial doesn't appear "broken" or invisible.
 
-    // Safe destructuring
-    const { x, y, width, height } = activeLayout;
+    // Default values if layout is missing (Center screen)
+    const x = activeLayout ? activeLayout.x : SCREEN_WIDTH / 2;
+    const y = activeLayout ? activeLayout.y : SCREEN_HEIGHT / 2;
+    const width = activeLayout ? activeLayout.width : 0;
+    const height = activeLayout ? activeLayout.height : 0;
+    const hasLayout = !!activeLayout;
 
-    // Calculate spotlight hole surroundings
-    // Top rect
-    const topHeight = Math.max(0, y);
-    // Bottom rect
-    const bottomHeight = Math.max(0, SCREEN_HEIGHT - (y + height));
-    // Left rect (beside the hole)
-    const leftWidth = Math.max(0, x);
-    // Right rect
-    const rightWidth = Math.max(0, SCREEN_WIDTH - (x + width));
+    // Calculate spotlight hole surroundings (only if we have a layout)
+    // If no layout, we make the whole screen dark backdrop.
 
-    // Tooltip positioning
-    // Prefer below the target, unless too close to bottom
+    const topHeight = hasLayout ? Math.max(0, y) : SCREEN_HEIGHT / 2; // Split half
+    const bottomHeight = hasLayout ? Math.max(0, SCREEN_HEIGHT - (y + height)) : SCREEN_HEIGHT / 2;
+    // ... Actually, cleaner: if no layout, just one full backdrop.
+
     const isBottomHalf = y > SCREEN_HEIGHT / 2;
-    const tooltipTop = isBottomHalf ? (y - 180) : (y + height + 20);
+    // If fallback, put tooltip in a nice spot (e.g. center)
+    const tooltipTop = hasLayout
+        ? (isBottomHalf ? (y - 180) : (y + height + 20))
+        : (SCREEN_HEIGHT / 2 - 100); // Centered roughly
 
     return (
         <Modal transparent visible animationType="none">
             <View style={StyleSheet.absoluteFill}>
-                {/* Backdrop constructed of 4 views to create a hole */}
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: topHeight, backgroundColor: 'rgba(0,0,0,0.7)' }} />
-                <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: bottomHeight, backgroundColor: 'rgba(0,0,0,0.7)' }} />
-                <View style={{ position: 'absolute', top: topHeight, left: 0, width: leftWidth, height: height, backgroundColor: 'rgba(0,0,0,0.7)' }} />
-                <View style={{ position: 'absolute', top: topHeight, right: 0, width: rightWidth, height: height, backgroundColor: 'rgba(0,0,0,0.7)' }} />
+                {/* Backdrop */}
+                {hasLayout ? (
+                    <>
+                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: Math.max(0, y), backgroundColor: 'rgba(0,0,0,0.7)' }} />
+                        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: Math.max(0, SCREEN_HEIGHT - (y + height)), backgroundColor: 'rgba(0,0,0,0.7)' }} />
+                        <View style={{ position: 'absolute', top: Math.max(0, y), left: 0, width: Math.max(0, x), height: height, backgroundColor: 'rgba(0,0,0,0.7)' }} />
+                        <View style={{ position: 'absolute', top: Math.max(0, y), right: 0, width: Math.max(0, SCREEN_WIDTH - (x + width)), height: height, backgroundColor: 'rgba(0,0,0,0.7)' }} />
+                    </>
+                ) : (
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)' }} />
+                )}
 
-                {/* Highlight Border (Optional) */}
-                <View
-                    style={{
-                        position: 'absolute',
-                        top: y - 4,
-                        left: x - 4,
-                        width: width + 8,
-                        height: height + 8,
-                        borderRadius: 12,
-                        borderWidth: 2,
-                        borderColor: palette.brand,
-                        backgroundColor: 'transparent'
-                    }}
-                />
+                {/* Highlight Border (Only if has layout) */}
+                {hasLayout && (
+                    <View
+                        style={{
+                            position: 'absolute',
+                            top: y - 4,
+                            left: x - 4,
+                            width: width + 8,
+                            height: height + 8,
+                            borderRadius: 12,
+                            borderWidth: 2,
+                            borderColor: palette.brand,
+                            backgroundColor: 'transparent'
+                        }}
+                    />
+                )}
 
                 {/* Tooltip Card */}
                 <Animated.View
@@ -94,6 +105,9 @@ export function TutorialOverlay() {
         </Modal>
     );
 }
+
+// Dummy export to keep file valid structure before splicing
+const _unused = null;
 
 const styles = StyleSheet.create({
     card: {

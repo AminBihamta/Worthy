@@ -106,7 +106,7 @@ export default function IncomeDetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <View className="items-center pt-12 pb-8 px-6">
-          <Text className="text-7xl font-display text-app-success dark:text-app-success text-center pt-4 leading-tight">
+          <Text className="text-5xl font-display text-app-success dark:text-app-success text-center pt-4 leading-tight">
             +{formatMinor(income.amount_minor, incomeCurrency)}
           </Text>
           <Text className="text-xl text-app-muted dark:text-app-muted-dark text-center mt-2 font-medium">
@@ -202,7 +202,7 @@ export default function IncomeDetailScreen() {
         <View className="px-6 mt-8">
           <Button
             title="Edit Income"
-            onPress={() => navigation.navigate('AddEditIncome', { id: income.id })}
+            onPress={() => navigation.navigate('AddIncome' as never, { id: income.id } as never)}
             variant="secondary"
             icon={<Feather name="edit-2" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />}
           />

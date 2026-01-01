@@ -86,6 +86,26 @@ export async function getRegretByCategory(start: number, end: number) {
   );
 }
 
+export async function getRegretDistribution(start: number, end: number) {
+  const db = await getDb();
+  return db.getAllAsync<{ bucket: string; count: number }>(
+    `SELECT
+      CASE
+        WHEN COALESCE(e.slider_0_100, 50) < 20 THEN 'total_regret'
+        WHEN COALESCE(e.slider_0_100, 50) < 40 THEN 'mostly_regret'
+        WHEN COALESCE(e.slider_0_100, 50) < 60 THEN 'mixed'
+        WHEN COALESCE(e.slider_0_100, 50) < 80 THEN 'worth_it'
+        ELSE 'absolutely_worth_it'
+      END as bucket,
+      COUNT(*) as count
+     FROM expenses e
+     WHERE e.date_ts BETWEEN ? AND ?
+     GROUP BY bucket`,
+    start,
+    end,
+  );
+}
+
 export async function getMostRegretfulExpenses(start: number, end: number, limit = 5) {
   const db = await getDb();
   return db.getAllAsync<{ title: string; avg_regret: number; total_spent: number }>(

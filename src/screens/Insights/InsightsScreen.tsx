@@ -3,10 +3,17 @@ import { ScrollView, Text, View, Dimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import {
+  addDays,
+  addMonths,
+  differenceInDays,
+  differenceInMonths,
+  format,
+  startOfDay,
+  startOfMonth,
+} from 'date-fns';
 import {
   VictoryAxis,
-  VictoryBar,
   VictoryChart,
   VictoryLine,
   VictoryPie,
@@ -19,63 +26,133 @@ import {
   getIncomeSeries,
   getSpendingByCategory,
   getRegretByCategory,
-  getMostRegretfulExpenses,
+  getRegretDistribution,
   getLifeCostByCategory,
   getEffectiveHourlyRate,
 } from '../../db/repositories/analytics';
 import { getPeriodRange } from '../../utils/period';
 import { useSettingsStore } from '../../state/useSettingsStore';
-import { formatSigned } from '../../utils/money';
+
+import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 
 export default function InsightsScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const axisColor = isDark ? '#8B949E' : '#6B7A8F';
-  const accentColor = isDark ? '#FFB703' : '#EE9B00';
   const { insightsPeriod, setInsightsPeriod } = useUIStore();
   const { hoursPerDay } = useSettingsStore();
   const [date, setDate] = useState(new Date());
-  const [expenseSeries, setExpenseSeries] = useState<{ x: string; y: number }[]>([]);
-  const [incomeSeries, setIncomeSeries] = useState<{ x: string; y: number }[]>([]);
+
+  const { ref: chartRef, onLayout: onChartLayout } = useTutorialTarget('insights_expenses_chart');
+
+  const [expenseSeries, setExpenseSeries] = useState<{ x: number; y: number }[]>([]);
+  const [incomeSeries, setIncomeSeries] = useState<{ x: number; y: number }[]>([]);
   const [categorySpend, setCategorySpend] = useState<
     Awaited<ReturnType<typeof getSpendingByCategory>>
   >([]);
   const [regretByCategory, setRegretByCategory] = useState<
     Awaited<ReturnType<typeof getRegretByCategory>>
   >([]);
-  const [regretful, setRegretful] = useState<Awaited<ReturnType<typeof getMostRegretfulExpenses>>>(
-    [],
-  );
+  const [regretDistribution, setRegretDistribution] = useState<
+    Awaited<ReturnType<typeof getRegretDistribution>>
+  >([]);
   const [lifeCostRows, setLifeCostRows] = useState<
     Awaited<ReturnType<typeof getLifeCostByCategory>>
   >([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
+  const chartGranularity = insightsPeriod === 'year' ? 'month' : 'day';
 
   const chartWidth = Dimensions.get('window').width - 48 - 48; // Screen width - padding (24*2) - card padding (24*2)
   const pieOuterRadius = Math.min(chartWidth, 220) / 2 - 16;
   const pieInnerRadius = Math.max(32, Math.round(pieOuterRadius * 0.55));
+  const range = useMemo(() => getPeriodRange(date, insightsPeriod), [date, insightsPeriod]);
+
+  const parseBucketDate = useCallback(
+    (bucket: string) => {
+      const parts = bucket.split('-').map((value) => Number(value));
+      if (chartGranularity === 'month') {
+        const [year, month] = parts;
+        return new Date(year, month - 1, 1).getTime();
+      }
+      const [year, month, day] = parts;
+      return new Date(year, month - 1, day).getTime();
+    },
+    [chartGranularity],
+  );
 
   const load = useCallback(() => {
-    const range = getPeriodRange(date, insightsPeriod);
-    const granularity = insightsPeriod === 'year' ? 'month' : 'day';
     Promise.all([
-      getExpenseSeries({ start: range.start, end: range.end, granularity }),
-      getIncomeSeries({ start: range.start, end: range.end, granularity }),
+      getExpenseSeries({ start: range.start, end: range.end, granularity: chartGranularity }),
+      getIncomeSeries({ start: range.start, end: range.end, granularity: chartGranularity }),
       getSpendingByCategory(range.start, range.end),
       getRegretByCategory(range.start, range.end),
-      getMostRegretfulExpenses(range.start, range.end, 5),
+      getRegretDistribution(range.start, range.end),
       getLifeCostByCategory(range.start, range.end),
       getEffectiveHourlyRate(),
-    ]).then(([expenseRows, incomeRows, spendRows, regretRows, regretfulRows, lifeRows, hourly]) => {
-      setExpenseSeries(expenseRows.map((row) => ({ x: row.bucket, y: row.total_minor / 100 })));
-      setIncomeSeries(incomeRows.map((row) => ({ x: row.bucket, y: row.total_minor / 100 })));
+    ]).then(([expenseRows, incomeRows, spendRows, regretRows, distributionRows, lifeRows, hourly]) => {
+      const nextExpense = expenseRows
+        .map((row) => ({ x: parseBucketDate(row.bucket), y: row.total_minor / 100 }))
+        .sort((a, b) => a.x - b.x);
+      const nextIncome = incomeRows
+        .map((row) => ({ x: parseBucketDate(row.bucket), y: row.total_minor / 100 }))
+        .sort((a, b) => a.x - b.x);
+      setExpenseSeries(nextExpense);
+      setIncomeSeries(nextIncome);
       setCategorySpend(spendRows);
       setRegretByCategory(regretRows);
-      setRegretful(regretfulRows);
+      setRegretDistribution(distributionRows);
       setLifeCostRows(lifeRows);
       setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
     });
-  }, [insightsPeriod, date]);
+  }, [chartGranularity, parseBucketDate, range.end, range.start]);
+
+  const buildTickValues = useCallback((start: number, end: number, period: string) => {
+    const isYear = period === 'year';
+    const alignedStart = isYear ? startOfMonth(start) : startOfDay(start);
+    const alignedEnd = isYear ? startOfMonth(end) : startOfDay(end);
+
+    if (isYear) {
+      const months = differenceInMonths(alignedEnd, alignedStart);
+      if (months <= 0) return [alignedStart.getTime()];
+      const step = Math.max(1, Math.ceil(months / 5));
+      const ticks: Date[] = [];
+      for (let i = 0; i <= months; i += step) {
+        ticks.push(addMonths(alignedStart, i));
+      }
+      if (ticks[ticks.length - 1]?.getTime() !== alignedEnd.getTime()) {
+        ticks.push(alignedEnd);
+      }
+      return ticks.map((value) => value.getTime());
+    }
+
+    const days = differenceInDays(alignedEnd, alignedStart);
+    if (days <= 0) return [alignedStart.getTime()];
+    const targetTicks = period === 'week' ? 4 : 5;
+    const step = Math.max(1, Math.ceil(days / (targetTicks - 1)));
+    const ticks: Date[] = [];
+    for (let i = 0; i <= days; i += step) {
+      ticks.push(addDays(alignedStart, i));
+    }
+    if (ticks[ticks.length - 1]?.getTime() !== alignedEnd.getTime()) {
+      ticks.push(alignedEnd);
+    }
+    return ticks.map((value) => value.getTime());
+  }, []);
+
+  const timeTicks = useMemo(
+    () => buildTickValues(range.start, range.end, insightsPeriod),
+    [buildTickValues, insightsPeriod, range.end, range.start],
+  );
+
+  const formatTickLabel = useCallback(
+    (value: number) => {
+      const dateValue = new Date(value);
+      if (insightsPeriod === 'year') return format(dateValue, 'MMM');
+      if (insightsPeriod === 'week') return format(dateValue, 'EEE d');
+      return format(dateValue, 'MMM d');
+    },
+    [insightsPeriod],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -111,6 +188,77 @@ export default function InsightsScreen() {
       }));
   }, [categorySpend]);
 
+  const regretBuckets = useMemo(
+    () => [
+      {
+        id: 'total_regret',
+        label: 'Total regret',
+        color: isDark ? '#FF6B6B' : '#F05A5A',
+      },
+      {
+        id: 'mostly_regret',
+        label: 'Mostly regret',
+        color: isDark ? '#FF9F6B' : '#F59E6B',
+      },
+      {
+        id: 'mixed',
+        label: 'Mixed feelings',
+        color: isDark ? '#FFD166' : '#F6C35B',
+      },
+      {
+        id: 'worth_it',
+        label: 'Worth it',
+        color: isDark ? '#7BD389' : '#7BC87B',
+      },
+      {
+        id: 'absolutely_worth_it',
+        label: 'Absolutely worth it',
+        color: isDark ? '#4CC9F0' : '#4DB6F5',
+      },
+    ],
+    [isDark],
+  );
+
+  const regretCounts = useMemo(() => {
+    const map = new Map(regretDistribution.map((row) => [row.bucket, row.count]));
+    return regretBuckets.map((bucket) => ({
+      ...bucket,
+      count: map.get(bucket.id) ?? 0,
+    }));
+  }, [regretBuckets, regretDistribution]);
+
+  const regretTotal = useMemo(
+    () => regretCounts.reduce((sum, bucket) => sum + bucket.count, 0),
+    [regretCounts],
+  );
+
+  const regretPieData = useMemo(
+    () =>
+      regretCounts
+        .map((bucket) => ({
+          x: bucket.label,
+          y: bucket.count,
+          color: bucket.color,
+          percentage: regretTotal ? (bucket.count / regretTotal) * 100 : 0,
+        }))
+        .filter((bucket) => bucket.y > 0),
+    [regretCounts, regretTotal],
+  );
+
+  const topRegret = useMemo(() => {
+    return regretByCategory
+      .filter((row) => row.avg_regret != null)
+      .sort((a, b) => (a.avg_regret ?? 0) - (b.avg_regret ?? 0))
+      .slice(0, 5);
+  }, [regretByCategory]);
+
+  const topWorth = useMemo(() => {
+    return regretByCategory
+      .filter((row) => row.avg_regret != null)
+      .sort((a, b) => (b.avg_regret ?? 0) - (a.avg_regret ?? 0))
+      .slice(0, 5);
+  }, [regretByCategory]);
+
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <ScrollView
@@ -132,7 +280,12 @@ export default function InsightsScreen() {
         />
 
         <Animated.View entering={FadeInUp.duration(300)}>
-          <View className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
+          <View
+            className="mb-6 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm"
+            ref={chartRef}
+            onLayout={onChartLayout}
+            collapsable={false}
+          >
             <View className="flex-row items-center mb-6">
               <View className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mr-3">
                 <Feather name="trending-up" size={20} color="#D62828" />
@@ -151,8 +304,13 @@ export default function InsightsScreen() {
                 height={220}
                 padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
                 prependDefaultAxes={false}
+                scale={{ x: 'time' }}
+                domain={{ x: [range.start, range.end] }}
               >
                 <VictoryAxis
+                  tickValues={timeTicks}
+                  tickFormat={formatTickLabel}
+                  fixLabelOverlap
                   style={{
                     tickLabels: {
                       fontSize: 10,
@@ -209,8 +367,13 @@ export default function InsightsScreen() {
                 height={220}
                 padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
                 prependDefaultAxes={false}
+                scale={{ x: 'time' }}
+                domain={{ x: [range.start, range.end] }}
               >
                 <VictoryAxis
+                  tickValues={timeTicks}
+                  tickFormat={formatTickLabel}
+                  fixLabelOverlap
                   style={{
                     tickLabels: {
                       fontSize: 10,
@@ -297,81 +460,96 @@ export default function InsightsScreen() {
                 Regret vs Worth-it
               </Text>
             </View>
-            {regretByCategory.length === 0 ? (
+            {regretTotal === 0 ? (
               <Text className="text-sm text-app-muted dark:text-app-muted-dark">
                 No data available
               </Text>
             ) : (
-              <VictoryChart
+              <VictoryPie
                 width={chartWidth}
-                height={220}
-                padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
-                prependDefaultAxes={false}
-                domain={{ y: [0, 100] }}
-              >
-                <VictoryAxis
-                  style={{
-                    tickLabels: {
-                      fontSize: 10,
-                      fill: axisColor,
-                      fontFamily: 'Manrope_500Medium',
-                    },
-                    axis: { stroke: axisColor, strokeWidth: 0.5 },
-                  }}
-                />
-                <VictoryAxis
-                  dependentAxis
-                  style={{
-                    tickLabels: {
-                      fontSize: 10,
-                      fill: axisColor,
-
-                      fontFamily: 'Manrope_500Medium',
-                    },
-                    axis: { stroke: 'transparent' },
-                    grid: { stroke: axisColor, strokeWidth: 0.5, strokeDasharray: '4, 4' },
-                  }}
-                />
-                <VictoryBar
-                  data={regretByCategory.map((row) => ({
-                    x: row.category_name,
-                    y: row.avg_regret,
-                  }))}
-                  style={{ data: { fill: accentColor } }}
-                  animate={{
-                    duration: 500,
-                    onLoad: { duration: 500 },
-                  }}
-                  cornerRadius={{ top: 4 }}
-
-                />
-              </VictoryChart>
+                height={200}
+                data={regretPieData}
+                colorScale={regretPieData.map((row) => row.color)}
+                padding={20}
+                innerRadius={pieInnerRadius}
+                padAngle={1}
+                labelRadius={pieInnerRadius + 28}
+                labels={({ datum }) =>
+                  datum.percentage ? `${Math.round(datum.percentage)}%` : ''
+                }
+                style={{
+                  data: {
+                    fillOpacity: 0.92,
+                    stroke: isDark ? '#1C2432' : '#FFFFFF',
+                    strokeWidth: 1,
+                  },
+                  labels: { fontSize: 10, fill: axisColor, fontFamily: 'Manrope_500Medium' },
+                }}
+                animate={{
+                  duration: 500,
+                }}
+              />
             )}
-            <View className="mt-5">
-              {regretful.map((item, index) => (
-                <View
-                  key={item.title}
-                  className={`flex-row items-center justify-between py-2 ${
-                    index < regretful.length - 1
-                      ? 'border-b border-app-border/50 dark:border-app-border-dark/50'
-                      : ''
-                  }`}
-                >
-                  <Text className="text-sm text-app-text dark:text-app-text-dark font-medium">
-                    {item.title}
+            <View className="mt-6">
+              <View className="flex-row items-start">
+                <View className="flex-1 pr-3">
+                  <Text className="text-xs uppercase tracking-wider text-app-muted dark:text-app-muted-dark mb-3">
+                    Most regret
                   </Text>
-                  <View className="flex-row items-center">
-                    <Text className="text-xs text-app-muted dark:text-app-muted-dark mr-2">
-                      Regret score
+                  {topRegret.length === 0 ? (
+                    <Text className="text-xs text-app-muted dark:text-app-muted-dark">
+                      No sentiment data
                     </Text>
-                    <View className="bg-app-soft dark:bg-app-soft-dark px-2 py-1 rounded-lg">
-                      <Text className="text-xs font-bold text-app-brand dark:text-app-brand-dark">
-                        {Math.round(item.avg_regret)}
-                      </Text>
+                  ) : (
+                    <View className="flex-col gap-2">
+                      {topRegret.map((row) => (
+                        <View
+                          key={row.category_id}
+                          className="flex-row items-center justify-between"
+                        >
+                          <Text className="text-sm text-app-text dark:text-app-text-dark">
+                            {row.category_name}
+                          </Text>
+                          <View className="bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded-full">
+                            <Text className="text-xs font-bold text-red-600 dark:text-red-400">
+                              {Math.round(row.avg_regret ?? 0)}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
                     </View>
-                  </View>
+                  )}
                 </View>
-              ))}
+                <View className="w-px bg-app-border/60 dark:bg-app-border-dark/60" />
+                <View className="flex-1 pl-3">
+                  <Text className="text-xs uppercase tracking-wider text-app-muted dark:text-app-muted-dark mb-3">
+                    Most worth it
+                  </Text>
+                  {topWorth.length === 0 ? (
+                    <Text className="text-xs text-app-muted dark:text-app-muted-dark">
+                      No sentiment data
+                    </Text>
+                  ) : (
+                    <View className="flex-col gap-2">
+                      {topWorth.map((row) => (
+                        <View
+                          key={row.category_id}
+                          className="flex-row items-center justify-between"
+                        >
+                          <Text className="text-sm text-app-text dark:text-app-text-dark">
+                            {row.category_name}
+                          </Text>
+                          <View className="bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                            <Text className="text-xs font-bold text-green-600 dark:text-green-400">
+                              {Math.round(row.avg_regret ?? 0)}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
             </View>
           </View>
         </Animated.View>

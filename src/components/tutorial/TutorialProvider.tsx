@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { LayoutRectangle, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSettingsStore } from '../../state/useSettingsStore';
 
 export type TutorialTargetId =
@@ -9,9 +9,9 @@ export type TutorialTargetId =
     | 'home_actions'
     | 'home_transactions_list'
     | 'transactions_header'
-    | 'budgets_screen'
-    | 'goals_screen'
-    | 'insights_screen';
+    | 'budgets_fab'
+    | 'goals_add_button'
+    | 'insights_expenses_chart';
 
 type TutorialStep = {
     id: string;
@@ -43,9 +43,6 @@ const TUTORIAL_STEPS: TutorialStep[] = [
         description: 'Your latest transactions appear here for quick review.',
         screenName: 'Home',
     },
-    // We can add cross-screen steps later or now. Let's stick to Home first as per original request, 
-    // BUT user asked to "introduce transactions page, budgets, goals".
-    // Let's add simple navigation steps.
     {
         id: '4',
         targetId: 'transactions_header',
@@ -53,8 +50,27 @@ const TUTORIAL_STEPS: TutorialStep[] = [
         description: 'Dive deep into your history, filter by date, category, or account.',
         screenName: 'TransactionsStack',
     },
-    // For Budgets/Goals/Insights which are tabs, we need to navigate to those tabs.
-    // Assuming standard Tab names.
+    {
+        id: '5',
+        targetId: 'budgets_fab',
+        title: 'Budgeting',
+        description: 'Set spending limits for categories. Tap the + button to create your first budget.',
+        screenName: 'BudgetsStack',
+    },
+    {
+        id: '6',
+        targetId: 'goals_add_button',
+        title: 'Savings Goals',
+        description: 'Create savings buckets for specific goals like "Vacation" or "Emergency Fund".',
+        screenName: 'GoalsStack',
+    },
+    {
+        id: '7',
+        targetId: 'insights_expenses_chart',
+        title: 'Deep Inisghts',
+        description: 'Analyze your spending habits, income trends, and regret metrics over time.',
+        screenName: 'InsightsStack',
+    },
 ];
 
 type TutorialContextType = {
@@ -176,27 +192,44 @@ export const useTutorialTarget = (id: TutorialTargetId) => {
     const { registerTarget, unregisterTarget, isActive } = useTutorial();
     const viewRef = useRef<View>(null);
 
-    useEffect(() => {
-        if (!isActive) return;
+    useFocusEffect(
+        useCallback(() => {
+            if (!isActive) return;
 
-        // Measurement function
-        const measure = () => {
-            viewRef.current?.measureInWindow((x, y, width, height) => {
-                if (width > 0 && height > 0) {
-                    registerTarget(id, { x, y, width, height });
-                }
-            });
-        };
+            // Measurement function
+            const measure = () => {
+                viewRef.current?.measureInWindow((x, y, width, height) => {
+                    if (width > 0 && height > 0) {
+                        registerTarget(id, { x, y, width, height });
+                    }
+                });
+            };
 
-        // Measure on mount and potentially on layout updates
-        // We can use a timeout or interaction manager
-        const timer = setTimeout(measure, 500); // Wait for nav animations
+            // Measure immediately on focus, and check again after transition
+            measure();
+            const timer = setTimeout(measure, 500); // Wait for nav animations
 
-        return () => {
-            clearTimeout(timer);
-            unregisterTarget(id);
-        };
-    }, [id, isActive, registerTarget, unregisterTarget]);
+            return () => {
+                clearTimeout(timer);
+                // We do NOT unregister on blur, because we might want to keep the highlight 
+                // if we are just switching context slightly? 
+                // Actually, if we switch tabs, we probably shouldn't unregister immediately 
+                // or layout might be lost. 
+                // But if we navigate away, we might want to unregister?
+                // For tutorial, we step through. If we leave the screen, we move to next step.
+                // The next step has a different targetId.
+                // So keeping stale targets in state is fine, activeLayout uses currentStep.targetId.
+                // So we can simplify: just measure.
+                // However, cleanup is good practice. Unregistering on blur might cause flicker if we verify?
+                // Let's safe side: don't unregister on blur, only on unmount or id change?
+                // Actually, useFocusEffect return is for cleanup on blur.
+                // If we unregister on blur, and next step navigates, that's fine.
+                // But if we just look away?
+                // Let's keep existing logic of unregistering but effectively on blur now.
+                unregisterTarget(id);
+            };
+        }, [id, isActive, registerTarget, unregisterTarget])
+    );
 
     return {
         ref: viewRef,

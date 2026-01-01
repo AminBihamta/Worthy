@@ -12,9 +12,14 @@ export function formatLifeCost(
     const minutes = Math.max(1, Math.round(hours * 60));
     return `${minutes}m`;
   }
-  if (hours < safeHoursPerDay) {
-    const wholeHours = Math.floor(hours);
-    const minutes = Math.round((hours - wholeHours) * 60);
+  const dayThreshold = safeHoursPerDay * 2;
+  if (hours < dayThreshold) {
+    let wholeHours = Math.floor(hours);
+    let minutes = Math.round((hours - wholeHours) * 60);
+    if (minutes === 60) {
+      wholeHours += 1;
+      minutes = 0;
+    }
     return minutes > 0 ? `${wholeHours}h ${minutes}m` : `${wholeHours}h`;
   }
   const days = hours / safeHoursPerDay;

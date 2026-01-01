@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Alert } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,22 +8,8 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { SelectField } from '../../components/SelectField'; // Import SelectField
 import { getDb } from '../../db';
+import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
 import { createId } from '../../utils/id';
-
-// Extended currency options for individual accounts (can be same as base for now)
-const CURRENCIES = [
-    { label: 'USD - US Dollar', value: 'USD' },
-    { label: 'EUR - Euro', value: 'EUR' },
-    { label: 'GBP - British Pound', value: 'GBP' },
-    { label: 'JPY - Japanese Yen', value: 'JPY' },
-    { label: 'CAD - Canadian Dollar', value: 'CAD' },
-    { label: 'AUD - Australian Dollar', value: 'AUD' },
-    { label: 'CHF - Swiss Franc', value: 'CHF' },
-    { label: 'CNY - Chinese Yuan', value: 'CNY' },
-    { label: 'INR - Indian Rupee', value: 'INR' },
-    // Could theoretically allow custom here too, but stick to list for simplicity or add 'Other' later if requested.
-    // User requirement "Allow adding other currencies other than the base currency" implies selection.
-];
 
 export default function OnboardingAccountForm({ navigation, route }: { navigation: any, route: any }) {
     const { colorScheme } = useColorScheme();
@@ -36,6 +22,37 @@ export default function OnboardingAccountForm({ navigation, route }: { navigatio
     const [name, setName] = useState(defaultName);
     const [balance, setBalance] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState(baseCurrency);
+    const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
+
+    useEffect(() => {
+        let active = true;
+        listCurrencies().then((items) => {
+            if (!active) return;
+            setCurrencies(items);
+        });
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!currencies.length) return;
+        if (!currencies.some((item) => item.code === selectedCurrency)) {
+            setSelectedCurrency(currencies[0].code);
+        }
+    }, [currencies, selectedCurrency]);
+
+    const currencyOptions = useMemo(() => {
+        if (currencies.length === 0) {
+            return baseCurrency
+                ? [{ label: baseCurrency, value: baseCurrency }]
+                : [];
+        }
+        return currencies.map((currency) => ({
+            label: `${currency.code} · ${currency.name}`,
+            value: currency.code,
+        }));
+    }, [currencies, baseCurrency]);
 
     const handleSave = async () => {
         if (!name.trim()) {
@@ -78,8 +95,9 @@ export default function OnboardingAccountForm({ navigation, route }: { navigatio
                 <SelectField
                     label="Currency"
                     value={selectedCurrency}
-                    options={CURRENCIES}
+                    options={currencyOptions}
                     onChange={(val) => setSelectedCurrency(val)}
+                    placeholder={currencyOptions.length === 0 ? 'Add a currency first' : undefined}
                 />
 
                 <Input
