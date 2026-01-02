@@ -169,6 +169,15 @@ export default function SettingsScreen() {
             />
           </SettingsSection>
 
+          <SettingsSection title="About">
+            <SettingsRow
+              icon="shield"
+              label="Privacy"
+              onPress={() => navigation.navigate('Privacy' as never)}
+              isLast
+            />
+          </SettingsSection>
+
           {/* Data */}
           {__DEV__ && (
             <SettingsSection title="Development">

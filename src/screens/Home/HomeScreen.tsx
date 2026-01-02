@@ -44,7 +44,7 @@ export default function HomeScreen() {
       getExpenseTotals(range.start, range.end),
       getIncomeTotals(range.start, range.end),
       listAccountsWithBalances(),
-      listTransactions({ limit: 5 }),
+      listTransactions({ limit: 4 }),
       getEffectiveHourlyRate(),
       listCurrencies(),
     ]).then(([spent, income, accountsRows, recentRows, hourly, currencyRows]) => {

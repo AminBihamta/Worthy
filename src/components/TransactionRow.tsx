@@ -24,11 +24,16 @@ export function TransactionRow({
   let iconName: keyof typeof Feather.glyphMap = 'dollar-sign';
   let iconColor = '#0A9396';
   let iconBg = 'bg-app-soft dark:bg-app-soft-dark';
+  let iconStyle: { backgroundColor?: string } | undefined;
 
   if (transaction.type === 'expense') {
-    iconName = 'arrow-up-right';
-    iconColor = '#D62828';
+    const categoryIcon =
+      (transaction.category_icon as keyof typeof Feather.glyphMap | null) ?? 'tag';
+    const categoryColor = transaction.category_color ?? '#D62828';
+    iconName = categoryIcon;
+    iconColor = categoryColor;
     iconBg = 'bg-red-50 dark:bg-red-900/20';
+    iconStyle = { backgroundColor: `${categoryColor}1A` };
   } else if (transaction.type === 'income') {
     iconName = 'arrow-down-left';
     iconColor = '#38B000';
@@ -47,7 +52,10 @@ export function TransactionRow({
         className="flex-row items-center p-4 bg-app-card dark:bg-app-card-dark rounded-2xl shadow-sm border border-app-border/50 dark:border-app-border-dark/50"
         onPress={onPress}
       >
-        <View className={`h-12 w-12 rounded-full items-center justify-center mr-4 ${iconBg}`}>
+        <View
+          className={`h-12 w-12 rounded-full items-center justify-center mr-4 ${iconBg}`}
+          style={iconStyle}
+        >
           <Feather name={iconName} size={20} color={iconColor} />
         </View>
 

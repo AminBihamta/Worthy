@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { useColorScheme } from 'nativewind';
 import { archiveBudget, listBudgets } from '../../db/repositories/budgets';
 import { sumExpensesByCategory } from '../../db/repositories/expenses';
+import { getFirstTransactionDate } from '../../db/repositories/transactions';
 import { getPeriodRange } from '../../utils/period';
 import { PressableScale } from '../../components/PressableScale';
 import { EmptyState } from '../../components/EmptyState';
@@ -24,6 +25,7 @@ export default function BudgetsScreen() {
   const { budgetPeriod, setBudgetPeriod } = useUIStore();
   const { baseCurrency } = useSettingsStore();
   const [date, setDate] = useState(new Date());
+  const [allTimeStart, setAllTimeStart] = useState<number | null>(null);
 
   const { ref: fabRef, onLayout: onFabLayout } = useTutorialTarget('budgets_fab');
 
@@ -38,24 +40,34 @@ export default function BudgetsScreen() {
     }[]
   >([]);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     const range = getPeriodRange(date, budgetPeriod);
-    Promise.all([listBudgets(), sumExpensesByCategory(range.start, range.end)]).then(
-      ([budgetRows, spentRows]) => {
-        const spentMap = new Map(spentRows.map((row) => [row.category_id, row.total_minor]));
-        setBudgets(
-          budgetRows.map((budget) => ({
-            id: budget.id,
-            name: budget.category_name,
-            spent: spentMap.get(budget.category_id) ?? 0,
-            limit: budget.amount_minor,
-            color: budget.category_color,
-            icon: budget.category_icon,
-          })),
-        );
-      },
+    let start = range.start;
+    if (budgetPeriod === 'all') {
+      const firstDate = allTimeStart ?? (await getFirstTransactionDate());
+      if (firstDate) {
+        start = firstDate;
+        if (!allTimeStart) {
+          setAllTimeStart(firstDate);
+        }
+      }
+    }
+    const [budgetRows, spentRows] = await Promise.all([
+      listBudgets(),
+      sumExpensesByCategory(start, range.end),
+    ]);
+    const spentMap = new Map(spentRows.map((row) => [row.category_id, row.total_minor]));
+    setBudgets(
+      budgetRows.map((budget) => ({
+        id: budget.id,
+        name: budget.category_name,
+        spent: spentMap.get(budget.category_id) ?? 0,
+        limit: budget.amount_minor,
+        color: budget.category_color,
+        icon: budget.category_icon,
+      })),
     );
-  }, [budgetPeriod, date]);
+  }, [allTimeStart, budgetPeriod, date]);
 
   useFocusEffect(
     useCallback(() => {

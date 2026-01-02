@@ -30,6 +30,7 @@ import {
   getLifeCostByCategory,
   getEffectiveHourlyRate,
 } from '../../db/repositories/analytics';
+import { getFirstTransactionDate } from '../../db/repositories/transactions';
 import { getPeriodRange } from '../../utils/period';
 import { useSettingsStore } from '../../state/useSettingsStore';
 
@@ -60,12 +61,19 @@ export default function InsightsScreen() {
     Awaited<ReturnType<typeof getLifeCostByCategory>>
   >([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
-  const chartGranularity = insightsPeriod === 'year' ? 'month' : 'day';
+  const [allTimeStart, setAllTimeStart] = useState<number | null>(null);
+  const chartGranularity = insightsPeriod === 'year' || insightsPeriod === 'all' ? 'month' : 'day';
 
   const chartWidth = Dimensions.get('window').width - 48 - 48; // Screen width - padding (24*2) - card padding (24*2)
   const pieOuterRadius = Math.min(chartWidth, 220) / 2 - 16;
   const pieInnerRadius = Math.max(32, Math.round(pieOuterRadius * 0.55));
   const range = useMemo(() => getPeriodRange(date, insightsPeriod), [date, insightsPeriod]);
+  const effectiveRange = useMemo(() => {
+    if (insightsPeriod === 'all' && allTimeStart) {
+      return { start: allTimeStart, end: range.end };
+    }
+    return range;
+  }, [allTimeStart, insightsPeriod, range]);
 
   const parseBucketDate = useCallback(
     (bucket: string) => {
@@ -80,34 +88,52 @@ export default function InsightsScreen() {
     [chartGranularity],
   );
 
-  const load = useCallback(() => {
-    Promise.all([
-      getExpenseSeries({ start: range.start, end: range.end, granularity: chartGranularity }),
-      getIncomeSeries({ start: range.start, end: range.end, granularity: chartGranularity }),
-      getSpendingByCategory(range.start, range.end),
-      getRegretByCategory(range.start, range.end),
-      getRegretDistribution(range.start, range.end),
-      getLifeCostByCategory(range.start, range.end),
+  const load = useCallback(async () => {
+    let start = range.start;
+    if (insightsPeriod === 'all') {
+      const firstDate = allTimeStart ?? (await getFirstTransactionDate());
+      if (firstDate) {
+        start = firstDate;
+        if (!allTimeStart) {
+          setAllTimeStart(firstDate);
+        }
+      }
+    }
+    const end = range.end;
+    const [
+      expenseRows,
+      incomeRows,
+      spendRows,
+      regretRows,
+      distributionRows,
+      lifeRows,
+      hourly,
+    ] = await Promise.all([
+      getExpenseSeries({ start, end, granularity: chartGranularity }),
+      getIncomeSeries({ start, end, granularity: chartGranularity }),
+      getSpendingByCategory(start, end),
+      getRegretByCategory(start, end),
+      getRegretDistribution(start, end),
+      getLifeCostByCategory(start, end),
       getEffectiveHourlyRate(),
-    ]).then(([expenseRows, incomeRows, spendRows, regretRows, distributionRows, lifeRows, hourly]) => {
-      const nextExpense = expenseRows
-        .map((row) => ({ x: parseBucketDate(row.bucket), y: row.total_minor / 100 }))
-        .sort((a, b) => a.x - b.x);
-      const nextIncome = incomeRows
-        .map((row) => ({ x: parseBucketDate(row.bucket), y: row.total_minor / 100 }))
-        .sort((a, b) => a.x - b.x);
-      setExpenseSeries(nextExpense);
-      setIncomeSeries(nextIncome);
-      setCategorySpend(spendRows);
-      setRegretByCategory(regretRows);
-      setRegretDistribution(distributionRows);
-      setLifeCostRows(lifeRows);
-      setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
-    });
-  }, [chartGranularity, parseBucketDate, range.end, range.start]);
+    ]);
+    const nextExpense = expenseRows
+      .map((row) => ({ x: parseBucketDate(row.bucket), y: row.total_minor / 100 }))
+      .sort((a, b) => a.x - b.x);
+    const nextIncome = incomeRows
+      .map((row) => ({ x: parseBucketDate(row.bucket), y: row.total_minor / 100 }))
+      .sort((a, b) => a.x - b.x);
+    setExpenseSeries(nextExpense);
+    setIncomeSeries(nextIncome);
+    setCategorySpend(spendRows);
+    setRegretByCategory(regretRows);
+    setRegretDistribution(distributionRows);
+    setLifeCostRows(lifeRows);
+    setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
+  }, [allTimeStart, chartGranularity, insightsPeriod, parseBucketDate, range.end, range.start]);
 
   const buildTickValues = useCallback((start: number, end: number, period: string) => {
-    const isYear = period === 'year';
+    const isYear = period === 'year' || period === 'all';
     const alignedStart = isYear ? startOfMonth(start) : startOfDay(start);
     const alignedEnd = isYear ? startOfMonth(end) : startOfDay(end);
 
@@ -139,14 +165,28 @@ export default function InsightsScreen() {
     return ticks.map((value) => value.getTime());
   }, []);
 
+  const chartRange = useMemo(() => {
+    if (insightsPeriod !== 'all') {
+      return effectiveRange;
+    }
+    const points = [...expenseSeries, ...incomeSeries].map((row) => row.x);
+    if (!points.length) {
+      return effectiveRange;
+    }
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    return { start: min, end: max };
+  }, [effectiveRange, expenseSeries, incomeSeries, insightsPeriod]);
+
   const timeTicks = useMemo(
-    () => buildTickValues(range.start, range.end, insightsPeriod),
-    [buildTickValues, insightsPeriod, range.end, range.start],
+    () => buildTickValues(chartRange.start, chartRange.end, insightsPeriod),
+    [buildTickValues, chartRange.end, chartRange.start, insightsPeriod],
   );
 
   const formatTickLabel = useCallback(
     (value: number) => {
       const dateValue = new Date(value);
+      if (insightsPeriod === 'all') return format(dateValue, 'MMM yyyy');
       if (insightsPeriod === 'year') return format(dateValue, 'MMM');
       if (insightsPeriod === 'week') return format(dateValue, 'EEE d');
       return format(dateValue, 'MMM d');
@@ -305,7 +345,7 @@ export default function InsightsScreen() {
                 padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
                 prependDefaultAxes={false}
                 scale={{ x: 'time' }}
-                domain={{ x: [range.start, range.end] }}
+                domain={{ x: [chartRange.start, chartRange.end] }}
               >
                 <VictoryAxis
                   tickValues={timeTicks}
@@ -368,7 +408,7 @@ export default function InsightsScreen() {
                 padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
                 prependDefaultAxes={false}
                 scale={{ x: 'time' }}
-                domain={{ x: [range.start, range.end] }}
+                domain={{ x: [chartRange.start, chartRange.end] }}
               >
                 <VictoryAxis
                   tickValues={timeTicks}

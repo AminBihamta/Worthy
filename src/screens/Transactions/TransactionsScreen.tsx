@@ -6,6 +6,7 @@ import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import * as Haptics from 'expo-haptics';
 import {
+  getFirstTransactionDate,
   listTransactions,
   TransactionRow as Transaction,
 } from '../../db/repositories/transactions';
@@ -75,6 +76,7 @@ export default function TransactionsScreen() {
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
   const [rateMap, setRateMap] = useState<Map<string, number>>(new Map());
   const [date, setDate] = useState(new Date());
+  const [allTimeStart, setAllTimeStart] = useState<number | null>(null);
   const loadIdRef = useRef(0);
   const headerTarget = useTutorialTarget('transactions_header');
 
@@ -82,8 +84,18 @@ export default function TransactionsScreen() {
     const loadId = (loadIdRef.current += 1);
     try {
       const range = getPeriodRange(date, transactionsPeriod);
+      let start = range.start;
+      if (transactionsPeriod === 'all') {
+        const firstDate = allTimeStart ?? (await getFirstTransactionDate());
+        if (firstDate) {
+          start = firstDate;
+          if (!allTimeStart) {
+            setAllTimeStart(firstDate);
+          }
+        }
+      }
       const [items, hourly, currencyRows] = await Promise.all([
-        listTransactions({ start: range.start, end: range.end }),
+        listTransactions({ start, end: range.end }),
         getEffectiveHourlyRate(),
         listCurrencies(),
       ]);
@@ -93,7 +105,7 @@ export default function TransactionsScreen() {
     } catch (error) {
       console.error('[TransactionsScreen] load failed', error);
     }
-  }, [baseCurrency, date, transactionsPeriod]);
+  }, [allTimeStart, baseCurrency, date, transactionsPeriod]);
 
   useFocusEffect(
     useCallback(() => {
@@ -277,89 +289,90 @@ export default function TransactionsScreen() {
   return (
     <TransactionsErrorBoundary>
       <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
-        <View className="px-6 pt-6">
-          <View
-            className="flex-row items-center justify-between mb-6"
-            ref={headerTarget.ref}
-            onLayout={headerTarget.onLayout}
-            collapsable={false}
-          >
-            <Text className="text-4xl font-display text-app-text dark:text-app-text-dark">
-              Activity
-            </Text>
-          </View>
-
-          <DateRangeSelector
-            period={transactionsPeriod}
-            date={date}
-            onChangeDate={setDate}
-            onChangePeriod={setTransactionsPeriod}
-          />
-
-          {/* Summary Card */}
-          <View className="flex-row gap-4 mb-6">
-            <View className="flex-1 bg-app-card dark:bg-app-card-dark p-4 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50">
-              <View className="flex-row items-center mb-2">
-                <View className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 items-center justify-center mr-2">
-                  <Feather name="arrow-down-left" size={16} color="#38B000" />
-                </View>
-                <Text className="text-xs font-medium text-app-muted dark:text-app-muted-dark uppercase tracking-wider">
-                  Income
-                </Text>
-              </View>
-              <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
-                {formatSigned(summary.income, baseCurrency)}
-              </Text>
-            </View>
-            <View className="flex-1 bg-app-card dark:bg-app-card-dark p-4 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50">
-              <View className="flex-row items-center mb-2">
-                <View className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mr-2">
-                  <Feather name="arrow-up-right" size={16} color="#D62828" />
-                </View>
-                <Text className="text-xs font-medium text-app-muted dark:text-app-muted-dark uppercase tracking-wider">
-                  Spent
-                </Text>
-              </View>
-              <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
-                {formatSigned(-summary.expense, baseCurrency)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Search */}
-          <View className="rounded-2xl bg-app-soft dark:bg-app-soft-dark px-4 py-3 flex-row items-center mb-4">
-            <Feather name="search" size={18} color={isDark ? '#8B949E' : '#6B7A8F'} />
-            <TextInput
-              className="flex-1 text-base font-medium text-app-text dark:text-app-text-dark ml-3"
-              placeholder="Search transactions..."
-              placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
-              value={query}
-              onChangeText={(text) => {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setQuery(text);
-              }}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {query.length > 0 && (
-              <PressableScale onPress={() => setQuery('')}>
-                <Feather name="x-circle" size={18} color={isDark ? '#8B949E' : '#6B7A8F'} />
-              </PressableScale>
-            )}
-          </View>
-
-          {/* Filters */}
-          <View className="flex-row mb-6">
-            <FilterChip label="All" value="all" />
-            <FilterChip label="Expenses" value="expense" />
-            <FilterChip label="Income" value="income" />
-          </View>
-        </View>
-
         <FlashList
           data={listData}
           estimatedItemSize={80}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 160 }}
+          ListHeaderComponent={
+            <View className="pt-6">
+              <View
+                className="flex-row items-center justify-between mb-6"
+                ref={headerTarget.ref}
+                onLayout={headerTarget.onLayout}
+                collapsable={false}
+              >
+                <Text className="text-4xl font-display text-app-text dark:text-app-text-dark">
+                  Activity
+                </Text>
+              </View>
+
+              <DateRangeSelector
+                period={transactionsPeriod}
+                date={date}
+                onChangeDate={setDate}
+                onChangePeriod={setTransactionsPeriod}
+              />
+
+              {/* Summary Card */}
+              <View className="flex-row gap-4 mb-6">
+                <View className="flex-1 bg-app-card dark:bg-app-card-dark p-4 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50">
+                  <View className="flex-row items-center mb-2">
+                    <View className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 items-center justify-center mr-2">
+                      <Feather name="arrow-down-left" size={16} color="#38B000" />
+                    </View>
+                    <Text className="text-xs font-medium text-app-muted dark:text-app-muted-dark uppercase tracking-wider">
+                      Income
+                    </Text>
+                  </View>
+                  <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
+                    {formatSigned(summary.income, baseCurrency)}
+                  </Text>
+                </View>
+                <View className="flex-1 bg-app-card dark:bg-app-card-dark p-4 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50">
+                  <View className="flex-row items-center mb-2">
+                    <View className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 items-center justify-center mr-2">
+                      <Feather name="arrow-up-right" size={16} color="#D62828" />
+                    </View>
+                    <Text className="text-xs font-medium text-app-muted dark:text-app-muted-dark uppercase tracking-wider">
+                      Spent
+                    </Text>
+                  </View>
+                  <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
+                    {formatSigned(-summary.expense, baseCurrency)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Search */}
+              <View className="rounded-2xl bg-app-soft dark:bg-app-soft-dark px-4 py-3 flex-row items-center mb-4">
+                <Feather name="search" size={18} color={isDark ? '#8B949E' : '#6B7A8F'} />
+                <TextInput
+                  className="flex-1 text-base font-medium text-app-text dark:text-app-text-dark ml-3"
+                  placeholder="Search transactions..."
+                  placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
+                  value={query}
+                  onChangeText={(text) => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setQuery(text);
+                  }}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {query.length > 0 && (
+                  <PressableScale onPress={() => setQuery('')}>
+                    <Feather name="x-circle" size={18} color={isDark ? '#8B949E' : '#6B7A8F'} />
+                  </PressableScale>
+                )}
+              </View>
+
+              {/* Filters */}
+              <View className="flex-row mb-6">
+                <FilterChip label="All" value="all" />
+                <FilterChip label="Expenses" value="expense" />
+                <FilterChip label="Income" value="income" />
+              </View>
+            </View>
+          }
           ListEmptyComponent={
             <EmptyState
               title={hasQuery ? 'No matches found' : 'No transactions yet'}

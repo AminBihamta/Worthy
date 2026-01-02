@@ -1,6 +1,6 @@
 import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 
-export type PeriodType = 'week' | 'month' | 'year';
+export type PeriodType = 'week' | 'month' | 'year' | 'all';
 
 export function getPeriodRange(date: Date, type: PeriodType): { start: number; end: number } {
   if (type === 'week') {
@@ -12,6 +12,12 @@ export function getPeriodRange(date: Date, type: PeriodType): { start: number; e
     return {
       start: startOfYear(date).getTime(),
       end: endOfYear(date).getTime(),
+    };
+  }
+  if (type === 'all') {
+    return {
+      start: 0,
+      end: Date.now(),
     };
   }
   return {

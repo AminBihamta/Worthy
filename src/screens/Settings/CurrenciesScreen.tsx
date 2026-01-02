@@ -397,7 +397,9 @@ export default function CurrenciesScreen() {
                       <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
                         <Feather name="repeat" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
                       </View>
-                      <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Rate to {baseCurrency}</Text>
+                      <Text className="text-base font-medium text-app-text dark:text-app-text-dark">
+                        Rate to Base Currency - {baseCurrency}
+                      </Text>
                     </View>
                     <TextInput
                       value={rate}

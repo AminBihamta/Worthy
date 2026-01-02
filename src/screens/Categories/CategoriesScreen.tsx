@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import {
   listCategories,
   reorderCategories,
@@ -10,7 +11,6 @@ import {
 } from '../../db/repositories/categories';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
-import { SwipeableRow } from '../../components/SwipeableRow';
 import { EmptyState } from '../../components/EmptyState';
 
 export default function CategoriesScreen() {
@@ -18,7 +18,6 @@ export default function CategoriesScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const iconColor = isDark ? '#E6EDF3' : '#0D1B2A';
-  const disabledColor = isDark ? '#8B949E' : '#6B7A8F';
   const [categories, setCategories] = useState<Awaited<ReturnType<typeof listCategories>>>([]);
 
   const load = useCallback(() => {
@@ -31,100 +30,85 @@ export default function CategoriesScreen() {
     }, [load]),
   );
 
-  const moveCategory = async (index: number, direction: -1 | 1) => {
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= categories.length) return;
-    const next = [...categories];
-    const temp = next[index];
-    next[index] = next[newIndex];
-    next[newIndex] = temp;
+  const handleReorder = async (next: typeof categories) => {
     setCategories(next);
     await reorderCategories(next.map((cat, idx) => ({ id: cat.id, sort_order: idx + 1 })));
   };
 
-  return (
-    <ScrollView
-      className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-      contentContainerStyle={{ padding: 24, paddingBottom: 140 }}
-    >
-      {categories.length === 0 ? (
-        <EmptyState title="No categories" subtitle="Add a category to organize spending." />
-      ) : (
-        categories.map((category, index) => (
-          <View key={category.id} className="mb-4">
-            <SwipeableRow
-              onEdit={() =>
-                navigation.navigate('CategoryForm' as never, { id: category.id } as never)
-              }
-              onDelete={async () => {
-                await archiveCategory(category.id);
-                load();
-              }}
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<typeof categories[number]>) => {
+    const iconTint = item.color ?? iconColor;
+    return (
+      <View className="mb-4">
+        <Card className={isActive ? 'border-app-brand/40 bg-app-soft dark:bg-app-soft-dark' : ''}>
+          <View className="flex-row items-center">
+            <Pressable
+              onLongPress={drag}
+              className="mr-4"
+              accessibilityLabel="Drag to reorder"
             >
-              <Card className="flex-row items-center justify-between">
-                <View className="flex-1 pr-4">
-                  <Text className="text-base font-display text-app-text dark:text-app-text-dark">
-                    {category.name}
-                  </Text>
-                  <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
-                    {category.icon}
-                  </Text>
-                  <View className="flex-row items-center gap-2 mt-3">
-                    <Pressable
-                      className="px-3 py-1.5 rounded-full border border-app-border dark:border-app-border-dark bg-app-soft dark:bg-app-soft-dark flex-row items-center"
-                      onPress={() =>
-                        navigation.navigate('CategoryForm' as never, { id: category.id } as never)
-                      }
-                    >
-                      <Feather name="edit-2" size={14} color={iconColor} />
-                      <Text className="text-xs text-app-text dark:text-app-text-dark ml-1.5">
-                        Edit
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      className="px-3 py-1.5 rounded-full border border-app-danger/30 bg-app-danger/10 flex-row items-center"
-                      onPress={async () => {
-                        await archiveCategory(category.id);
-                        load();
-                      }}
-                    >
-                      <Feather name="trash-2" size={14} color="#EF4444" />
-                      <Text className="text-xs text-app-danger ml-1.5">Delete</Text>
-                    </Pressable>
-                  </View>
-                </View>
-                <View className="flex-row items-center">
-                  <Pressable
-                    className="p-2"
-                    onPress={() => moveCategory(index, -1)}
-                    disabled={index === 0}
-                  >
-                    <Feather
-                      name="chevron-up"
-                      size={18}
-                      color={index === 0 ? disabledColor : iconColor}
-                    />
-                  </Pressable>
-                  <Pressable
-                    className="p-2"
-                    onPress={() => moveCategory(index, 1)}
-                    disabled={index === categories.length - 1}
-                  >
-                    <Feather
-                      name="chevron-down"
-                      size={18}
-                      color={
-                        index === categories.length - 1 ? disabledColor : iconColor
-                      }
-                    />
-                  </Pressable>
-                </View>
-              </Card>
-            </SwipeableRow>
+              <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                <Feather name="menu" size={18} color={iconColor} />
+              </View>
+            </Pressable>
+            <View
+              className="w-10 h-10 rounded-full items-center justify-center mr-3"
+              style={{ backgroundColor: `${iconTint}1A` }}
+            >
+              <Feather name={item.icon as any} size={18} color={iconTint} />
+            </View>
+            <View className="flex-1 pr-4">
+              <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                {item.name}
+              </Text>
+            </View>
+            <View className="items-end gap-2">
+              <Pressable
+                className="px-3 py-1.5 rounded-full border border-app-border dark:border-app-border-dark bg-app-soft dark:bg-app-soft-dark flex-row items-center"
+                onPress={() =>
+                  navigation.navigate('CategoryForm' as never, { id: item.id } as never)
+                }
+              >
+                <Feather name="edit-2" size={14} color={iconColor} />
+                <Text className="text-xs text-app-text dark:text-app-text-dark ml-1.5">
+                  Edit
+                </Text>
+              </Pressable>
+              <Pressable
+                className="px-3 py-1.5 rounded-full border border-app-danger/30 bg-app-danger/10 flex-row items-center"
+                onPress={async () => {
+                  await archiveCategory(item.id);
+                  load();
+                }}
+              >
+                <Feather name="trash-2" size={14} color="#EF4444" />
+                <Text className="text-xs text-app-danger ml-1.5">Delete</Text>
+              </Pressable>
+            </View>
           </View>
-        ))
-      )}
-      <Button title="Add category" onPress={() => navigation.navigate('CategoryForm' as never)} />
-    </ScrollView>
+        </Card>
+      </View>
+    );
+  };
+
+  return (
+    <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
+      <DraggableFlatList
+        data={categories}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        onDragEnd={({ data }) => {
+          handleReorder(data);
+        }}
+        contentContainerStyle={{ padding: 24, paddingBottom: 140 }}
+        ListEmptyComponent={
+          <EmptyState title="No categories" subtitle="Add a category to organize spending." />
+        }
+        ListFooterComponent={
+          <View className="mt-2">
+            <Button title="Add category" onPress={() => navigation.navigate('CategoryForm' as never)} />
+          </View>
+        }
+      />
+    </View>
   );
 }

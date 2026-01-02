@@ -71,3 +71,17 @@ export async function listTransactions(filters?: {
     ...params,
   );
 }
+
+export async function getFirstTransactionDate(): Promise<number | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ min_date: number | null }>(
+    `SELECT MIN(date_ts) as min_date FROM (
+      SELECT date_ts FROM expenses
+      UNION ALL
+      SELECT date_ts FROM incomes
+      UNION ALL
+      SELECT date_ts FROM transfers
+    )`,
+  );
+  return row?.min_date ?? null;
+}
