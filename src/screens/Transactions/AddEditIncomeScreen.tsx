@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { addDays, addMonths, addWeeks, addYears } from 'date-fns';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
@@ -135,6 +136,8 @@ export default function AddEditIncomeScreen() {
   const [accountId, setAccountId] = useState<string | null>(null);
   const [currencyCode, setCurrencyCode] = useState<string>('');
   const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pendingDate, setPendingDate] = useState<Date | null>(null);
   const [hoursWorked, setHoursWorked] = useState('');
   const [notes, setNotes] = useState('');
   const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('off');
@@ -259,6 +262,11 @@ export default function AddEditIncomeScreen() {
     navigation.goBack();
   };
 
+  const resolveDateFromInput = (input: string) => {
+    const parsed = new Date(input);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  };
+
   const selectedAccount = accounts.find((a) => a.id === accountId);
   const resolvedCurrency = currencyCode || selectedAccount?.currency || baseCurrency;
   const selectedCurrency = currencies.find((currency) => currency.code === resolvedCurrency);
@@ -381,21 +389,27 @@ export default function AddEditIncomeScreen() {
             </PressableScale>
 
             {/* Date Row */}
-            <View className="flex-row items-center justify-between p-5">
-              <View className="flex-row items-center gap-4">
-                <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-                  <Feather name="calendar" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
+            <PressableScale
+              onPress={() => {
+                setPendingDate(resolveDateFromInput(dateInput));
+                setShowDatePicker(true);
+              }}
+            >
+              <View className="flex-row items-center justify-between p-5">
+                <View className="flex-row items-center gap-4">
+                  <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                    <Feather name="calendar" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
+                  </View>
+                  <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Date</Text>
                 </View>
-                <Text className="text-base font-medium text-app-text dark:text-app-text-dark">Date</Text>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-base text-app-muted dark:text-app-muted-dark">
+                    {dateInput}
+                  </Text>
+                  <Feather name="chevron-right" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
+                </View>
               </View>
-              <TextInput
-                value={dateInput}
-                onChangeText={setDateInput}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
-                className="text-base text-app-muted dark:text-app-muted-dark text-right min-w-[100px]"
-              />
-            </View>
+            </PressableScale>
 
             {/* Hours Worked */}
             <View className="flex-row items-center justify-between p-5 border-t border-app-border/30 dark:border-app-border-dark/30">
@@ -468,6 +482,78 @@ export default function AddEditIncomeScreen() {
           />
         </View>
       </ScrollView>
+
+      {showDatePicker && Platform.OS === 'android' ? (
+        <DateTimePicker
+          value={resolveDateFromInput(dateInput)}
+          mode="date"
+          display="calendar"
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (event.type === 'dismissed') return;
+            const nextDate = selectedDate ?? resolveDateFromInput(dateInput);
+            setDateInput(nextDate.toISOString().slice(0, 10));
+          }}
+        />
+      ) : null}
+
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={showDatePicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setShowDatePicker(false);
+            setPendingDate(null);
+          }}
+        >
+          <Pressable
+            className="flex-1 bg-black/40 justify-end"
+            onPress={() => {
+              setShowDatePicker(false);
+              setPendingDate(null);
+            }}
+          >
+            <Pressable className="bg-app-card dark:bg-app-card-dark rounded-t-[32px] p-6" onPress={() => {}}>
+              <Text className="text-lg font-display text-app-text dark:text-app-text-dark mb-4">
+                Select date
+              </Text>
+              <View className="items-center">
+                <DateTimePicker
+                  value={pendingDate ?? resolveDateFromInput(dateInput)}
+                  mode="date"
+                  display="spinner"
+                  style={{ alignSelf: 'center' }}
+                  onChange={(_, selectedDate) => {
+                    if (selectedDate) {
+                      setPendingDate(selectedDate);
+                    }
+                  }}
+                />
+              </View>
+              <View className="flex-row justify-end gap-3 mt-4">
+                <Button
+                  title="Cancel"
+                  variant="ghost"
+                  onPress={() => {
+                    setShowDatePicker(false);
+                    setPendingDate(null);
+                  }}
+                />
+                <Button
+                  title="Done"
+                  onPress={() => {
+                    const nextDate = pendingDate ?? resolveDateFromInput(dateInput);
+                    setDateInput(nextDate.toISOString().slice(0, 10));
+                    setShowDatePicker(false);
+                    setPendingDate(null);
+                  }}
+                />
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
 
       <SelectionModal
         visible={showAccountModal}
