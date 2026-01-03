@@ -21,6 +21,15 @@ export async function listReceiptInbox(status?: string): Promise<ReceiptInboxRow
   );
 }
 
+export async function getReceiptInboxItem(id: string): Promise<ReceiptInboxRow | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<ReceiptInboxRow>(
+    'SELECT * FROM receipt_inbox WHERE id = ?',
+    id,
+  );
+  return row ?? null;
+}
+
 export async function createReceiptInboxItem(input: {
   image_uri: string;
   suggested_title?: string | null;

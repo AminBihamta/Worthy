@@ -13,6 +13,7 @@ import { getIncomeTotals } from '../../db/repositories/incomes';
 import { listAccountsWithBalances } from '../../db/repositories/accounts';
 import { listCurrencies } from '../../db/repositories/currencies';
 import { listTransactions } from '../../db/repositories/transactions';
+import { getSetting } from '../../db/repositories/settings';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { formatSigned } from '../../utils/money';
 import { getPeriodRange } from '../../utils/period';
@@ -21,6 +22,7 @@ import { formatShortDate } from '../../utils/time';
 import { formatLifeCost } from '../../utils/lifeCost';
 import { buildRateMap, convertMinorToBase } from '../../utils/currency';
 import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
+import { formatWrapTitle, getWrapPeriodRange, WrapPeriod } from '../../utils/wrap';
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -31,11 +33,33 @@ export default function HomeScreen() {
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
   const [accounts, setAccounts] = useState<Awaited<ReturnType<typeof listAccountsWithBalances>>>([]);
   const [rateMap, setRateMap] = useState<Map<string, number>>(new Map());
+  const [wrapPrompt, setWrapPrompt] = useState<{
+    period: WrapPeriod;
+    title: string;
+  } | null>(null);
 
   // Tutorial Targets
   const balanceTarget = useTutorialTarget('home_balance');
   const actionsTarget = useTutorialTarget('home_actions');
   const transactionsTarget = useTutorialTarget('home_transactions_list');
+
+  const loadWrapPrompt = useCallback(async () => {
+    const periods: WrapPeriod[] = ['week', 'month', 'quarter', 'year'];
+    const viewedEntries = await Promise.all(
+      periods.map(async (period) => {
+        const value = await getSetting(`wrap_last_viewed_${period}`);
+        return { period, viewedAt: value ? Number.parseInt(value, 10) : 0 };
+      }),
+    );
+    const now = new Date();
+    for (const { period, viewedAt } of viewedEntries) {
+      const range = getWrapPeriodRange(period, now);
+      if (!viewedAt || viewedAt < range.end) {
+        return { period, title: formatWrapTitle(period, range) };
+      }
+    }
+    return null;
+  }, []);
 
   const load = useCallback(() => {
     const now = new Date();
@@ -47,14 +71,16 @@ export default function HomeScreen() {
       listTransactions({ limit: 4 }),
       getEffectiveHourlyRate(),
       listCurrencies(),
-    ]).then(([spent, income, accountsRows, recentRows, hourly, currencyRows]) => {
+      loadWrapPrompt(),
+    ]).then(([spent, income, accountsRows, recentRows, hourly, currencyRows, wrapStatus]) => {
       setSummary({ spent, income });
       setAccounts(accountsRows);
       setRecent(recentRows);
       setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
       setRateMap(buildRateMap(currencyRows, baseCurrency));
+      setWrapPrompt(wrapStatus);
     });
-  }, [baseCurrency]);
+  }, [baseCurrency, loadWrapPrompt]);
 
   useFocusEffect(
     useCallback(() => {
@@ -224,6 +250,37 @@ export default function HomeScreen() {
               </PressableScale>
             ))}
           </View>
+
+          {wrapPrompt ? (
+            <View className="px-6 mb-10">
+              <PressableScale
+                onPress={() =>
+                  navigation.navigate('Wrapped' as never, { period: wrapPrompt.period } as never)
+                }
+              >
+                <Card className="overflow-hidden">
+                  <View className="absolute -top-12 -right-8 w-32 h-32 rounded-full bg-app-brand/20 dark:bg-app-brand-dark/20" />
+                  <View className="absolute -bottom-16 -left-10 w-40 h-40 rounded-full bg-app-soft dark:bg-app-soft-dark" />
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-3">
+                      <View className="w-12 h-12 rounded-2xl bg-app-brand dark:bg-app-brand-dark items-center justify-center">
+                        <Feather name="star" size={20} color="#FFFFFF" />
+                      </View>
+                      <View>
+                        <Text className="text-base font-medium text-app-text dark:text-app-text-dark">
+                          Your {wrapPrompt.period} wrap is ready
+                        </Text>
+                        <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
+                          {wrapPrompt.title}
+                        </Text>
+                      </View>
+                    </View>
+                    <Feather name="chevron-right" size={18} color={colorScheme === 'dark' ? '#8B949E' : '#6B7A8F'} />
+                  </View>
+                </Card>
+              </PressableScale>
+            </View>
+          ) : null}
 
           {/* Transactions */}
           <View className="px-6">

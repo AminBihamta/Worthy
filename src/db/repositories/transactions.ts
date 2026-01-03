@@ -8,6 +8,7 @@ export interface TransactionRow {
   title: string;
   amount_minor: number;
   date_ts: number;
+  created_at: number;
   category_name: string | null;
   category_color: string | null;
   category_icon: string | null;
@@ -42,7 +43,7 @@ export async function listTransactions(filters?: {
 
   return db.getAllAsync<TransactionRow>(
     `SELECT * FROM (
-      SELECT e.id as id, 'expense' as type, e.title as title, e.amount_minor as amount_minor, e.date_ts as date_ts,
+      SELECT e.id as id, 'expense' as type, e.title as title, e.amount_minor as amount_minor, e.date_ts as date_ts, e.created_at as created_at,
         c.name as category_name, c.color as category_color, c.icon as category_icon,
         a.name as account_name, COALESCE(e.currency_code, a.currency) as account_currency, e.slider_0_100 as slider_0_100, e.notes as notes,
         NULL as from_account_name, NULL as to_account_name
@@ -50,14 +51,14 @@ export async function listTransactions(filters?: {
       JOIN categories c ON c.id = e.category_id
       JOIN accounts a ON a.id = e.account_id
       UNION ALL
-      SELECT i.id as id, 'income' as type, i.source as title, i.amount_minor as amount_minor, i.date_ts as date_ts,
+      SELECT i.id as id, 'income' as type, i.source as title, i.amount_minor as amount_minor, i.date_ts as date_ts, i.created_at as created_at,
         NULL as category_name, NULL as category_color, NULL as category_icon,
         a.name as account_name, COALESCE(i.currency_code, a.currency) as account_currency, NULL as slider_0_100, i.notes as notes,
         NULL as from_account_name, NULL as to_account_name
       FROM incomes i
       JOIN accounts a ON a.id = i.account_id
       UNION ALL
-      SELECT t.id as id, 'transfer' as type, 'Transfer' as title, t.amount_minor as amount_minor, t.date_ts as date_ts,
+      SELECT t.id as id, 'transfer' as type, 'Transfer' as title, t.amount_minor as amount_minor, t.date_ts as date_ts, t.created_at as created_at,
         NULL as category_name, NULL as category_color, NULL as category_icon,
         af.name as account_name, af.currency as account_currency, NULL as slider_0_100, t.notes as notes,
         af.name as from_account_name, at.name as to_account_name
@@ -66,7 +67,7 @@ export async function listTransactions(filters?: {
       JOIN accounts at ON at.id = t.to_account_id
     )
     ${where}
-    ORDER BY date_ts DESC
+    ORDER BY date_ts DESC, created_at DESC, id DESC
     ${limit}`,
     ...params,
   );

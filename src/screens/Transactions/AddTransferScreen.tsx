@@ -18,6 +18,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { listAccounts } from '../../db/repositories/accounts';
 import { createTransfer } from '../../db/repositories/transfers';
 import { toMinor } from '../../utils/money';
+import { loadTransferDefaults, saveTransferDefaults } from '../../utils/smartDefaults';
 
 interface SelectionModalProps {
   visible: boolean;
@@ -110,12 +111,33 @@ export default function AddTransferScreen() {
   const heroOffset = useRef(0);
 
   useEffect(() => {
-    listAccounts().then((accts) => {
+    let active = true;
+    listAccounts().then(async (accts) => {
+      if (!active) return;
       setAccounts(accts.map((acct) => ({ id: acct.id, name: acct.name, currency: acct.currency })));
-      if (!fromAccountId && accts.length > 0) setFromAccountId(accts[0].id);
-      if (!toAccountId && accts.length > 1) setToAccountId(accts[1].id);
+
+      const defaults = await loadTransferDefaults();
+      if (defaults.fromAccountId && accts.some((acct) => acct.id === defaults.fromAccountId)) {
+        setFromAccountId((prev) => prev ?? defaults.fromAccountId);
+      }
+      if (defaults.toAccountId && accts.some((acct) => acct.id === defaults.toAccountId)) {
+        setToAccountId((prev) => prev ?? defaults.toAccountId);
+      }
+      if (defaults.notes) {
+        setNotes((prev) => (prev ? prev : defaults.notes ?? prev));
+      }
+
+      if (accts.length > 0) {
+        setFromAccountId((prev) => prev ?? accts[0].id);
+      }
+      if (accts.length > 1) {
+        setToAccountId((prev) => prev ?? accts[1].id);
+      }
     });
-  }, [fromAccountId, toAccountId]);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSave = async () => {
     const amountMinor = toMinor(amount);
@@ -154,6 +176,13 @@ export default function AddTransferScreen() {
       date_ts: finalDateTs,
       notes,
     });
+
+    await saveTransferDefaults({
+      fromAccountId,
+      toAccountId,
+      notes,
+    });
+
     navigation.goBack();
   };
 

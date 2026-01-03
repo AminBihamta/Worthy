@@ -24,11 +24,12 @@ import { getAccountBalance, listAccounts } from '../../db/repositories/accounts'
 import { listCategories } from '../../db/repositories/categories';
 import { listCurrencies, CurrencyRow } from '../../db/repositories/currencies';
 import { createExpense, getExpense, updateExpense } from '../../db/repositories/expenses';
-import { updateReceiptInbox } from '../../db/repositories/receipts';
+import { getReceiptInboxItem, updateReceiptInbox } from '../../db/repositories/receipts';
 import { createRecurringRule } from '../../db/repositories/recurring';
 import { formatSigned, toMinor } from '../../utils/money';
 import { buildRateMap, convertMinorBetween } from '../../utils/currency';
 import { useSettingsStore } from '../../state/useSettingsStore';
+import { loadExpenseDefaults, saveExpenseDefaults } from '../../utils/smartDefaults';
 
 type RecurringFrequency = 'off' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 
@@ -179,17 +180,47 @@ export default function AddEditExpenseScreen() {
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
   const heroOffset = useRef(0);
+  const receiptPrefilled = useRef(false);
 
   useEffect(() => {
+    let active = true;
     Promise.all([listCategories(), listAccounts(), listCurrencies()]).then(
-      ([cats, accts, currencyRows]) => {
+      async ([cats, accts, currencyRows]) => {
+        if (!active) return;
         setCategories(cats.map((cat) => ({ id: cat.id, name: cat.name })));
         setAccounts(accts.map((acct) => ({ id: acct.id, name: acct.name, currency: acct.currency })));
         setCurrencies(currencyRows);
-        if (!categoryId && cats.length > 0) setCategoryId(cats[0].id);
+
+        if (!editingId) {
+          const defaults = await loadExpenseDefaults();
+          if (defaults.categoryId && cats.some((cat) => cat.id === defaults.categoryId)) {
+            setCategoryId((prev) => prev ?? defaults.categoryId);
+          } else if (cats.length > 0) {
+            setCategoryId((prev) => prev ?? cats[0].id);
+          }
+
+          if (defaults.accountId && accts.some((acct) => acct.id === defaults.accountId)) {
+            setAccountId((prev) => prev ?? defaults.accountId);
+          }
+
+          if (defaults.currencyCode) {
+            setCurrencyCode((prev) => (prev ? prev : defaults.currencyCode ?? prev));
+          }
+
+          if (defaults.notes) {
+            setNotes((prev) => (prev ? prev : defaults.notes ?? prev));
+          }
+
+          if (typeof defaults.regretValue === 'number') {
+            setSliderValue((prev) => (prev === 50 ? normalizeRegretValue(defaults.regretValue) : prev));
+          }
+        }
       },
     );
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [editingId]);
 
   useEffect(() => {
     if (!currencyCode && baseCurrency) {
@@ -229,6 +260,23 @@ export default function AddEditExpenseScreen() {
       setNotes(expense.notes ?? '');
     });
   }, [editingId, baseCurrency]);
+
+  useEffect(() => {
+    if (!receiptId || editingId || receiptPrefilled.current) return;
+    getReceiptInboxItem(receiptId).then((receipt) => {
+      if (!receipt) return;
+      if (!title && receipt.suggested_title) {
+        setTitle(receipt.suggested_title);
+      }
+      if (!amount && receipt.suggested_amount_minor) {
+        setAmount(String(receipt.suggested_amount_minor / 100));
+      }
+      if (receipt.suggested_date_ts) {
+        setDateInput(new Date(receipt.suggested_date_ts).toISOString().slice(0, 10));
+      }
+      receiptPrefilled.current = true;
+    });
+  }, [amount, editingId, receiptId, title]);
 
   const handleSave = async () => {
     if (!categoryId || !accountId) return;
@@ -317,6 +365,13 @@ export default function AddEditExpenseScreen() {
         slider_0_100: sliderValue,
         notes,
       });
+      await saveExpenseDefaults({
+        accountId,
+        categoryId,
+        currencyCode: effectiveCurrencyCode,
+        regretValue: sliderValue,
+        notes,
+      });
       navigation.goBack();
       return;
     }
@@ -353,6 +408,14 @@ export default function AddEditExpenseScreen() {
         });
       }
     }
+
+    await saveExpenseDefaults({
+      accountId,
+      categoryId,
+      currencyCode: effectiveCurrencyCode,
+      regretValue: sliderValue,
+      notes,
+    });
 
     navigation.goBack();
   };

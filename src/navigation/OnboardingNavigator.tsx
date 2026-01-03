@@ -3,6 +3,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useColorScheme } from 'nativewind';
 import { colors } from '../theme/tokens';
+import IntroCarouselScreen from '../screens/Onboarding/IntroCarouselScreen';
 import WelcomeScreen from '../screens/Onboarding/WelcomeScreen';
 import AccountsSetupScreen from '../screens/Onboarding/AccountsSetupScreen';
 import CategorySetupScreen from '../screens/Onboarding/CategorySetupScreen';
@@ -44,6 +45,11 @@ export default function OnboardingNavigator() {
 
     return (
         <Stack.Navigator screenOptions={screenOptions}>
+            <Stack.Screen
+                name="Intro"
+                component={IntroCarouselScreen}
+                options={{ headerShown: false }}
+            />
             <Stack.Screen
                 name="Welcome"
                 component={WelcomeScreen}

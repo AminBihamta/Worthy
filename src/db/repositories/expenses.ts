@@ -132,6 +132,22 @@ export async function deleteExpense(id: string): Promise<void> {
   await db.runAsync('DELETE FROM expenses WHERE id = ?', id);
 }
 
+export async function listRecentUnlinkedExpenses(limit = 5): Promise<ExpenseListRow[]> {
+  const db = await getDb();
+  return db.getAllAsync<ExpenseListRow>(
+    `SELECT e.*, c.name as category_name, c.color as category_color, c.icon as category_icon,
+        a.name as account_name, a.currency as account_currency
+     FROM expenses e
+     JOIN categories c ON c.id = e.category_id
+     JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN receipt_inbox r ON r.linked_expense_id = e.id
+     WHERE r.linked_expense_id IS NULL
+     ORDER BY e.date_ts DESC, e.created_at DESC
+     LIMIT ?`,
+    limit,
+  );
+}
+
 export async function sumExpensesByCategory(start: number, end: number) {
   const db = await getDb();
   return db.getAllAsync<{ category_id: string; total_minor: number }>(

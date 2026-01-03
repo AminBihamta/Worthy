@@ -24,6 +24,7 @@ import { createIncome, getIncome, updateIncome } from '../../db/repositories/inc
 import { createRecurringRule } from '../../db/repositories/recurring';
 import { toMinor } from '../../utils/money';
 import { useSettingsStore } from '../../state/useSettingsStore';
+import { loadIncomeDefaults, saveIncomeDefaults } from '../../utils/smartDefaults';
 
 type RecurringFrequency = 'off' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 
@@ -152,11 +153,32 @@ export default function AddEditIncomeScreen() {
   const heroOffset = useRef(0);
 
   useEffect(() => {
-    Promise.all([listAccounts(), listCurrencies()]).then(([accts, currencyRows]) => {
+    let active = true;
+    Promise.all([listAccounts(), listCurrencies()]).then(async ([accts, currencyRows]) => {
+      if (!active) return;
       setAccounts(accts.map((acct) => ({ id: acct.id, name: acct.name, currency: acct.currency })));
       setCurrencies(currencyRows);
+
+      if (!editingId) {
+        const defaults = await loadIncomeDefaults();
+        if (defaults.accountId && accts.some((acct) => acct.id === defaults.accountId)) {
+          setAccountId((prev) => prev ?? defaults.accountId);
+        }
+        if (defaults.currencyCode) {
+          setCurrencyCode((prev) => (prev ? prev : defaults.currencyCode ?? prev));
+        }
+        if (defaults.notes) {
+          setNotes((prev) => (prev ? prev : defaults.notes ?? prev));
+        }
+        if (defaults.hoursWorked) {
+          setHoursWorked((prev) => (prev ? prev : defaults.hoursWorked ?? prev));
+        }
+      }
     });
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [editingId]);
 
   useEffect(() => {
     if (!currencyCode && baseCurrency) {
@@ -258,6 +280,13 @@ export default function AddEditIncomeScreen() {
         }
       }
     }
+
+    await saveIncomeDefaults({
+      accountId,
+      currencyCode: effectiveCurrencyCode,
+      notes,
+      hoursWorked,
+    });
 
     navigation.goBack();
   };

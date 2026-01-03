@@ -64,6 +64,7 @@ export default function ExpenseDetailScreen() {
     totalHours: number;
     amountBaseMinor: number;
   } | null>(null);
+  const [lifeCostModalOpen, setLifeCostModalOpen] = useState(false);
   const [recurringRule, setRecurringRule] = useState<RecurringRuleRow | null>(null);
   const [receipt, setReceipt] = useState<ReceiptInboxRow | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -217,6 +218,32 @@ export default function ExpenseDetailScreen() {
     ]);
   };
 
+  const handleLifeCostInfo = () => {
+    setLifeCostModalOpen(true);
+  };
+
+  const lifeCostModalData = useMemo(() => {
+    if (!lifeCostMeta || !lifeCost) {
+      return {
+        title: 'Life cost',
+        subtitle: 'Add income with hours worked to see how long an expense costs in time.',
+        formula: null as string | null,
+        dayNote: null as string | null,
+      };
+    }
+    const hoursText = Number.isFinite(lifeCostMeta.totalHours)
+      ? lifeCostMeta.totalHours.toFixed(1).replace(/\.0$/, '')
+      : String(lifeCostMeta.totalHours);
+    const incomeText = formatMinor(lifeCostMeta.totalIncomeMinor, baseCurrency);
+    const amountText = formatMinor(lifeCostMeta.amountBaseMinor, baseCurrency);
+    return {
+      title: 'Life cost calculation',
+      subtitle: 'We estimate this from your last 30 days of income entries with hours worked.',
+      formula: `(${incomeText} / ${hoursText} hours) x ${amountText} = ${lifeCost}`,
+      dayNote: `Days assume ${hoursPerDay} working hours/day.`,
+    };
+  }, [baseCurrency, hoursPerDay, lifeCost, lifeCostMeta]);
+
   if (!expense) {
     return (
       <View className="flex-1 bg-app-bg dark:bg-app-bg-dark items-center justify-center">
@@ -234,26 +261,6 @@ export default function ExpenseDetailScreen() {
   const budgetImpactText = budgetMeta
     ? `${budgetMeta.impactPct}% of your ${budgetMeta.periodLabel} ${expense.category_name} budget`
     : null;
-
-  const handleLifeCostInfo = () => {
-    if (!lifeCostMeta || !lifeCost) {
-      Alert.alert(
-        'Life cost',
-        'Add income with hours worked to see how long an expense costs in time.',
-      );
-      return;
-    }
-    const hoursText = Number.isFinite(lifeCostMeta.totalHours)
-      ? lifeCostMeta.totalHours.toFixed(1).replace(/\.0$/, '')
-      : String(lifeCostMeta.totalHours);
-    const incomeText = formatMinor(lifeCostMeta.totalIncomeMinor, baseCurrency);
-    const amountText = formatMinor(lifeCostMeta.amountBaseMinor, baseCurrency);
-    const dayNote = `Days assume ${hoursPerDay} working hours/day.`;
-    Alert.alert(
-      'Life cost calculation',
-      `We estimate this from your last 30 days of income entries with hours worked.\n\nFormula:\n(${hoursText} hours / ${incomeText}) * ${amountText} = ${lifeCost}\n\n${dayNote}`,
-    );
-  };
 
   const insightItems = (() => {
     const items: string[] = [];
@@ -483,6 +490,63 @@ export default function ExpenseDetailScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Life Cost Modal */}
+      <Modal
+        visible={lifeCostModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLifeCostModalOpen(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/60 items-center justify-center px-6"
+          onPress={() => setLifeCostModalOpen(false)}
+        >
+          <Pressable
+            className="w-full max-w-[360px] bg-app-card dark:bg-app-card-dark rounded-3xl p-6 border border-app-border/50 dark:border-app-border-dark/50"
+            onPress={() => {}}
+          >
+            <View className="flex-row items-center justify-between mb-4">
+              <View className="flex-row items-center gap-3">
+                <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
+                  <Feather name="clock" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
+                </View>
+                <Text className="text-lg font-display text-app-text dark:text-app-text-dark">
+                  {lifeCostModalData.title}
+                </Text>
+              </View>
+              <Pressable onPress={() => setLifeCostModalOpen(false)} className="p-2 -mr-2">
+                <Feather name="x" size={20} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
+              </Pressable>
+            </View>
+
+            <Text className="text-sm text-app-muted dark:text-app-muted-dark">
+              {lifeCostModalData.subtitle}
+            </Text>
+
+            {lifeCostModalData.formula ? (
+              <View className="mt-4 rounded-2xl border border-app-border/50 dark:border-app-border-dark/50 bg-app-soft dark:bg-app-soft-dark p-4">
+                <Text className="text-[11px] uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-2">
+                  Formula
+                </Text>
+                <Text className="text-sm font-medium text-app-text dark:text-app-text-dark">
+                  {lifeCostModalData.formula}
+                </Text>
+              </View>
+            ) : null}
+
+            {lifeCostModalData.dayNote ? (
+              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-3">
+                {lifeCostModalData.dayNote}
+              </Text>
+            ) : null}
+
+            <View className="mt-6">
+              <Button title="Got it" onPress={() => setLifeCostModalOpen(false)} />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Menu Modal */}
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>

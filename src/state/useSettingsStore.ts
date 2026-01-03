@@ -17,6 +17,8 @@ interface SettingsState {
   resetOnboarding: () => Promise<void>;
   hasSeenTutorial: boolean;
   completeTutorial: () => Promise<void>;
+  hasSeenIntro: boolean;
+  completeIntro: () => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -25,6 +27,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   baseCurrency: 'USD',
   isOnboarded: false,
   hasSeenTutorial: false,
+  hasSeenIntro: false,
   loaded: false,
   hydrate: async () => {
     const settings = await getAllSettings();
@@ -35,6 +38,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       baseCurrency,
       isOnboarded: settings.is_onboarded === 'true',
       hasSeenTutorial: settings.has_seen_tutorial === 'true',
+      hasSeenIntro: settings.has_seen_intro === 'true',
       loaded: true,
     });
     // We do NOT seed base_currency here anymore if missing, as it's part of onboarding.
@@ -59,10 +63,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   resetOnboarding: async () => {
     await setSetting('is_onboarded', 'false');
     await setSetting('has_seen_tutorial', 'false');
-    set({ isOnboarded: false, hasSeenTutorial: false });
+    await setSetting('has_seen_intro', 'false');
+    set({ isOnboarded: false, hasSeenTutorial: false, hasSeenIntro: false });
   },
   completeTutorial: async () => {
     await setSetting('has_seen_tutorial', 'true');
     set({ hasSeenTutorial: true });
+  },
+  completeIntro: async () => {
+    await setSetting('has_seen_intro', 'true');
+    set({ hasSeenIntro: true });
   },
 }));

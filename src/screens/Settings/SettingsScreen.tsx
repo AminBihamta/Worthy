@@ -112,6 +112,15 @@ export default function SettingsScreen() {
         </View>
 
         <View className="px-4">
+          <SettingsSection title="Highlights">
+            <SettingsRow
+              icon="star"
+              label="Worthy Wrapped"
+              onPress={() => navigation.navigate('Wrapped' as never)}
+              isLast
+            />
+          </SettingsSection>
+
           {/* Appearance */}
           <SettingsSection title="Appearance">
             <PressableScale onPress={cycleTheme}>

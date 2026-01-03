@@ -36,6 +36,7 @@ import SettingsScreen from '../screens/Settings/SettingsScreen';
 import CurrenciesScreen from '../screens/Settings/CurrenciesScreen';
 import WidgetsScreen from '../screens/Settings/WidgetsScreen';
 import PrivacyScreen from '../screens/Settings/PrivacyScreen';
+import WrappedScreen from '../screens/Settings/WrappedScreen';
 import { colors } from '../theme/tokens';
 import { PressableScale } from '../components/PressableScale';
 import { HeaderIconButton } from '../components/HeaderIconButton';
@@ -118,6 +119,7 @@ function HomeStack() {
       />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: 'Privacy' }} />
+      <Stack.Screen name="Wrapped" component={WrappedScreen} options={{ title: 'Wrapped' }} />
       <Stack.Screen name="Currencies" component={CurrenciesScreen} options={{ title: 'Currencies' }} />
       <Stack.Screen name="Widgets" component={WidgetsScreen} options={{ title: 'Widgets' }} />
       <Stack.Screen name="Recurring" component={RecurringScreen} options={{ title: 'Recurring' }} />
