@@ -24,7 +24,7 @@ import {
 } from '../../db/repositories/accounts';
 import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
 import { useSettingsStore } from '../../state/useSettingsStore';
-import { formatSigned, toMinor } from '../../utils/money';
+import { formatAmountInput, formatMinorInput, formatSigned, toMinor } from '../../utils/money';
 
 interface SelectionModalProps {
   visible: boolean;
@@ -145,7 +145,7 @@ export default function AddEditAccountScreen() {
       setName(account.name);
       setType(account.type);
       setCurrency(account.currency);
-      setStartingBalance(String(account.starting_balance_minor / 100));
+      setStartingBalance(formatMinorInput(account.starting_balance_minor));
     });
     getAccountBalance(editingId).then((balance) => {
       setCurrentBalanceMinor(balance);
@@ -262,7 +262,7 @@ export default function AddEditAccountScreen() {
               </View>
               <TextInput
                 value={startingBalance}
-                onChangeText={setStartingBalance}
+                onChangeText={(value) => setStartingBalance(formatAmountInput(value))}
                 placeholder="0.00"
                 placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
                 keyboardType="decimal-pad"

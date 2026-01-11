@@ -11,7 +11,7 @@ import {
   archiveSavingsBucket,
 } from '../../db/repositories/savings';
 import { listWishlistItems, archiveWishlistItem } from '../../db/repositories/wishlist';
-import { formatSigned, toMinor } from '../../utils/money';
+import { formatAmountInput, formatSigned, toMinor } from '../../utils/money';
 import { Input } from '../../components/Input';
 import { SwipeableRow } from '../../components/SwipeableRow';
 import { useSettingsStore } from '../../state/useSettingsStore';
@@ -210,7 +210,7 @@ export default function GoalsScreen() {
             <Input
               label="Amount"
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={(value) => setAmount(formatAmountInput(value))}
               placeholder="0.00"
               keyboardType="decimal-pad"
             />

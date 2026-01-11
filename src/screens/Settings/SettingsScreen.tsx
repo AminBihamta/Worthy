@@ -116,7 +116,12 @@ export default function SettingsScreen() {
             <SettingsRow
               icon="star"
               label="Worthy Wrapped"
-              onPress={() => navigation.navigate('Wrapped' as never)}
+              onPress={() =>
+                navigation.navigate(
+                  'InsightsStack' as never,
+                  { screen: 'Wrapped', params: { period: 'week' } } as never,
+                )
+              }
               isLast
             />
           </SettingsSection>

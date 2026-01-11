@@ -17,7 +17,7 @@ import { listCategories } from '../../db/repositories/categories';
 import { createBudget, listBudgets, updateBudget } from '../../db/repositories/budgets';
 import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
 import { useSettingsStore } from '../../state/useSettingsStore';
-import { toMinor } from '../../utils/money';
+import { formatAmountInput, formatMinorInput, toMinor } from '../../utils/money';
 
 export default function AddEditBudgetScreen() {
   const navigation = useNavigation();
@@ -54,7 +54,7 @@ export default function AddEditBudgetScreen() {
       const budget = budgets.find((item) => item.id === editingId);
       if (!budget) return;
       setCategoryId(budget.category_id);
-      setAmount(String(budget.amount_minor / 100));
+      setAmount(formatMinorInput(budget.amount_minor));
       setPeriodType(budget.period_type);
     });
   }, [editingId]);
@@ -110,7 +110,7 @@ export default function AddEditBudgetScreen() {
             </Text>
             <TextInput
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={(value) => setAmount(formatAmountInput(value))}
               placeholder="0.00"
               placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
               keyboardType="decimal-pad"

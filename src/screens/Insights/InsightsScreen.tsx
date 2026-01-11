@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, Text, View, Dimensions } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import {
@@ -33,10 +33,12 @@ import {
 import { getFirstTransactionDate } from '../../db/repositories/transactions';
 import { getPeriodRange } from '../../utils/period';
 import { useSettingsStore } from '../../state/useSettingsStore';
+import { PressableScale } from '../../components/PressableScale';
 
 import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 
 export default function InsightsScreen() {
+  const navigation = useNavigation<any>();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const axisColor = isDark ? '#8B949E' : '#6B7A8F';
@@ -63,6 +65,7 @@ export default function InsightsScreen() {
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
   const [allTimeStart, setAllTimeStart] = useState<number | null>(null);
   const chartGranularity = insightsPeriod === 'year' || insightsPeriod === 'all' ? 'month' : 'day';
+  const brandColor = isDark ? '#58D5D8' : '#0A9396';
 
   const chartWidth = Dimensions.get('window').width - 48 - 48; // Screen width - padding (24*2) - card padding (24*2)
   const pieOuterRadius = Math.min(chartWidth, 220) / 2 - 16;
@@ -311,6 +314,37 @@ export default function InsightsScreen() {
             Insights
           </Text>
         </View>
+
+        <PressableScale
+          onPress={() => navigation.navigate('Wrapped', { period: 'week' })}
+          className="mb-6"
+        >
+          <View className="rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 bg-app-card dark:bg-app-card-dark p-6 overflow-hidden">
+            <View className="absolute -top-10 -right-8 w-28 h-28 rounded-full bg-app-brand/20 dark:bg-app-brand-dark/20" />
+            <View className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full bg-app-soft dark:bg-app-soft-dark" />
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-4">
+                <View className="w-12 h-12 rounded-2xl bg-app-brand dark:bg-app-brand-dark items-center justify-center">
+                  <Feather name="star" size={20} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                    Worthy Wrapped
+                  </Text>
+                  <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
+                    Your money story, told in playful slides.
+                  </Text>
+                </View>
+              </View>
+              <View className="items-center">
+                <Feather name="chevron-right" size={18} color={brandColor} />
+                <Text className="text-[10px] uppercase tracking-widest text-app-muted dark:text-app-muted-dark mt-2">
+                  Open
+                </Text>
+              </View>
+            </View>
+          </View>
+        </PressableScale>
 
         <DateRangeSelector
           period={insightsPeriod}

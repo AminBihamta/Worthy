@@ -26,7 +26,7 @@ import { listCurrencies, CurrencyRow } from '../../db/repositories/currencies';
 import { createExpense, getExpense, updateExpense } from '../../db/repositories/expenses';
 import { getReceiptInboxItem, updateReceiptInbox } from '../../db/repositories/receipts';
 import { createRecurringRule } from '../../db/repositories/recurring';
-import { formatSigned, toMinor } from '../../utils/money';
+import { formatAmountInput, formatMinorInput, formatSigned, toMinor } from '../../utils/money';
 import { buildRateMap, convertMinorBetween } from '../../utils/currency';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { loadExpenseDefaults, saveExpenseDefaults } from '../../utils/smartDefaults';
@@ -251,7 +251,7 @@ export default function AddEditExpenseScreen() {
         account_currency: expense.account_currency,
       });
       setTitle(expense.title);
-      setAmount(String(expense.amount_minor / 100));
+      setAmount(formatMinorInput(expense.amount_minor));
       setCategoryId(expense.category_id);
       setAccountId(expense.account_id);
       setCurrencyCode(expense.currency_code ?? expense.account_currency ?? baseCurrency);
@@ -269,7 +269,7 @@ export default function AddEditExpenseScreen() {
         setTitle(receipt.suggested_title);
       }
       if (!amount && receipt.suggested_amount_minor) {
-        setAmount(String(receipt.suggested_amount_minor / 100));
+        setAmount(formatMinorInput(receipt.suggested_amount_minor));
       }
       if (receipt.suggested_date_ts) {
         setDateInput(new Date(receipt.suggested_date_ts).toISOString().slice(0, 10));
@@ -461,7 +461,7 @@ export default function AddEditExpenseScreen() {
               <TextInput
                 value={amount}
                 onChangeText={(value) => {
-                  setAmount(value);
+                  setAmount(formatAmountInput(value));
                   if (errors.amount) {
                     setErrors((prev) => ({ ...prev, amount: undefined }));
                   }

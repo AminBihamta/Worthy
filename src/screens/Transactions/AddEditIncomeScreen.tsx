@@ -22,7 +22,7 @@ import { listAccounts } from '../../db/repositories/accounts';
 import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
 import { createIncome, getIncome, updateIncome } from '../../db/repositories/incomes';
 import { createRecurringRule } from '../../db/repositories/recurring';
-import { toMinor } from '../../utils/money';
+import { formatAmountInput, formatMinorInput, toMinor } from '../../utils/money';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { loadIncomeDefaults, saveIncomeDefaults } from '../../utils/smartDefaults';
 
@@ -204,7 +204,7 @@ export default function AddEditIncomeScreen() {
     getIncome(editingId).then((income) => {
       if (!income) return;
       setSource(income.source);
-      setAmount(String(income.amount_minor / 100));
+      setAmount(formatMinorInput(income.amount_minor));
       setAccountId(income.account_id);
       setCurrencyCode(income.currency_code ?? income.account_currency ?? baseCurrency);
       setDateInput(new Date(income.date_ts).toISOString().slice(0, 10));
@@ -331,7 +331,7 @@ export default function AddEditIncomeScreen() {
               <TextInput
                 value={amount}
                 onChangeText={(value) => {
-                  setAmount(value);
+                  setAmount(formatAmountInput(value));
                   if (errors.amount) {
                     setErrors((prev) => ({ ...prev, amount: undefined }));
                   }

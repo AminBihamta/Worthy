@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { SelectField } from '../../components/SelectField';
 import { listCategories } from '../../db/repositories/categories';
 import { archiveWishlistItem, createWishlistItem, listWishlistItems, updateWishlistItem } from '../../db/repositories/wishlist';
-import { toMinor } from '../../utils/money';
+import { formatAmountInput, formatMinorInput, toMinor } from '../../utils/money';
 
 export default function AddEditWishlistItemScreen() {
   const navigation = useNavigation();
@@ -35,7 +35,7 @@ export default function AddEditWishlistItemScreen() {
       if (!item) return;
       setCategoryId(item.category_id);
       setTitle(item.title);
-      setTarget(item.target_price_minor ? String(item.target_price_minor / 100) : '');
+      setTarget(item.target_price_minor ? formatMinorInput(item.target_price_minor) : '');
       setLink(item.link ?? '');
       setPriority(item.priority ? String(item.priority) : '');
     });
@@ -84,7 +84,7 @@ export default function AddEditWishlistItemScreen() {
       <Input
         label="Target price"
         value={target}
-        onChangeText={setTarget}
+        onChangeText={(value) => setTarget(formatAmountInput(value))}
         placeholder="Optional"
         keyboardType="decimal-pad"
       />

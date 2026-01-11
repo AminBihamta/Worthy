@@ -33,3 +33,18 @@ export function formatSigned(minor: number, currency = DEFAULT_CURRENCY): string
   const sign = minor < 0 ? '-' : '';
   return `${sign}${formatMinor(Math.abs(minor), currency)}`;
 }
+
+export function formatAmountInput(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  const padded = digits.padStart(3, '0');
+  const rawInteger = padded.slice(0, -2);
+  const integerPart = rawInteger.replace(/^0+(?=\d)/, '') || '0';
+  const decimalPart = padded.slice(-2);
+  return `${integerPart}.${decimalPart}`;
+}
+
+export function formatMinorInput(minor: number): string {
+  const safeMinor = Math.abs(Math.round(minor));
+  return formatAmountInput(String(safeMinor));
+}

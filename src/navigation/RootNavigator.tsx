@@ -119,7 +119,6 @@ function HomeStack() {
       />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: 'Privacy' }} />
-      <Stack.Screen name="Wrapped" component={WrappedScreen} options={{ title: 'Wrapped' }} />
       <Stack.Screen name="Currencies" component={CurrenciesScreen} options={{ title: 'Currencies' }} />
       <Stack.Screen name="Widgets" component={WidgetsScreen} options={{ title: 'Widgets' }} />
       <Stack.Screen name="Recurring" component={RecurringScreen} options={{ title: 'Recurring' }} />
@@ -235,6 +234,7 @@ function InsightsStack() {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Insights', headerShown: false }} />
+      <Stack.Screen name="Wrapped" component={WrappedScreen} options={{ title: 'Wrapped', headerShown: false }} />
     </Stack.Navigator>
   );
 }

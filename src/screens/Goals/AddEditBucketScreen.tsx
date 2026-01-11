@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { SelectField } from '../../components/SelectField';
 import { listCategories } from '../../db/repositories/categories';
 import { createSavingsBucket } from '../../db/repositories/savings';
-import { toMinor } from '../../utils/money';
+import { formatAmountInput, toMinor } from '../../utils/money';
 
 export default function AddEditBucketScreen() {
   const navigation = useNavigation();
@@ -47,7 +47,7 @@ export default function AddEditBucketScreen() {
       <Input
         label="Target amount"
         value={target}
-        onChangeText={setTarget}
+        onChangeText={(value) => setTarget(formatAmountInput(value))}
         placeholder="Optional"
         keyboardType="decimal-pad"
       />

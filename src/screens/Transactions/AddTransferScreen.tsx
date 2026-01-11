@@ -17,7 +17,7 @@ import { Button } from '../../components/Button';
 import { PressableScale } from '../../components/PressableScale';
 import { listAccounts } from '../../db/repositories/accounts';
 import { createTransfer } from '../../db/repositories/transfers';
-import { toMinor } from '../../utils/money';
+import { formatAmountInput, toMinor } from '../../utils/money';
 import { loadTransferDefaults, saveTransferDefaults } from '../../utils/smartDefaults';
 
 interface SelectionModalProps {
@@ -223,7 +223,7 @@ export default function AddTransferScreen() {
               <TextInput
                 value={amount}
                 onChangeText={(value) => {
-                  setAmount(value);
+                  setAmount(formatAmountInput(value));
                   if (errors.amount) {
                     setErrors((prev) => ({ ...prev, amount: undefined }));
                   }

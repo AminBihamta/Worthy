@@ -255,7 +255,10 @@ export default function HomeScreen() {
             <View className="px-6 mb-10">
               <PressableScale
                 onPress={() =>
-                  navigation.navigate('Wrapped' as never, { period: wrapPrompt.period } as never)
+                  navigation.navigate(
+                    'InsightsStack' as never,
+                    { screen: 'Wrapped', params: { period: wrapPrompt.period } } as never,
+                  )
                 }
               >
                 <Card className="overflow-hidden">

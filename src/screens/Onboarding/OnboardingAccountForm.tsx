@@ -10,6 +10,7 @@ import { SelectField } from '../../components/SelectField'; // Import SelectFiel
 import { getDb } from '../../db';
 import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
 import { createId } from '../../utils/id';
+import { formatAmountInput, toMinor } from '../../utils/money';
 
 export default function OnboardingAccountForm({ navigation, route }: { navigation: any, route: any }) {
     const { colorScheme } = useColorScheme();
@@ -60,9 +61,7 @@ export default function OnboardingAccountForm({ navigation, route }: { navigatio
             return;
         }
 
-        // Convert balance to minor units (integer cents)
-        const numericBalance = parseFloat(balance) || 0;
-        const minorBalance = Math.round(numericBalance * 100);
+        const minorBalance = toMinor(balance);
 
         const db = await getDb();
         await db.runAsync(
@@ -103,7 +102,7 @@ export default function OnboardingAccountForm({ navigation, route }: { navigatio
                 <Input
                     label={`Starting Balance (${selectedCurrency})`}
                     value={balance}
-                    onChangeText={setBalance}
+                    onChangeText={(value) => setBalance(formatAmountInput(value))}
                     placeholder="0.00"
                     keyboardType="numeric"
                     autoFocus
