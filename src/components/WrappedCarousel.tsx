@@ -60,12 +60,6 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
   const listRef = useRef<FlatList<WrapSlide>>(null);
 
   useEffect(() => {
-    if (initialPeriod && availablePeriods.includes(initialPeriod) && initialPeriod !== period) {
-      setPeriod(initialPeriod);
-    }
-  }, [availablePeriods, initialPeriod, period]);
-
-  useEffect(() => {
     let active = true;
 
     getFirstTransactionDate().then((firstTransactionTs) => {
