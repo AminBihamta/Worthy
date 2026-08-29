@@ -8,7 +8,13 @@ interface SelectionModalProps {
   visible: boolean;
   onClose: () => void;
   title: string;
-  options: { id: string; name: string; subtitle?: string }[];
+  options: {
+    id: string;
+    name: string;
+    subtitle?: string;
+    icon?: keyof typeof Feather.glyphMap;
+    iconColor?: string;
+  }[];
   onSelect: (id: string) => void;
   selectedId: string | null;
 }
@@ -41,40 +47,59 @@ export function SelectionModal({
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={{ padding: 24 }}>
-              {options.map((option) => (
-                <PressableScale
-                  key={option.id}
-                  className={`flex-row items-center justify-between p-4 mb-3 rounded-2xl border ${
-                    selectedId === option.id
-                      ? 'bg-app-soft dark:bg-app-soft-dark border-app-brand dark:border-app-brand-dark'
-                      : 'bg-transparent border-app-border dark:border-app-border-dark'
-                  }`}
-                  onPress={() => {
-                    onSelect(option.id);
-                    onClose();
-                  }}
-                >
-                  <View>
-                    <Text
-                      className={`text-base font-medium ${
-                        selectedId === option.id
-                          ? 'text-app-brand dark:text-app-brand-dark'
-                          : 'text-app-text dark:text-app-text-dark'
-                      }`}
-                    >
-                      {option.name}
-                    </Text>
-                    {option.subtitle && (
-                      <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-0.5">
-                        {option.subtitle}
-                      </Text>
+              {options.map((option) => {
+                const selected = selectedId === option.id;
+                const iconTint = option.iconColor ?? (isDark ? '#E6EDF3' : '#0D1B2A');
+
+                return (
+                  <PressableScale
+                    key={option.id}
+                    className={`flex-row items-center justify-between p-4 mb-3 rounded-2xl border ${
+                      selected
+                        ? 'bg-app-soft dark:bg-app-soft-dark border-app-brand dark:border-app-brand-dark'
+                        : 'bg-transparent border-app-border dark:border-app-border-dark'
+                    }`}
+                    onPress={() => {
+                      onSelect(option.id);
+                      onClose();
+                    }}
+                  >
+                    <View className="flex-row items-center gap-3 flex-1 pr-3">
+                      {option.icon ? (
+                        <View
+                          className="w-10 h-10 rounded-full items-center justify-center"
+                          style={
+                            option.iconColor
+                              ? { backgroundColor: `${option.iconColor}1A` }
+                              : undefined
+                          }
+                        >
+                          <Feather name={option.icon} size={20} color={iconTint} />
+                        </View>
+                      ) : null}
+                      <View className="flex-1">
+                        <Text
+                          className={`text-base font-medium ${
+                            selected
+                              ? 'text-app-brand dark:text-app-brand-dark'
+                              : 'text-app-text dark:text-app-text-dark'
+                          }`}
+                        >
+                          {option.name}
+                        </Text>
+                        {option.subtitle && (
+                          <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-0.5">
+                            {option.subtitle}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    {selected && (
+                      <Feather name="check" size={20} color={isDark ? '#58D5D8' : '#0A9396'} />
                     )}
-                  </View>
-                  {selectedId === option.id && (
-                    <Feather name="check" size={20} color={isDark ? '#58D5D8' : '#0A9396'} />
-                  )}
-                </PressableScale>
-              ))}
+                  </PressableScale>
+                );
+              })}
             </ScrollView>
           </Pressable>
         </View>

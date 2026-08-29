@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 import { Button } from '../../components/Button';
+import { KeyboardFormView } from '../../components/KeyboardFormView';
 import { PressableScale } from '../../components/PressableScale';
 import { listAccounts } from '../../db/repositories/accounts';
 import { createTransfer } from '../../db/repositories/transfers';
@@ -196,14 +196,13 @@ export default function AddTransferScreen() {
   const currencySymbol = fromAccount?.currency === 'EUR' ? '€' : '$';
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-    >
+    <KeyboardFormView className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Hero Section */}
         <View
@@ -231,8 +230,8 @@ export default function AddTransferScreen() {
                 placeholder="0.00"
                 placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
                 keyboardType="decimal-pad"
-                className="text-6xl font-display text-app-text dark:text-app-text-dark text-center w-full"
-                adjustsFontSizeToFit
+                className="font-display text-app-text dark:text-app-text-dark text-center w-full"
+                style={{ fontSize: 60, lineHeight: 76, paddingTop: 6, paddingBottom: 4 }}
                 numberOfLines={1}
               />
             </View>
@@ -464,6 +463,6 @@ export default function AddTransferScreen() {
         }}
         selectedId={toAccountId}
       />
-    </KeyboardAvoidingView>
+    </KeyboardFormView>
   );
 }

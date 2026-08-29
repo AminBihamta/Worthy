@@ -1,16 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import { Button } from '../../components/Button';
+import { KeyboardFormView } from '../../components/KeyboardFormView';
 import { PressableScale } from '../../components/PressableScale';
 import { SelectionModal } from '../../components/SelectionModal';
 import { listCategories } from '../../db/repositories/categories';
@@ -18,6 +12,7 @@ import { createBudget, listBudgets, updateBudget } from '../../db/repositories/b
 import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { formatAmountInput, formatMinorInput, toMinor } from '../../utils/money';
+import { BudgetPeriodType } from '../../db/repositories/budgets';
 
 export default function AddEditBudgetScreen() {
   const navigation = useNavigation();
@@ -30,16 +25,25 @@ export default function AddEditBudgetScreen() {
 
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
-  const [periodType, setPeriodType] = useState('month');
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [periodType, setPeriodType] = useState<BudgetPeriodType>('month');
+  const [categories, setCategories] = useState<
+    { id: string; name: string; icon?: keyof typeof Feather.glyphMap; iconColor?: string }[]
+  >([]);
   const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
-  
+
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
 
   useEffect(() => {
     listCategories().then((cats) => {
-      setCategories(cats.map((cat) => ({ id: cat.id, name: cat.name })));
+      setCategories(
+        cats.map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+          icon: cat.icon as keyof typeof Feather.glyphMap,
+          iconColor: cat.color,
+        })),
+      );
       if (!categoryId && cats.length > 0) setCategoryId(cats[0].id);
     });
   }, [categoryId]);
@@ -55,7 +59,7 @@ export default function AddEditBudgetScreen() {
       if (!budget) return;
       setCategoryId(budget.category_id);
       setAmount(formatMinorInput(budget.amount_minor));
-      setPeriodType(budget.period_type);
+      setPeriodType(budget.period_type as BudgetPeriodType);
     });
   }, [editingId]);
 
@@ -88,19 +92,18 @@ export default function AddEditBudgetScreen() {
     (baseCurrency === 'EUR' ? '€' : baseCurrency === 'USD' ? '$' : baseCurrency);
   const periodOptions = [
     { id: 'month', name: 'Monthly' },
-    { id: 'week', name: 'Weekly (coming soon)' },
+    { id: 'week', name: 'Weekly' },
     { id: 'year', name: 'Yearly' },
   ];
   const selectedPeriod = periodOptions.find((p) => p.id === periodType);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-    >
+    <KeyboardFormView className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Hero Section */}
         <View className="pt-8 pb-8 px-6 items-center justify-center">
@@ -114,7 +117,8 @@ export default function AddEditBudgetScreen() {
               placeholder="0.00"
               placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
               keyboardType="decimal-pad"
-              className="text-6xl font-display text-app-text dark:text-app-text-dark text-center"
+              className="font-display text-app-text dark:text-app-text-dark text-center"
+              style={{ fontSize: 60, lineHeight: 76, paddingTop: 6, paddingBottom: 4 }}
               autoFocus={!editingId}
             />
           </View>
@@ -130,8 +134,19 @@ export default function AddEditBudgetScreen() {
             <PressableScale onPress={() => setShowCategoryModal(true)}>
               <View className="flex-row items-center justify-between p-5 border-b border-app-border/30 dark:border-app-border-dark/30">
                 <View className="flex-row items-center gap-4">
-                  <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-                    <Feather name="tag" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
+                  <View
+                    className="w-10 h-10 rounded-full items-center justify-center"
+                    style={
+                      selectedCategory?.iconColor
+                        ? { backgroundColor: `${selectedCategory.iconColor}1A` }
+                        : undefined
+                    }
+                  >
+                    <Feather
+                      name={selectedCategory?.icon ?? 'tag'}
+                      size={20}
+                      color={selectedCategory?.iconColor ?? (isDark ? '#E6EDF3' : '#0D1B2A')}
+                    />
                   </View>
                   <Text className="text-base font-medium text-app-text dark:text-app-text-dark">
                     {selectedCategory?.name || 'Select Category'}
@@ -182,9 +197,9 @@ export default function AddEditBudgetScreen() {
         onClose={() => setShowPeriodModal(false)}
         title="Select Period"
         options={periodOptions}
-        onSelect={setPeriodType}
+        onSelect={(id) => setPeriodType(id as BudgetPeriodType)}
         selectedId={periodType}
       />
-    </KeyboardAvoidingView>
+    </KeyboardFormView>
   );
 }

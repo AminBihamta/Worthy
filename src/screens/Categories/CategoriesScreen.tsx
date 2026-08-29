@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import {
   reorderCategories,
   archiveCategory,
 } from '../../db/repositories/categories';
+import { isBuiltInSavingsCategory } from '../../db/builtInCategories';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
@@ -30,12 +31,63 @@ export default function CategoriesScreen() {
     }, [load]),
   );
 
-  const handleReorder = async (next: typeof categories) => {
-    setCategories(next);
-    await reorderCategories(next.map((cat, idx) => ({ id: cat.id, sort_order: idx + 1 })));
+  const savings = useMemo(
+    () => categories.find((c) => isBuiltInSavingsCategory(c.id)) ?? null,
+    [categories],
+  );
+  const userCategories = useMemo(
+    () => categories.filter((c) => !isBuiltInSavingsCategory(c.id)),
+    [categories],
+  );
+
+  const handleUserReorder = async (next: typeof userCategories) => {
+    const full = savings ? [savings, ...next] : next;
+    setCategories(full);
+    await reorderCategories(full.map((cat, idx) => ({ id: cat.id, sort_order: idx + 1 })));
   };
 
-  const renderItem = ({ item, drag, isActive }: RenderItemParams<typeof categories[number]>) => {
+  const renderBuiltInSavings = () => {
+    if (!savings) return null;
+    const iconTint = savings.color ?? iconColor;
+    return (
+      <View className="mb-4">
+        <Card>
+          <View className="flex-row items-center">
+            <View className="w-10 mr-4" />
+            <View
+              className="w-10 h-10 rounded-full items-center justify-center mr-3"
+              style={{ backgroundColor: `${iconTint}1A` }}
+            >
+              <Feather name={savings.icon as any} size={18} color={iconTint} />
+            </View>
+            <View className="flex-1 pr-4">
+              <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                {savings.name}
+              </Text>
+              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-0.5">
+                Always available for budgets. Name is fixed.
+              </Text>
+            </View>
+            <View className="items-end">
+              <Pressable
+                className="px-3 py-1.5 rounded-full border border-app-border dark:border-app-border-dark bg-app-soft dark:bg-app-soft-dark flex-row items-center"
+                onPress={() =>
+                  navigation.navigate('CategoryForm' as never, { id: savings.id } as never)
+                }
+              >
+                <Feather name="edit-2" size={14} color={iconColor} />
+                <Text className="text-xs text-app-text dark:text-app-text-dark ml-1.5">
+                  Style
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </Card>
+      </View>
+    );
+  };
+
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<(typeof userCategories)[number]>) => {
     const iconTint = item.color ?? iconColor;
     return (
       <View className="mb-4">
@@ -93,15 +145,18 @@ export default function CategoriesScreen() {
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <DraggableFlatList
-        data={categories}
+        data={userCategories}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         onDragEnd={({ data }) => {
-          handleReorder(data);
+          handleUserReorder(data);
         }}
         contentContainerStyle={{ padding: 24, paddingBottom: 140 }}
+        ListHeaderComponent={renderBuiltInSavings()}
         ListEmptyComponent={
-          <EmptyState title="No categories" subtitle="Add a category to organize spending." />
+          userCategories.length === 0 && !savings ? (
+            <EmptyState title="No categories" subtitle="Add a category to organize spending." />
+          ) : null
         }
         ListFooterComponent={
           <View className="mt-2">

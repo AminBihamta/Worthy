@@ -99,7 +99,6 @@ export function VictoryLine(props: React.ComponentProps<typeof BaseVictoryLine>)
     <BaseVictoryLine
       width={props.width ?? getWidth()}
       dataComponent={props.dataComponent ?? <Curve />}
-      labelComponent={props.labelComponent ?? <VictoryLabel />}
       containerComponent={props.containerComponent ?? <VictoryContainer />}
       groupComponent={props.groupComponent ?? <VictoryClipContainer />}
       {...props}

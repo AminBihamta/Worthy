@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -17,6 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Button } from '../../components/Button';
+import { KeyboardFormView } from '../../components/KeyboardFormView';
 import { PressableScale } from '../../components/PressableScale';
 import { listAccounts } from '../../db/repositories/accounts';
 import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
@@ -304,14 +304,13 @@ export default function AddEditIncomeScreen() {
     (resolvedCurrency === 'EUR' ? '€' : resolvedCurrency === 'USD' ? '$' : resolvedCurrency);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-    >
+    <KeyboardFormView className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Hero Section */}
         <View
@@ -339,9 +338,9 @@ export default function AddEditIncomeScreen() {
                 placeholder="0.00"
                 placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
                 keyboardType="decimal-pad"
-                className="text-5xl font-display text-app-text dark:text-app-text-dark text-center w-full"
+                className="font-display text-app-text dark:text-app-text-dark text-center w-full"
+                style={{ fontSize: 48, lineHeight: 64, paddingTop: 6, paddingBottom: 4 }}
                 autoFocus={!editingId}
-                adjustsFontSizeToFit
                 numberOfLines={1}
               />
             </View>
@@ -627,6 +626,6 @@ export default function AddEditIncomeScreen() {
         onSelect={(id) => setRecurringFrequency(id as RecurringFrequency)}
         selectedId={recurringFrequency}
       />
-    </KeyboardAvoidingView>
+    </KeyboardFormView>
   );
 }

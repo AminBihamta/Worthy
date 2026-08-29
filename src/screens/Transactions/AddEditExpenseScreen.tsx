@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -19,12 +18,12 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Button } from '../../components/Button';
+import { KeyboardFormView } from '../../components/KeyboardFormView';
 import { PressableScale } from '../../components/PressableScale';
 import { getAccountBalance, listAccounts } from '../../db/repositories/accounts';
 import { listCategories } from '../../db/repositories/categories';
 import { listCurrencies, CurrencyRow } from '../../db/repositories/currencies';
 import { createExpense, getExpense, updateExpense } from '../../db/repositories/expenses';
-import { getReceiptInboxItem, updateReceiptInbox } from '../../db/repositories/receipts';
 import { createRecurringRule } from '../../db/repositories/recurring';
 import { formatAmountInput, formatMinorInput, formatSigned, toMinor } from '../../utils/money';
 import { buildRateMap, convertMinorBetween } from '../../utils/currency';
@@ -77,14 +76,50 @@ interface SelectionModalProps {
   visible: boolean;
   onClose: () => void;
   title: string;
-  options: { id: string; name: string; subtitle?: string }[];
+  options: {
+    id: string;
+    name: string;
+    subtitle?: string;
+    icon?: keyof typeof Feather.glyphMap;
+    iconColor?: string;
+  }[];
   onSelect: (id: string) => void;
   selectedId: string | null;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  emptyLabel?: string;
 }
 
-function SelectionModal({ visible, onClose, title, options, onSelect, selectedId }: SelectionModalProps) {
+function SelectionModal({
+  visible,
+  onClose,
+  title,
+  options,
+  onSelect,
+  selectedId,
+  searchable = false,
+  searchPlaceholder = 'Search',
+  emptyLabel = 'No results',
+}: SelectionModalProps) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (!visible) {
+      setQuery('');
+    }
+  }, [visible]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredOptions =
+    searchable && normalizedQuery
+      ? options.filter((option) => {
+          const nameMatch = option.name.toLowerCase().includes(normalizedQuery);
+          const subtitleMatch = option.subtitle?.toLowerCase().includes(normalizedQuery);
+          return nameMatch || Boolean(subtitleMatch);
+        })
+      : options;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -102,37 +137,82 @@ function SelectionModal({ visible, onClose, title, options, onSelect, selectedId
                 <Feather name="x" size={24} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
               </Pressable>
             </View>
-            <ScrollView contentContainerStyle={{ padding: 24 }}>
-              {options.map((option) => (
-                <PressableScale
-                  key={option.id}
-                  className={`flex-row items-center justify-between p-4 mb-3 rounded-2xl border ${
-                    selectedId === option.id
-                      ? 'bg-app-soft dark:bg-app-soft-dark border-app-brand dark:border-app-brand-dark'
-                      : 'bg-transparent border-app-border dark:border-app-border-dark'
-                  }`}
-                  onPress={() => {
-                    onSelect(option.id);
-                    onClose();
-                  }}
-                >
-                  <View>
-                    <Text className={`text-base font-medium ${
-                      selectedId === option.id ? 'text-app-brand dark:text-app-brand-dark' : 'text-app-text dark:text-app-text-dark'
-                    }`}>
-                      {option.name}
-                    </Text>
-                    {option.subtitle && (
-                      <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-0.5">
-                        {option.subtitle}
-                      </Text>
-                    )}
-                  </View>
-                  {selectedId === option.id && (
-                    <Feather name="check" size={20} color={isDark ? '#58D5D8' : '#0A9396'} />
-                  )}
-                </PressableScale>
-              ))}
+            {searchable ? (
+              <View className="px-6 pb-2">
+                <View className="flex-row items-center gap-2 px-3 py-2 rounded-2xl border border-app-border/50 dark:border-app-border-dark/50 bg-app-bg dark:bg-app-bg-dark">
+                  <Feather name="search" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
+                  <TextInput
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder={searchPlaceholder}
+                    placeholderTextColor={isDark ? '#8B949E' : '#6B7A8F'}
+                    className="flex-1 text-base text-app-text dark:text-app-text-dark"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="search"
+                  />
+                  {query.length > 0 ? (
+                    <Pressable onPress={() => setQuery('')} className="p-1">
+                      <Feather name="x-circle" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24, paddingTop: 12 }}>
+              {filteredOptions.length === 0 ? (
+                <Text className="text-sm text-app-muted dark:text-app-muted-dark text-center mt-6">
+                  {emptyLabel}
+                </Text>
+              ) : (
+                filteredOptions.map((option) => {
+                  const iconTint = option.iconColor ?? (isDark ? '#E6EDF3' : '#0D1B2A');
+                  return (
+                    <PressableScale
+                      key={option.id}
+                      className={`flex-row items-center justify-between p-4 mb-3 rounded-2xl border ${
+                        selectedId === option.id
+                          ? 'bg-app-soft dark:bg-app-soft-dark border-app-brand dark:border-app-brand-dark'
+                          : 'bg-transparent border-app-border dark:border-app-border-dark'
+                      }`}
+                      onPress={() => {
+                        onSelect(option.id);
+                        onClose();
+                      }}
+                    >
+                      <View className="flex-row items-center gap-3 flex-1 pr-3">
+                        {option.icon ? (
+                          <View
+                            className="w-10 h-10 rounded-full items-center justify-center"
+                            style={option.iconColor ? { backgroundColor: `${option.iconColor}1A` } : undefined}
+                          >
+                            <Feather name={option.icon} size={18} color={iconTint} />
+                          </View>
+                        ) : null}
+                        <View>
+                          <Text
+                            className={`text-base font-medium ${
+                              selectedId === option.id
+                                ? 'text-app-brand dark:text-app-brand-dark'
+                                : 'text-app-text dark:text-app-text-dark'
+                            }`}
+                          >
+                            {option.name}
+                          </Text>
+                          {option.subtitle && (
+                            <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-0.5">
+                              {option.subtitle}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      {selectedId === option.id ? (
+                        <Feather name="check" size={20} color={isDark ? '#58D5D8' : '#0A9396'} />
+                      ) : null}
+                    </PressableScale>
+                  );
+                })
+              )}
             </ScrollView>
           </Pressable>
         </View>
@@ -147,9 +227,8 @@ export default function AddEditExpenseScreen() {
   const isDark = colorScheme === 'dark';
   const { baseCurrency } = useSettingsStore();
   const route = useRoute();
-  const params = route.params as { id?: string; receiptId?: string } | undefined;
+  const params = route.params as { id?: string } | undefined;
   const editingId = params?.id;
-  const receiptId = params?.receiptId;
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -170,7 +249,12 @@ export default function AddEditExpenseScreen() {
     account_currency: string;
   } | null>(null);
 
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{
+    id: string;
+    name: string;
+    icon?: keyof typeof Feather.glyphMap;
+    iconColor?: string;
+  }[]>([]);
   const [accounts, setAccounts] = useState<{ id: string; name: string; currency: string }[]>([]);
   const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
 
@@ -180,14 +264,20 @@ export default function AddEditExpenseScreen() {
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
   const heroOffset = useRef(0);
-  const receiptPrefilled = useRef(false);
 
   useEffect(() => {
     let active = true;
     Promise.all([listCategories(), listAccounts(), listCurrencies()]).then(
       async ([cats, accts, currencyRows]) => {
         if (!active) return;
-        setCategories(cats.map((cat) => ({ id: cat.id, name: cat.name })));
+        setCategories(
+          cats.map((cat) => ({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon as keyof typeof Feather.glyphMap,
+            iconColor: cat.color,
+          })),
+        );
         setAccounts(accts.map((acct) => ({ id: acct.id, name: acct.name, currency: acct.currency })));
         setCurrencies(currencyRows);
 
@@ -260,23 +350,6 @@ export default function AddEditExpenseScreen() {
       setNotes(expense.notes ?? '');
     });
   }, [editingId, baseCurrency]);
-
-  useEffect(() => {
-    if (!receiptId || editingId || receiptPrefilled.current) return;
-    getReceiptInboxItem(receiptId).then((receipt) => {
-      if (!receipt) return;
-      if (!title && receipt.suggested_title) {
-        setTitle(receipt.suggested_title);
-      }
-      if (!amount && receipt.suggested_amount_minor) {
-        setAmount(formatMinorInput(receipt.suggested_amount_minor));
-      }
-      if (receipt.suggested_date_ts) {
-        setDateInput(new Date(receipt.suggested_date_ts).toISOString().slice(0, 10));
-      }
-      receiptPrefilled.current = true;
-    });
-  }, [amount, editingId, receiptId, title]);
 
   const handleSave = async () => {
     if (!categoryId || !accountId) return;
@@ -393,10 +466,6 @@ export default function AddEditExpenseScreen() {
       notes,
     });
 
-    if (receiptId) {
-      await updateReceiptInbox(receiptId, { status: 'processed', linked_expense_id: id });
-    }
-
     if (recurringFrequency !== 'off') {
       const config = getRecurringConfig(recurringFrequency, finalDateTs);
       if (config) {
@@ -434,14 +503,13 @@ export default function AddEditExpenseScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-    >
+    <KeyboardFormView className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Hero Section */}
         <View
@@ -469,9 +537,9 @@ export default function AddEditExpenseScreen() {
                 placeholder="0.00"
                 placeholderTextColor={isDark ? '#30363D' : '#D1DDE6'}
                 keyboardType="decimal-pad"
-                className="text-5xl font-display text-app-text dark:text-app-text-dark text-center w-full"
+                className="font-display text-app-text dark:text-app-text-dark text-center w-full"
+                style={{ fontSize: 48, lineHeight: 64, paddingTop: 6, paddingBottom: 4 }}
                 autoFocus={!editingId}
-                adjustsFontSizeToFit
                 numberOfLines={1}
               />
             </View>
@@ -759,6 +827,9 @@ export default function AddEditExpenseScreen() {
         options={categories}
         onSelect={setCategoryId}
         selectedId={categoryId}
+        searchable
+        searchPlaceholder="Search categories"
+        emptyLabel="No categories found"
       />
 
       <SelectionModal
@@ -804,6 +875,6 @@ export default function AddEditExpenseScreen() {
         onSelect={(id) => setRecurringFrequency(id as RecurringFrequency)}
         selectedId={recurringFrequency}
       />
-    </KeyboardAvoidingView>
+    </KeyboardFormView>
   );
 }

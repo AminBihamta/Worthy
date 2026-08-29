@@ -24,13 +24,6 @@ const slides = [
     accent: '#EE9B00',
   },
   {
-    id: 'capture',
-    title: 'Quick capture',
-    description: 'Snap receipts fast and match them later.',
-    icon: 'camera',
-    accent: '#38B000',
-  },
-  {
     id: 'privacy',
     title: 'Private & offline',
     description: 'Your data stays on your device. No servers, no tracking.',

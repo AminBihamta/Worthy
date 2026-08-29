@@ -388,21 +388,8 @@ export default function TransactionsScreen() {
           getItemType={(item) => item.type}
         />
 
-        {/* Floating Action Buttons */}
-        <View className="absolute bottom-20 right-6 flex-row items-center gap-4">
-          <PressableScale
-            className="h-12 px-5 rounded-full bg-app-surface dark:bg-app-surface-dark border border-app-border dark:border-app-border-dark flex-row items-center shadow-sm"
-            onPress={() => {
-              Haptics.selectionAsync();
-              navigation.navigate('ReceiptInbox' as never);
-            }}
-          >
-            <Feather name="camera" size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
-            <Text className="ml-2 text-sm font-bold text-app-text dark:text-app-text-dark">
-              Capture
-            </Text>
-          </PressableScale>
-
+        {/* Floating Action Button */}
+        <View className="absolute bottom-20 right-6">
           <PressableScale
             className="h-14 w-14 rounded-full bg-app-brand dark:bg-app-brand-dark items-center justify-center shadow-lg shadow-app-brand/30"
             onPress={() => {

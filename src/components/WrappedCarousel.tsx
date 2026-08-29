@@ -6,7 +6,13 @@ import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 
 import { PressableScale } from './PressableScale';
 import { getWrapStats } from '../db/repositories/wrapped';
-import { getWrapPeriodRange, formatWrapTitle, WrapPeriod } from '../utils/wrap';
+import { getFirstTransactionDate } from '../db/repositories/transactions';
+import {
+  getAvailableWrapPeriods,
+  getWrapPeriodRange,
+  formatWrapTitle,
+  WrapPeriod,
+} from '../utils/wrap';
 import { formatMinor } from '../utils/money';
 import { formatDate } from '../utils/time';
 import { useSettingsStore } from '../state/useSettingsStore';
@@ -31,10 +37,10 @@ const periodOptions: { id: WrapPeriod; label: string }[] = [
 
 const slideAccents = ['#0A9396', '#EE9B00', '#38B000', '#5E60CE', '#D62828', '#005F73'];
 
-const getValueClass = (value: string) => {
-  if (value.length > 18) return 'text-3xl';
-  if (value.length > 14) return 'text-4xl';
-  return 'text-6xl';
+const getValueStyle = (value: string) => {
+  if (value.length > 18) return { fontSize: 30, lineHeight: 42 };
+  if (value.length > 14) return { fontSize: 36, lineHeight: 48 };
+  return { fontSize: 60, lineHeight: 76 };
 };
 
 export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod }) {
@@ -42,22 +48,45 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
   const isDark = colorScheme === 'dark';
   const { baseCurrency } = useSettingsStore();
   const [period, setPeriod] = useState<WrapPeriod>(initialPeriod ?? 'week');
+  const [availablePeriods, setAvailablePeriods] = useState<WrapPeriod[]>(['week']);
+  const [periodsLoaded, setPeriodsLoaded] = useState(false);
   const [stats, setStats] = useState<Awaited<ReturnType<typeof getWrapStats>> | null>(null);
   const [range, setRange] = useState(() => getWrapPeriodRange(initialPeriod ?? 'week'));
   const [index, setIndex] = useState(0);
   const window = Dimensions.get('window');
+  // WrappedScreen has 12px horizontal content padding on both sides.
+  const slideWidth = window.width - 24;
   const slideHeight = Math.max(360, Math.min(window.height * 0.55, 520));
-  const arrowSize = 40;
-  const arrowTop = Math.round(slideHeight / 2 - arrowSize / 2);
   const listRef = useRef<FlatList<WrapSlide>>(null);
 
   useEffect(() => {
-    if (initialPeriod && initialPeriod !== period) {
+    if (initialPeriod && availablePeriods.includes(initialPeriod) && initialPeriod !== period) {
       setPeriod(initialPeriod);
     }
-  }, [initialPeriod, period]);
+  }, [availablePeriods, initialPeriod, period]);
+
+  useEffect(() => {
+    let active = true;
+
+    getFirstTransactionDate().then((firstTransactionTs) => {
+      if (!active) return;
+
+      const nextAvailablePeriods = getAvailableWrapPeriods(firstTransactionTs);
+      setAvailablePeriods(nextAvailablePeriods);
+      setPeriod((currentPeriod) =>
+        nextAvailablePeriods.includes(currentPeriod) ? currentPeriod : 'week',
+      );
+      setPeriodsLoaded(true);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const load = useCallback(async () => {
+    if (!periodsLoaded) return;
+
     const nextRange = getWrapPeriodRange(period);
     setRange(nextRange);
     const nextStats = await getWrapStats(nextRange.start, nextRange.end);
@@ -65,7 +94,7 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
     await setSetting(`wrap_last_viewed_${period}`, String(nextRange.end));
     setIndex(0);
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [period]);
+  }, [period, periodsLoaded]);
 
   useEffect(() => {
     load();
@@ -110,7 +139,9 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
         kicker: wrapTitle,
         title: 'You spent',
         value: totalSpent,
-        sub: totalExpenseMinor ? `That was your ${period} vibe.` : 'Log a few expenses to light this up.',
+        sub: totalExpenseMinor
+          ? `That was your ${period} vibe.`
+          : 'Log a few expenses to light this up.',
         icon: 'arrow-down-right',
       },
       {
@@ -175,45 +206,35 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
     ],
   );
 
-  const handlePrev = () => {
-    if (index > 0) {
-      listRef.current?.scrollToIndex({ index: index - 1, animated: true });
-    }
-  };
-
-  const handleNext = () => {
-    if (index < slides.length - 1) {
-      listRef.current?.scrollToIndex({ index: index + 1, animated: true });
-    }
-  };
-
   return (
     <View className="mb-8">
       <View className="flex-row gap-2 mb-4">
-        {periodOptions.map((option) => {
-          const isActive = option.id === period;
-          return (
-            <PressableScale
-              key={option.id}
-              onPress={() => setPeriod(option.id)}
-              className={`px-4 py-2 rounded-full border ${
-                isActive
-                  ? 'border-app-brand dark:border-app-brand-dark bg-app-soft dark:bg-app-soft-dark'
-                  : 'border-app-border dark:border-app-border-dark'
-              }`}
-            >
-              <Text
-                className={`text-sm ${
+        {periodOptions
+          .filter((option) => availablePeriods.includes(option.id))
+          .map((option) => {
+            const isActive = option.id === period;
+            return (
+              <PressableScale
+                key={option.id}
+                onPress={() => setPeriod(option.id)}
+                className={`px-4 py-2 rounded-full border ${
                   isActive
-                    ? 'text-app-brand dark:text-app-brand-dark'
-                    : 'text-app-text dark:text-app-text-dark'
+                    ? 'border-app-brand dark:border-app-brand-dark bg-app-soft dark:bg-app-soft-dark'
+                    : 'border-app-border dark:border-app-border-dark'
                 }`}
               >
-                {option.label}
-              </Text>
-            </PressableScale>
-          );
-        })}
+                <Text
+                  className={`text-sm ${
+                    isActive
+                      ? 'text-app-brand dark:text-app-brand-dark'
+                      : 'text-app-text dark:text-app-text-dark'
+                  }`}
+                >
+                  {option.label}
+                </Text>
+              </PressableScale>
+            );
+          })}
       </View>
 
       <View className="flex-row gap-2 mb-4">
@@ -222,30 +243,34 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
             key={slide.id}
             className="h-1.5 flex-1 rounded-full"
             style={{
-              backgroundColor:
-                dotIndex <= index ? '#0A9396' : isDark ? '#2B2F36' : '#D1DDE6',
+              backgroundColor: dotIndex <= index ? '#0A9396' : isDark ? '#2B2F36' : '#D1DDE6',
             }}
           />
         ))}
       </View>
 
-      <View className="relative">
+      <View className="relative overflow-hidden rounded-[40px]">
         <FlatList
           ref={listRef}
           data={slides}
           keyExtractor={(item) => item.id}
           horizontal
           pagingEnabled
+          getItemLayout={(_, itemIndex) => ({
+            length: slideWidth,
+            offset: slideWidth * itemIndex,
+            index: itemIndex,
+          })}
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={(event) => {
-            const nextIndex = Math.round(event.nativeEvent.contentOffset.x / window.width);
+            const nextIndex = Math.round(event.nativeEvent.contentOffset.x / slideWidth);
             setIndex(nextIndex);
           }}
           renderItem={({ item, index: slideIndex }) => {
             const accent = slideAccents[slideIndex % slideAccents.length];
-            const valueClass = getValueClass(item.value);
+            const valueStyle = getValueStyle(item.value);
             return (
-              <View style={{ width: window.width - 48, height: slideHeight }} className="mr-4">
+              <View style={{ width: slideWidth, height: slideHeight }}>
                 <View className="flex-1 rounded-[40px] border border-app-border/50 dark:border-app-border-dark/50 bg-app-card dark:bg-app-card-dark overflow-hidden">
                   <Animated.View
                     entering={FadeIn.duration(400)}
@@ -260,10 +285,17 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
                   <Animated.View
                     entering={FadeIn.duration(500)}
                     className="absolute top-10 left-8 w-20 h-20 rounded-3xl"
-                    style={{ backgroundColor: accent, opacity: 0.08, transform: [{ rotate: '-12deg' }] }}
+                    style={{
+                      backgroundColor: accent,
+                      opacity: 0.08,
+                      transform: [{ rotate: '-12deg' }],
+                    }}
                   />
 
-                  <View className="absolute top-6 right-6 w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: accent }}>
+                  <View
+                    className="absolute top-6 right-6 w-12 h-12 rounded-2xl items-center justify-center"
+                    style={{ backgroundColor: accent }}
+                  >
                     <Feather name={item.icon} size={20} color="#FFFFFF" />
                   </View>
 
@@ -281,8 +313,8 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
                       entering={FadeInUp.delay(140).duration(520)}
                       numberOfLines={2}
                       adjustsFontSizeToFit
-                      className={`${valueClass} font-display text-center mt-6`}
-                      style={{ color: accent }}
+                      className="font-display text-center mt-6"
+                      style={{ color: accent, ...valueStyle, paddingTop: 4 }}
                     >
                       {item.value}
                     </Animated.Text>
@@ -310,8 +342,6 @@ export function WrappedCarousel({ initialPeriod }: { initialPeriod?: WrapPeriod 
             );
           }}
         />
-
-        
       </View>
     </View>
   );

@@ -56,18 +56,18 @@ function AppContent() {
 
   const resolvedScheme = themeMode === 'system' ? (colorScheme ?? 'light') : themeMode;
 
-  if (!ready || !fontsLoaded) {
-    return (
-      <View className="flex-1 bg-app-bg dark:bg-app-bg-dark items-center justify-center">
-        <Text className="text-sm text-app-muted dark:text-app-muted-dark">Preparing Worthy...</Text>
-      </View>
-    );
-  }
-
   if (error) {
     return (
       <View className="flex-1 bg-app-bg dark:bg-app-bg-dark items-center justify-center">
         <Text className="text-sm text-app-muted dark:text-app-muted-dark">Database error.</Text>
+      </View>
+    );
+  }
+
+  if (!ready || !fontsLoaded) {
+    return (
+      <View className="flex-1 bg-app-bg dark:bg-app-bg-dark items-center justify-center">
+        <Text className="text-sm text-app-muted dark:text-app-muted-dark">Preparing Worthy...</Text>
       </View>
     );
   }

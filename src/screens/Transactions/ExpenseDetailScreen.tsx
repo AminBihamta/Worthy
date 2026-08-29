@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
 import Slider from '@react-native-community/slider';
@@ -20,14 +20,13 @@ import { listCurrencies } from '../../db/repositories/currencies';
 import { listBudgets } from '../../db/repositories/budgets';
 import { formatMinor } from '../../utils/money';
 import { getPeriodRange } from '../../utils/period';
-import { formatDate, formatDateTime } from '../../utils/time';
+import { formatDate } from '../../utils/time';
 import { getEffectiveHourlyRate } from '../../db/repositories/analytics';
 import { formatLifeCost } from '../../utils/lifeCost';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { Button } from '../../components/Button';
 import { getRecurringRuleForEntity, RecurringRuleRow } from '../../db/repositories/recurring';
 import { formatRRule } from '../../utils/recurring';
-import { getReceiptForExpense, ReceiptInboxRow } from '../../db/repositories/receipts';
 import { buildRateMap, convertMinorToBase } from '../../utils/currency';
 
 const regretOptions = [
@@ -52,7 +51,7 @@ type CategoryStats = {
 };
 
 export default function ExpenseDetailScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -66,7 +65,6 @@ export default function ExpenseDetailScreen() {
   } | null>(null);
   const [lifeCostModalOpen, setLifeCostModalOpen] = useState(false);
   const [recurringRule, setRecurringRule] = useState<RecurringRuleRow | null>(null);
-  const [receipt, setReceipt] = useState<ReceiptInboxRow | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [budgetMeta, setBudgetMeta] = useState<BudgetMeta | null>(null);
   const [categoryStats, setCategoryStats] = useState<CategoryStats | null>(null);
@@ -106,11 +104,10 @@ export default function ExpenseDetailScreen() {
       let active = true;
 
       const load = async () => {
-        const [row, hourly, recurring, linkedReceipt, currencyRows] = await Promise.all([
+        const [row, hourly, recurring, currencyRows] = await Promise.all([
           getExpense(params.id),
           getEffectiveHourlyRate(),
           getRecurringRuleForEntity('expense', params.id),
-          getReceiptForExpense(params.id),
           listCurrencies(),
         ]);
 
@@ -119,7 +116,6 @@ export default function ExpenseDetailScreen() {
         setExpense(row);
         const rateLookup = buildRateMap(currencyRows, baseCurrency);
         setRecurringRule(recurring);
-        setReceipt(linkedReceipt);
         setLifeCost(null);
         setLifeCostMeta(null);
         setBudgetMeta(null);
@@ -139,18 +135,27 @@ export default function ExpenseDetailScreen() {
 
         if (!row) return;
 
-        const range = getPeriodRange(new Date(row.date_ts), 'month');
-        const [budgets, totals, categoryExpenses] = await Promise.all([
-          listBudgets(false),
-          sumExpensesByCategory(range.start, range.end),
-          listExpenses({ categoryId: row.category_id, start: range.start, end: range.end }),
-        ]);
+        const budgets = await listBudgets(false);
 
         if (!active) return;
 
         const budget =
           budgets.find((item) => item.category_id === row.category_id && item.period_type === 'month') ??
           budgets.find((item) => item.category_id === row.category_id);
+
+        const budgetPeriod =
+          budget?.period_type === 'week' || budget?.period_type === 'year'
+            ? budget.period_type
+            : 'month';
+        const budgetRange = getPeriodRange(new Date(row.date_ts), budgetPeriod);
+        const [totals, categoryExpenses] = await Promise.all([
+          sumExpensesByCategory(budgetRange.start, budgetRange.end),
+          listExpenses({
+            categoryId: row.category_id,
+            start: budgetRange.start,
+            end: budgetRange.end,
+          }),
+        ]);
 
         const spentTotal =
           totals.find((item) => item.category_id === row.category_id)?.total_minor ?? 0;
@@ -463,32 +468,8 @@ export default function ExpenseDetailScreen() {
             </View>
           )}
 
-          {/* Receipt */}
-          {receipt && (
-            <View className="bg-app-card dark:bg-app-card-dark rounded-3xl p-5 border border-app-border/50 dark:border-app-border-dark/50">
-              <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-3">
-                Quick capture
-              </Text>
-              <Image
-                source={{ uri: receipt.image_uri }}
-                className="w-full h-56 rounded-2xl"
-                resizeMode="cover"
-              />
-              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-3">
-                Added {formatDateTime(receipt.created_at)}
-              </Text>
-            </View>
-          )}
         </View>
 
-        <View className="px-6 mt-8">
-          <Button
-            title="Edit Expense"
-            onPress={() => navigation.navigate('AddExpense' as never, { id: expense.id } as never)}
-            variant="secondary"
-            icon={<Feather name="edit-2" size={18} color={isDark ? '#F9E6F4' : '#2C0C4D'} />}
-          />
-        </View>
       </ScrollView>
 
       {/* Life Cost Modal */}
@@ -555,6 +536,18 @@ export default function ExpenseDetailScreen() {
             <View className="items-center mb-6">
               <View className="w-12 h-1.5 rounded-full bg-app-border dark:bg-app-border-dark" />
             </View>
+            <PressableScale
+              className="flex-row items-center p-4 rounded-2xl bg-app-soft dark:bg-app-soft-dark mb-2"
+              onPress={() => {
+                setMenuOpen(false);
+                navigation.navigate('AddExpense' as never, { id: expense.id } as never);
+              }}
+            >
+              <View className="w-10 h-10 rounded-full bg-app-brand/15 dark:bg-app-brand-dark/20 items-center justify-center mr-4">
+                <Feather name="edit-2" size={20} color={isDark ? '#58D5D8' : '#0A9396'} />
+              </View>
+              <Text className="text-lg font-medium text-app-text dark:text-app-text-dark">Edit Expense</Text>
+            </PressableScale>
             <PressableScale
               className="flex-row items-center p-4 rounded-2xl bg-app-danger/10 mb-2"
               onPress={() => {

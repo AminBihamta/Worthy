@@ -1,5 +1,6 @@
 import { getDb } from '../index';
 import { createId } from '../../utils/id';
+import { BUILTIN_SAVINGS_CATEGORY_ID, isBuiltInSavingsCategory } from '../builtInCategories';
 
 export interface CategoryRow {
   id: string;
@@ -15,7 +16,8 @@ export async function listCategories(includeArchived = false): Promise<CategoryR
   const db = await getDb();
   const where = includeArchived ? '' : 'WHERE archived_at IS NULL';
   return db.getAllAsync<CategoryRow>(
-    `SELECT * FROM categories ${where} ORDER BY sort_order ASC, created_at ASC`,
+    `SELECT * FROM categories ${where} ORDER BY (CASE id WHEN ? THEN 0 ELSE 1 END), sort_order ASC, created_at ASC`,
+    BUILTIN_SAVINGS_CATEGORY_ID,
   );
 }
 
@@ -43,15 +45,44 @@ export async function createCategory(input: {
   return id;
 }
 
+/** Inserts the built-in Savings category if an older database is missing it. */
+export async function ensureBuiltInSavingsCategory(): Promise<void> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM categories WHERE id = ?',
+    BUILTIN_SAVINGS_CATEGORY_ID,
+  );
+  if (row) return;
+  const maxSort = await db.getFirstAsync<{ max: number | null }>(
+    'SELECT MAX(sort_order) as max FROM categories',
+  );
+  const sortOrder = (maxSort?.max ?? 0) + 1;
+  await db.runAsync(
+    'INSERT INTO categories (id, name, icon, color, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    BUILTIN_SAVINGS_CATEGORY_ID,
+    'Savings',
+    'trending-up',
+    '#0A9396',
+    sortOrder,
+    Date.now(),
+  );
+}
+
 export async function updateCategory(
   id: string,
   input: Partial<Omit<CategoryRow, 'id' | 'created_at'>>,
 ): Promise<void> {
   const db = await getDb();
-  const fields = Object.keys(input);
+  let safe = { ...input } as Record<string, unknown>;
+  if (isBuiltInSavingsCategory(id) && 'name' in safe) {
+    const { name, ...rest } = safe;
+    void name;
+    safe = rest;
+  }
+  const fields = Object.keys(safe).filter((k) => safe[k] !== undefined);
   if (fields.length === 0) return;
   const assignments = fields.map((field) => `${field} = ?`).join(', ');
-  const values = fields.map((field) => (input as Record<string, unknown>)[field]);
+  const values = fields.map((field) => safe[field]);
   await db.runAsync(`UPDATE categories SET ${assignments} WHERE id = ?`, ...values, id);
 }
 
@@ -76,6 +107,7 @@ export async function reorderCategories(
 }
 
 export async function archiveCategory(id: string): Promise<void> {
+  if (isBuiltInSavingsCategory(id)) return;
   const db = await getDb();
   await db.runAsync('UPDATE categories SET archived_at = ? WHERE id = ?', Date.now(), id);
 }

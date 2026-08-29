@@ -1,7 +1,9 @@
 import { createId } from '../utils/id';
 import { getDb } from './index';
+import { BUILTIN_SAVINGS_CATEGORY_ID } from './builtInCategories';
+import { ensureBuiltInSavingsCategory } from './repositories/categories';
 
-const defaultCategories = [
+const defaultUserCategories = [
   { name: 'Commute', icon: 'map', color: '#4E79A7' },
   { name: 'Entertainment', icon: 'film', color: '#A0CBE8' },
   { name: 'Grocery', icon: 'shopping-cart', color: '#59A14F' },
@@ -19,18 +21,29 @@ export async function seedDefaultData(): Promise<void> {
   );
   if (!categoryCount || categoryCount.count === 0) {
     const now = Date.now();
-    for (let i = 0; i < defaultCategories.length; i += 1) {
-      const item = defaultCategories[i];
+    await db.runAsync(
+      'INSERT INTO categories (id, name, icon, color, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      BUILTIN_SAVINGS_CATEGORY_ID,
+      'Savings',
+      'trending-up',
+      '#0A9396',
+      1,
+      now,
+    );
+    for (let i = 0; i < defaultUserCategories.length; i += 1) {
+      const item = defaultUserCategories[i];
       await db.runAsync(
         'INSERT INTO categories (id, name, icon, color, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)',
         createId('cat_'),
         item.name,
         item.icon,
         item.color,
-        i + 1,
+        i + 2,
         now,
       );
     }
+  } else {
+    await ensureBuiltInSavingsCategory();
   }
 
   /*

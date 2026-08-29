@@ -8,6 +8,9 @@ import {
   startOfQuarter,
   startOfWeek,
   startOfYear,
+  addMonths,
+  addQuarters,
+  addYears,
   subMonths,
   subQuarters,
   subWeeks,
@@ -15,6 +18,43 @@ import {
 } from 'date-fns';
 
 export type WrapPeriod = 'week' | 'month' | 'quarter' | 'year';
+
+const wrapPeriods: WrapPeriod[] = ['week', 'month', 'quarter', 'year'];
+
+/**
+ * Keeps Wrapped focused on periods the user has had time to build history for.
+ * Week is always available so a new user can still explore Wrapped.
+ */
+export function getAvailableWrapPeriods(
+  firstTransactionTs: number | null,
+  reference = new Date(),
+): WrapPeriod[] {
+  if (!firstTransactionTs) return ['week'];
+
+  const firstTransactionDate = new Date(firstTransactionTs);
+  return wrapPeriods.filter((period) => {
+    if (period === 'week') return true;
+
+    const availableFrom =
+      period === 'month'
+        ? addMonths(firstTransactionDate, 1)
+        : period === 'quarter'
+          ? addQuarters(firstTransactionDate, 1)
+          : addYears(firstTransactionDate, 1);
+
+    return reference >= availableFrom;
+  });
+}
+
+/**
+ * Wrapped becomes available after the first Monday-Sunday week containing the
+ * user's data has finished.
+ */
+export function hasCompletedWrapWeek(firstTransactionTs: number | null, reference = new Date()) {
+  if (!firstTransactionTs) return false;
+
+  return firstTransactionTs <= getWrapPeriodRange('week', reference).end;
+}
 
 export function getWrapPeriodRange(period: WrapPeriod, reference = new Date()) {
   if (period === 'week') {

@@ -2,12 +2,14 @@ import * as SQLite from 'expo-sqlite';
 import { migrations } from './migrations';
 import { seedDefaultData } from './seed';
 
+const DATABASE_NAME = 'worthy.db';
+
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 let initPromise: Promise<void> | null = null;
 
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
-    dbPromise = SQLite.openDatabaseAsync('worthy.db');
+    dbPromise = SQLite.openDatabaseAsync(DATABASE_NAME);
   }
   return dbPromise;
 }
@@ -19,6 +21,7 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
 
   for (const migration of migrations) {
     if (migration.version > currentVersion) {
+      await migration.prepare?.();
       await db.execAsync('BEGIN;');
       try {
         await db.execAsync(migration.sql);
@@ -42,4 +45,21 @@ export async function initDb(): Promise<void> {
     })();
   }
   return initPromise;
+}
+
+export async function resetDatabase(): Promise<void> {
+  const db = await getDb();
+  await db.closeAsync();
+
+  dbPromise = null;
+  initPromise = null;
+
+  try {
+    await SQLite.deleteDatabaseAsync(DATABASE_NAME);
+    await initDb();
+  } catch (error) {
+    // Allow a later retry instead of retaining a rejected initialization promise.
+    initPromise = null;
+    throw error;
+  }
 }

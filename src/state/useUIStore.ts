@@ -8,6 +8,7 @@ interface UIState {
   setBudgetPeriod: (period: PeriodType) => void;
   transactionsPeriod: PeriodType;
   setTransactionsPeriod: (period: PeriodType) => void;
+  resetAfterDataDeletion: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -17,4 +18,10 @@ export const useUIStore = create<UIState>((set) => ({
   setBudgetPeriod: (period) => set({ budgetPeriod: period }),
   transactionsPeriod: 'month',
   setTransactionsPeriod: (period) => set({ transactionsPeriod: period }),
+  resetAfterDataDeletion: () =>
+    set({
+      insightsPeriod: 'month',
+      budgetPeriod: 'month',
+      transactionsPeriod: 'month',
+    }),
 }));

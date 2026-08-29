@@ -6,16 +6,14 @@ export async function getExpenseSeries(input: {
   granularity: 'day' | 'month';
 }) {
   const db = await getDb();
-  const fmt = input.granularity === 'month' ? '%Y-%m' : '%Y-%m-%d';
-  return db.getAllAsync<{ bucket: string; total_minor: number }>(
-    `SELECT strftime('${fmt}', e.date_ts / 1000, 'unixepoch') as bucket,
-      ROUND(SUM(e.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor
+  return db.getAllAsync<{ date_ts: number; total_minor: number }>(
+    `SELECT e.date_ts as date_ts,
+      ROUND(e.amount_minor * COALESCE(c.rate_to_base, 1)) as total_minor
      FROM expenses e
      JOIN accounts a ON a.id = e.account_id
      LEFT JOIN currencies c ON c.code = COALESCE(e.currency_code, a.currency)
      WHERE e.date_ts BETWEEN ? AND ?
-     GROUP BY bucket
-     ORDER BY bucket ASC`,
+     ORDER BY e.date_ts ASC`,
     input.start,
     input.end,
   );
@@ -27,16 +25,14 @@ export async function getIncomeSeries(input: {
   granularity: 'day' | 'month';
 }) {
   const db = await getDb();
-  const fmt = input.granularity === 'month' ? '%Y-%m' : '%Y-%m-%d';
-  return db.getAllAsync<{ bucket: string; total_minor: number }>(
-    `SELECT strftime('${fmt}', i.date_ts / 1000, 'unixepoch') as bucket,
-      ROUND(SUM(i.amount_minor * COALESCE(c.rate_to_base, 1))) as total_minor
+  return db.getAllAsync<{ date_ts: number; total_minor: number }>(
+    `SELECT i.date_ts as date_ts,
+      ROUND(i.amount_minor * COALESCE(c.rate_to_base, 1)) as total_minor
      FROM incomes i
      JOIN accounts a ON a.id = i.account_id
      LEFT JOIN currencies c ON c.code = COALESCE(i.currency_code, a.currency)
      WHERE i.date_ts BETWEEN ? AND ?
-     GROUP BY bucket
-     ORDER BY bucket ASC`,
+     ORDER BY i.date_ts ASC`,
     input.start,
     input.end,
   );

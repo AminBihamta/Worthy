@@ -10,6 +10,7 @@ export function Input({
   keyboardType,
   multiline,
   autoFocus,
+  editable = true,
 }: {
   label: string;
   value: string;
@@ -18,6 +19,7 @@ export function Input({
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'decimal-pad';
   multiline?: boolean;
   autoFocus?: boolean;
+  editable?: boolean;
 }) {
   const { colorScheme } = useColorScheme();
   const placeholderColor = colorScheme === 'dark' ? '#8B949E' : '#6B7A8F';
@@ -37,6 +39,7 @@ export function Input({
         keyboardType={keyboardType}
         multiline={multiline}
         autoFocus={autoFocus}
+        editable={editable}
       />
     </View>
   );

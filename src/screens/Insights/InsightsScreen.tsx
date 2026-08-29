@@ -3,21 +3,8 @@ import { ScrollView, Text, View, Dimensions } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
-import {
-  addDays,
-  addMonths,
-  differenceInDays,
-  differenceInMonths,
-  format,
-  startOfDay,
-  startOfMonth,
-} from 'date-fns';
-import {
-  VictoryAxis,
-  VictoryChart,
-  VictoryLine,
-  VictoryPie,
-} from '../../components/charts/victory';
+import { VictoryPie } from '../../components/charts/victory';
+import { TimeSeriesAreaChart } from '../../components/charts/TimeSeriesAreaChart';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { DateRangeSelector } from '../../components/DateRangeSelector';
 import { useUIStore } from '../../state/useUIStore';
@@ -32,10 +19,12 @@ import {
 } from '../../db/repositories/analytics';
 import { getFirstTransactionDate } from '../../db/repositories/transactions';
 import { getPeriodRange } from '../../utils/period';
+import { hasCompletedWrapWeek } from '../../utils/wrap';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { PressableScale } from '../../components/PressableScale';
 
 import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
+import { normalizeTimeSeries } from '../../utils/timeSeries';
 
 export default function InsightsScreen() {
   const navigation = useNavigation<any>();
@@ -43,13 +32,13 @@ export default function InsightsScreen() {
   const isDark = colorScheme === 'dark';
   const axisColor = isDark ? '#8B949E' : '#6B7A8F';
   const { insightsPeriod, setInsightsPeriod } = useUIStore();
-  const { hoursPerDay } = useSettingsStore();
+  const { hoursPerDay, baseCurrency } = useSettingsStore();
   const [date, setDate] = useState(new Date());
 
   const { ref: chartRef, onLayout: onChartLayout } = useTutorialTarget('insights_expenses_chart');
 
-  const [expenseSeries, setExpenseSeries] = useState<{ x: number; y: number }[]>([]);
-  const [incomeSeries, setIncomeSeries] = useState<{ x: number; y: number }[]>([]);
+  const [expenseRows, setExpenseRows] = useState<{ date_ts: number; total_minor: number }[]>([]);
+  const [incomeRows, setIncomeRows] = useState<{ date_ts: number; total_minor: number }[]>([]);
   const [categorySpend, setCategorySpend] = useState<
     Awaited<ReturnType<typeof getSpendingByCategory>>
   >([]);
@@ -64,6 +53,7 @@ export default function InsightsScreen() {
   >([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
   const [allTimeStart, setAllTimeStart] = useState<number | null>(null);
+  const [canShowWrapped, setCanShowWrapped] = useState(false);
   const chartGranularity = insightsPeriod === 'year' || insightsPeriod === 'all' ? 'month' : 'day';
   const brandColor = isDark ? '#58D5D8' : '#0A9396';
 
@@ -78,123 +68,51 @@ export default function InsightsScreen() {
     return range;
   }, [allTimeStart, insightsPeriod, range]);
 
-  const parseBucketDate = useCallback(
-    (bucket: string) => {
-      const parts = bucket.split('-').map((value) => Number(value));
-      if (chartGranularity === 'month') {
-        const [year, month] = parts;
-        return new Date(year, month - 1, 1).getTime();
-      }
-      const [year, month, day] = parts;
-      return new Date(year, month - 1, day).getTime();
-    },
-    [chartGranularity],
-  );
-
   const load = useCallback(async () => {
-    let start = range.start;
-    if (insightsPeriod === 'all') {
-      const firstDate = allTimeStart ?? (await getFirstTransactionDate());
-      if (firstDate) {
-        start = firstDate;
+    setCanShowWrapped(false);
+
+    try {
+      const firstTransactionTs = allTimeStart ?? (await getFirstTransactionDate());
+      setCanShowWrapped(hasCompletedWrapWeek(firstTransactionTs));
+
+      let start = range.start;
+      if (insightsPeriod === 'all' && firstTransactionTs) {
+        start = firstTransactionTs;
         if (!allTimeStart) {
-          setAllTimeStart(firstDate);
+          setAllTimeStart(firstTransactionTs);
         }
       }
-    }
-    const end = range.end;
-    const [
-      expenseRows,
-      incomeRows,
-      spendRows,
-      regretRows,
-      distributionRows,
-      lifeRows,
-      hourly,
-    ] = await Promise.all([
-      getExpenseSeries({ start, end, granularity: chartGranularity }),
-      getIncomeSeries({ start, end, granularity: chartGranularity }),
-      getSpendingByCategory(start, end),
-      getRegretByCategory(start, end),
-      getRegretDistribution(start, end),
-      getLifeCostByCategory(start, end),
-      getEffectiveHourlyRate(),
-    ]);
-    const nextExpense = expenseRows
-      .map((row) => ({ x: parseBucketDate(row.bucket), y: row.total_minor / 100 }))
-      .sort((a, b) => a.x - b.x);
-    const nextIncome = incomeRows
-      .map((row) => ({ x: parseBucketDate(row.bucket), y: row.total_minor / 100 }))
-      .sort((a, b) => a.x - b.x);
-    setExpenseSeries(nextExpense);
-    setIncomeSeries(nextIncome);
-    setCategorySpend(spendRows);
-    setRegretByCategory(regretRows);
-    setRegretDistribution(distributionRows);
-    setLifeCostRows(lifeRows);
-    setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
-  }, [allTimeStart, chartGranularity, insightsPeriod, parseBucketDate, range.end, range.start]);
 
-  const buildTickValues = useCallback((start: number, end: number, period: string) => {
-    const isYear = period === 'year' || period === 'all';
-    const alignedStart = isYear ? startOfMonth(start) : startOfDay(start);
-    const alignedEnd = isYear ? startOfMonth(end) : startOfDay(end);
+      const end = range.end;
+      const [expenseRows, incomeRows, spendRows, regretRows, distributionRows, lifeRows, hourly] =
+        await Promise.all([
+          getExpenseSeries({ start, end, granularity: chartGranularity }),
+          getIncomeSeries({ start, end, granularity: chartGranularity }),
+          getSpendingByCategory(start, end),
+          getRegretByCategory(start, end),
+          getRegretDistribution(start, end),
+          getLifeCostByCategory(start, end),
+          getEffectiveHourlyRate(),
+        ]);
+      setExpenseRows(expenseRows);
+      setIncomeRows(incomeRows);
+      setCategorySpend(spendRows);
+      setRegretByCategory(regretRows);
+      setRegretDistribution(distributionRows);
+      setLifeCostRows(lifeRows);
+      setHourlyRateMinor(hourly.hourly_rate_minor ?? null);
+    } catch {
+      setCanShowWrapped(false);
+    }
+  }, [allTimeStart, chartGranularity, insightsPeriod, range.end, range.start]);
 
-    if (isYear) {
-      const months = differenceInMonths(alignedEnd, alignedStart);
-      if (months <= 0) return [alignedStart.getTime()];
-      const step = Math.max(1, Math.ceil(months / 5));
-      const ticks: Date[] = [];
-      for (let i = 0; i <= months; i += step) {
-        ticks.push(addMonths(alignedStart, i));
-      }
-      if (ticks[ticks.length - 1]?.getTime() !== alignedEnd.getTime()) {
-        ticks.push(alignedEnd);
-      }
-      return ticks.map((value) => value.getTime());
-    }
-
-    const days = differenceInDays(alignedEnd, alignedStart);
-    if (days <= 0) return [alignedStart.getTime()];
-    const targetTicks = period === 'week' ? 4 : 5;
-    const step = Math.max(1, Math.ceil(days / (targetTicks - 1)));
-    const ticks: Date[] = [];
-    for (let i = 0; i <= days; i += step) {
-      ticks.push(addDays(alignedStart, i));
-    }
-    if (ticks[ticks.length - 1]?.getTime() !== alignedEnd.getTime()) {
-      ticks.push(alignedEnd);
-    }
-    return ticks.map((value) => value.getTime());
-  }, []);
-
-  const chartRange = useMemo(() => {
-    if (insightsPeriod !== 'all') {
-      return effectiveRange;
-    }
-    const points = [...expenseSeries, ...incomeSeries].map((row) => row.x);
-    if (!points.length) {
-      return effectiveRange;
-    }
-    const min = Math.min(...points);
-    const max = Math.max(...points);
-    return { start: min, end: max };
-  }, [effectiveRange, expenseSeries, incomeSeries, insightsPeriod]);
-
-  const timeTicks = useMemo(
-    () => buildTickValues(chartRange.start, chartRange.end, insightsPeriod),
-    [buildTickValues, chartRange.end, chartRange.start, insightsPeriod],
+  const expenseSeries = useMemo(
+    () => normalizeTimeSeries(expenseRows, effectiveRange, chartGranularity),
+    [chartGranularity, effectiveRange, expenseRows],
   );
-
-  const formatTickLabel = useCallback(
-    (value: number) => {
-      const dateValue = new Date(value);
-      if (insightsPeriod === 'all') return format(dateValue, 'MMM yyyy');
-      if (insightsPeriod === 'year') return format(dateValue, 'MMM');
-      if (insightsPeriod === 'week') return format(dateValue, 'EEE d');
-      return format(dateValue, 'MMM d');
-    },
-    [insightsPeriod],
+  const incomeSeries = useMemo(
+    () => normalizeTimeSeries(incomeRows, effectiveRange, chartGranularity),
+    [chartGranularity, effectiveRange, incomeRows],
   );
 
   useFocusEffect(
@@ -315,36 +233,38 @@ export default function InsightsScreen() {
           </Text>
         </View>
 
-        <PressableScale
-          onPress={() => navigation.navigate('Wrapped', { period: 'week' })}
-          className="mb-6"
-        >
-          <View className="rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 bg-app-card dark:bg-app-card-dark p-6 overflow-hidden">
-            <View className="absolute -top-10 -right-8 w-28 h-28 rounded-full bg-app-brand/20 dark:bg-app-brand-dark/20" />
-            <View className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full bg-app-soft dark:bg-app-soft-dark" />
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-4">
-                <View className="w-12 h-12 rounded-2xl bg-app-brand dark:bg-app-brand-dark items-center justify-center">
-                  <Feather name="star" size={20} color="#FFFFFF" />
+        {canShowWrapped ? (
+          <PressableScale
+            onPress={() => navigation.navigate('Wrapped', { period: 'week' })}
+            className="mb-6"
+          >
+            <View className="rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 bg-app-card dark:bg-app-card-dark p-6 overflow-hidden">
+              <View className="absolute -top-10 -right-8 w-28 h-28 rounded-full bg-app-brand/20 dark:bg-app-brand-dark/20" />
+              <View className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full bg-app-soft dark:bg-app-soft-dark" />
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-4">
+                  <View className="w-12 h-12 rounded-2xl bg-app-brand dark:bg-app-brand-dark items-center justify-center">
+                    <Feather name="star" size={20} color="#FFFFFF" />
+                  </View>
+                  <View>
+                    <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                      Worthy Wrapped
+                    </Text>
+                    <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
+                      Your money story, told in playful slides.
+                    </Text>
+                  </View>
                 </View>
-                <View>
-                  <Text className="text-base font-display text-app-text dark:text-app-text-dark">
-                    Worthy Wrapped
-                  </Text>
-                  <Text className="text-sm text-app-muted dark:text-app-muted-dark mt-1">
-                    Your money story, told in playful slides.
+                <View className="items-center">
+                  <Feather name="chevron-right" size={18} color={brandColor} />
+                  <Text className="text-[10px] uppercase tracking-widest text-app-muted dark:text-app-muted-dark mt-2">
+                    Open
                   </Text>
                 </View>
-              </View>
-              <View className="items-center">
-                <Feather name="chevron-right" size={18} color={brandColor} />
-                <Text className="text-[10px] uppercase tracking-widest text-app-muted dark:text-app-muted-dark mt-2">
-                  Open
-                </Text>
               </View>
             </View>
-          </View>
-        </PressableScale>
+          </PressableScale>
+        ) : null}
 
         <DateRangeSelector
           period={insightsPeriod}
@@ -368,56 +288,14 @@ export default function InsightsScreen() {
                 Expenses over time
               </Text>
             </View>
-            {expenseSeries.length === 0 ? (
-              <Text className="text-sm text-app-muted dark:text-app-muted-dark">
-                No data available
-              </Text>
-            ) : (
-              <VictoryChart
-                width={chartWidth}
-                height={220}
-                padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
-                prependDefaultAxes={false}
-                scale={{ x: 'time' }}
-                domain={{ x: [chartRange.start, chartRange.end] }}
-              >
-                <VictoryAxis
-                  tickValues={timeTicks}
-                  tickFormat={formatTickLabel}
-                  fixLabelOverlap
-                  style={{
-                    tickLabels: {
-                      fontSize: 10,
-                      fill: axisColor,
-                      fontFamily: 'Manrope_500Medium',
-                    },
-                    axis: { stroke: axisColor, strokeWidth: 0.5 },
-                  }}
-                />
-                <VictoryAxis
-                  dependentAxis
-                  style={{
-                    tickLabels: {
-                      fontSize: 10,
-                      fill: axisColor,
-                      fontFamily: 'Manrope_500Medium',
-                    },
-                    axis: { stroke: 'transparent' },
-                    grid: { stroke: axisColor, strokeWidth: 0.5, strokeDasharray: '4, 4' },
-                  }}
-                />
-                <VictoryLine
-                  data={expenseSeries}
-                  style={{
-                    data: { stroke: '#D62828', strokeWidth: 3 },
-                  }}
-                  animate={{
-                    duration: 500,
-                    onLoad: { duration: 500 },
-                  }}
-                />
-              </VictoryChart>
-            )}
+            <TimeSeriesAreaChart
+              points={expenseSeries}
+              width={chartWidth}
+              accent="#D62828"
+              axisColor={axisColor}
+              currency={baseCurrency}
+              granularity={chartGranularity}
+            />
           </View>
         </Animated.View>
 
@@ -431,56 +309,14 @@ export default function InsightsScreen() {
                 Income over time
               </Text>
             </View>
-            {incomeSeries.length === 0 ? (
-              <Text className="text-sm text-app-muted dark:text-app-muted-dark">
-                No data available
-              </Text>
-            ) : (
-              <VictoryChart
-                width={chartWidth}
-                height={220}
-                padding={{ top: 20, left: 40, right: 20, bottom: 40 }}
-                prependDefaultAxes={false}
-                scale={{ x: 'time' }}
-                domain={{ x: [chartRange.start, chartRange.end] }}
-              >
-                <VictoryAxis
-                  tickValues={timeTicks}
-                  tickFormat={formatTickLabel}
-                  fixLabelOverlap
-                  style={{
-                    tickLabels: {
-                      fontSize: 10,
-                      fill: axisColor,
-                      fontFamily: 'Manrope_500Medium',
-                    },
-                    axis: { stroke: axisColor, strokeWidth: 0.5 },
-                  }}
-                />
-                <VictoryAxis
-                  dependentAxis
-                  style={{
-                    tickLabels: {
-                      fontSize: 10,
-                      fill: axisColor,
-                      fontFamily: 'Manrope_500Medium',
-                    },
-                    axis: { stroke: 'transparent' },
-                    grid: { stroke: axisColor, strokeWidth: 0.5, strokeDasharray: '4, 4' },
-                  }}
-                />
-                <VictoryLine
-                  data={incomeSeries}
-                  style={{
-                    data: { stroke: '#38B000', strokeWidth: 3 },
-                  }}
-                  animate={{
-                    duration: 500,
-                    onLoad: { duration: 500 },
-                  }}
-                />
-              </VictoryChart>
-            )}
+            <TimeSeriesAreaChart
+              points={incomeSeries}
+              width={chartWidth}
+              accent="#38B000"
+              axisColor={axisColor}
+              currency={baseCurrency}
+              granularity={chartGranularity}
+            />
           </View>
         </Animated.View>
 

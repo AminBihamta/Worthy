@@ -7,7 +7,7 @@ import { useColorScheme } from 'nativewind';
 import { archiveBudget, listBudgets } from '../../db/repositories/budgets';
 import { sumExpensesByCategory } from '../../db/repositories/expenses';
 import { getFirstTransactionDate } from '../../db/repositories/transactions';
-import { getPeriodRange } from '../../utils/period';
+import { getPeriodRange, PeriodType } from '../../utils/period';
 import { PressableScale } from '../../components/PressableScale';
 import { EmptyState } from '../../components/EmptyState';
 import { DateRangeSelector } from '../../components/DateRangeSelector';
@@ -19,7 +19,7 @@ import { useSettingsStore } from '../../state/useSettingsStore';
 import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 
 export default function BudgetsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { budgetPeriod, setBudgetPeriod } = useUIStore();
@@ -37,36 +37,47 @@ export default function BudgetsScreen() {
       limit: number;
       color: string;
       icon: string;
+      periodType: Exclude<PeriodType, 'all'>;
     }[]
   >([]);
 
   const load = useCallback(async () => {
     const range = getPeriodRange(date, budgetPeriod);
-    let start = range.start;
+    let allStart = range.start;
     if (budgetPeriod === 'all') {
       const firstDate = allTimeStart ?? (await getFirstTransactionDate());
       if (firstDate) {
-        start = firstDate;
-        if (!allTimeStart) {
-          setAllTimeStart(firstDate);
-        }
+        allStart = firstDate;
+        if (!allTimeStart) setAllTimeStart(firstDate);
       }
     }
-    const [budgetRows, spentRows] = await Promise.all([
-      listBudgets(),
-      sumExpensesByCategory(start, range.end),
-    ]);
-    const spentMap = new Map(spentRows.map((row) => [row.category_id, row.total_minor]));
-    setBudgets(
-      budgetRows.map((budget) => ({
-        id: budget.id,
-        name: budget.category_name,
-        spent: spentMap.get(budget.category_id) ?? 0,
-        limit: budget.amount_minor,
-        color: budget.category_color,
-        icon: budget.category_icon,
-      })),
+
+    const budgetRows = await listBudgets();
+    const visibleRows =
+      budgetPeriod === 'all'
+        ? budgetRows
+        : budgetRows.filter((budget) => budget.period_type === budgetPeriod);
+    const rows = await Promise.all(
+      visibleRows.map(async (budget) => {
+        const periodType = (budget.period_type === 'week' || budget.period_type === 'year'
+          ? budget.period_type
+          : 'month') as Exclude<PeriodType, 'all'>;
+        const budgetRange =
+          budgetPeriod === 'all' ? getPeriodRange(date, periodType) : { start: allStart, end: range.end };
+        const spentRows = await sumExpensesByCategory(budgetRange.start, budgetRange.end);
+        const spent = spentRows.find((row) => row.category_id === budget.category_id)?.total_minor ?? 0;
+        return {
+          id: budget.id,
+          name: budget.category_name,
+          spent,
+          limit: budget.amount_minor,
+          color: budget.category_color,
+          icon: budget.category_icon,
+          periodType,
+        };
+      }),
     );
+    setBudgets(rows);
   }, [allTimeStart, budgetPeriod, date]);
 
   useFocusEffect(
@@ -174,6 +185,13 @@ export default function BudgetsScreen() {
                             {budget.name}
                           </Text>
                           <Text className="text-xs text-app-muted dark:text-app-muted-dark">
+                            {budget.periodType === 'week'
+                              ? 'Weekly budget'
+                              : budget.periodType === 'year'
+                                ? 'Yearly budget'
+                                : 'Monthly budget'}
+                          </Text>
+                          <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-0.5">
                             {overspent ? 'Over budget by ' : 'Left: '}
                             <Text className={overspent ? 'text-red-500 font-bold' : ''}>
                               {formatSigned(overspent ? budget.spent - budget.limit : remaining, baseCurrency)}

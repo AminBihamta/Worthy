@@ -1,5 +1,8 @@
 import { getDb } from '../index';
 import { createId } from '../../utils/id';
+import { PeriodType } from '../../utils/period';
+
+export type BudgetPeriodType = Exclude<PeriodType, 'all'>;
 
 export interface BudgetRow {
   id: string;
@@ -32,7 +35,7 @@ export async function listBudgets(includeArchived = false): Promise<BudgetListRo
 export async function createBudget(input: {
   category_id: string;
   amount_minor: number;
-  period_type: string;
+  period_type: BudgetPeriodType;
   start_date_ts: number;
 }): Promise<string> {
   const db = await getDb();
@@ -58,7 +61,7 @@ export async function updateBudget(
   const fields = Object.keys(input);
   if (fields.length === 0) return;
   const assignments = fields.map((field) => `${field} = ?`).join(', ');
-  const values = fields.map((field) => (input as Record<string, unknown>)[field]);
+  const values = fields.map((field) => (input as Record<string, string | number | null>)[field]);
   await db.runAsync(`UPDATE budgets SET ${assignments} WHERE id = ?`, ...values, id);
 }
 

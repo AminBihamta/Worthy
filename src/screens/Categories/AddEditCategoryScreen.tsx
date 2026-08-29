@@ -8,8 +8,10 @@ import { ColorPicker, fromHsv } from 'react-native-color-picker';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { createCategory, listCategories, updateCategory } from '../../db/repositories/categories';
+import { isBuiltInSavingsCategory } from '../../db/builtInCategories';
 
 const iconOptions: (keyof typeof Feather.glyphMap)[] = [
+  'trending-up',
   'tag',
   'shopping-cart',
   'coffee',
@@ -106,6 +108,7 @@ export default function AddEditCategoryScreen() {
   const route = useRoute();
   const params = route.params as { id?: string } | undefined;
   const editingId = params?.id;
+  const editingBuiltInSavings = editingId ? isBuiltInSavingsCategory(editingId) : false;
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('tag');
@@ -124,7 +127,11 @@ export default function AddEditCategoryScreen() {
 
   const handleSave = async () => {
     if (editingId) {
-      await updateCategory(editingId, { name, icon, color });
+      if (editingBuiltInSavings) {
+        await updateCategory(editingId, { icon, color });
+      } else {
+        await updateCategory(editingId, { name, icon, color });
+      }
       navigation.goBack();
       return;
     }
@@ -148,7 +155,18 @@ export default function AddEditCategoryScreen() {
           Live preview
         </Text>
       </View>
-      <Input label="Name" value={name} onChangeText={setName} placeholder="e.g. Grocery" />
+      <Input
+        label="Name"
+        value={name}
+        onChangeText={setName}
+        placeholder="e.g. Grocery"
+        editable={!editingBuiltInSavings}
+      />
+      {editingBuiltInSavings ? (
+        <Text className="text-xs text-app-muted dark:text-app-muted-dark mb-4 -mt-2">
+          This category is built in for savings budgets. You can only change the icon and color.
+        </Text>
+      ) : null}
       <View className="mb-6">
         <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark mb-3">
           Icon
@@ -194,7 +212,10 @@ export default function AddEditCategoryScreen() {
           </ColorPickerErrorBoundary>
         </View>
       </View>
-      <Button title={editingId ? 'Update category' : 'Save category'} onPress={handleSave} />
+      <Button
+        title={editingId ? (editingBuiltInSavings ? 'Update style' : 'Update category') : 'Save category'}
+        onPress={handleSave}
+      />
     </ScrollView>
   );
 }

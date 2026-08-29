@@ -4,11 +4,11 @@ import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/b
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Animated, {
   FadeIn,
+  Easing,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
@@ -22,15 +22,11 @@ import IncomeDetailScreen from '../screens/Transactions/IncomeDetailScreen';
 import AddTransferScreen from '../screens/Transactions/AddTransferScreen';
 import BudgetsScreen from '../screens/Budgets/BudgetsScreen';
 import AddEditBudgetScreen from '../screens/Budgets/AddEditBudgetScreen';
-import GoalsScreen from '../screens/Goals/GoalsScreen';
-import AddEditBucketScreen from '../screens/Goals/AddEditBucketScreen';
-import AddEditWishlistItemScreen from '../screens/Goals/AddEditWishlistItemScreen';
 import InsightsScreen from '../screens/Insights/InsightsScreen';
 import AccountsScreen from '../screens/Accounts/AccountsScreen';
 import AddEditAccountScreen from '../screens/Accounts/AddEditAccountScreen';
 import CategoriesScreen from '../screens/Categories/CategoriesScreen';
 import AddEditCategoryScreen from '../screens/Categories/AddEditCategoryScreen';
-import ReceiptInboxScreen from '../screens/Receipts/ReceiptInboxScreen';
 import RecurringScreen from '../screens/Recurring/RecurringScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 import CurrenciesScreen from '../screens/Settings/CurrenciesScreen';
@@ -50,7 +46,6 @@ const TAB_CONFIG: Record<
   HomeStack: { label: 'Home', icon: 'home' },
   TransactionsStack: { label: 'Transactions', icon: 'list' },
   BudgetsStack: { label: 'Budgets', icon: 'pie-chart' },
-  GoalsStack: { label: 'Goals', icon: 'target' },
   InsightsStack: { label: 'Insights', icon: 'bar-chart-2' },
 };
 
@@ -58,7 +53,6 @@ const STACK_ROOTS: Record<string, string> = {
   HomeStack: 'Home',
   TransactionsStack: 'Transactions',
   BudgetsStack: 'Budgets',
-  GoalsStack: 'Goals',
   InsightsStack: 'Insights',
 };
 
@@ -111,11 +105,6 @@ function HomeStack() {
         name="CategoryForm"
         component={AddEditCategoryScreen}
         options={{ title: 'Category' }}
-      />
-      <Stack.Screen
-        name="ReceiptInbox"
-        component={ReceiptInboxScreen}
-        options={{ title: 'Quick Capture' }}
       />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: 'Privacy' }} />
@@ -178,11 +167,6 @@ function TransactionsStack() {
         component={IncomeDetailScreen}
         options={{ title: 'Income' }}
       />
-      <Stack.Screen
-        name="ReceiptInbox"
-        component={ReceiptInboxScreen}
-        options={{ title: 'Quick Capture' }}
-      />
     </Stack.Navigator>
   );
 }
@@ -199,28 +183,6 @@ function BudgetsStack() {
         name="BudgetForm"
         component={AddEditBudgetScreen}
         options={{ title: 'Budget' }}
-      />
-    </Stack.Navigator>
-  );
-}
-
-function GoalsStack() {
-  const { colorScheme } = useColorScheme();
-  const palette = colorScheme === 'dark' ? colors.dark : colors.light;
-  const screenOptions = createStackScreenOptions(palette);
-
-  return (
-    <Stack.Navigator screenOptions={screenOptions}>
-      <Stack.Screen name="Goals" component={GoalsScreen} options={{ title: 'Goals', headerShown: false }} />
-      <Stack.Screen
-        name="BucketForm"
-        component={AddEditBucketScreen}
-        options={{ title: 'Savings Bucket' }}
-      />
-      <Stack.Screen
-        name="WishlistForm"
-        component={AddEditWishlistItemScreen}
-        options={{ title: 'Wishlist Item' }}
       />
     </Stack.Navigator>
   );
@@ -289,15 +251,15 @@ function TabBarItem({ route, index, state, navigation, descriptors }: {
   const progress = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
-    progress.value = withTiming(focused ? 1 : 0, { duration: 40 });
+    progress.value = withTiming(focused ? 1 : 0, {
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+    });
   }, [focused, progress]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      flex: withSpring(interpolate(progress.value, [0, 1], [0.8, 2.4]), {
-        damping: 15,
-        stiffness: 120,
-      }),
+      width: interpolate(progress.value, [0, 1], [48, 154]),
       backgroundColor: interpolateColor(
         progress.value,
         [0, 1],
@@ -336,7 +298,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }: {
             color={focused ? activeIconColor : inactiveIconColor}
           />
           {focused ? (
-            <Animated.View entering={FadeIn.delay(200)}>
+            <Animated.View entering={FadeIn.duration(120)}>
               <Text
                 numberOfLines={1}
                 style={{
@@ -438,13 +400,6 @@ export default function RootNavigator() {
           component={BudgetsStack}
           options={{
             title: 'Budgets',
-          }}
-        />
-        <Tab.Screen
-          name="GoalsStack"
-          component={GoalsStack}
-          options={{
-            title: 'Goals',
           }}
         />
         <Tab.Screen

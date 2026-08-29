@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, FlatList, TextInput } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { PressableScale } from '../../components/PressableScale';
 import { Input } from '../../components/Input';
 import { getDb } from '../../db';
+import { isBuiltInSavingsCategory } from '../../db/builtInCategories';
 import { createId } from '../../utils/id';
 import { useSettingsStore } from '../../state/useSettingsStore';
 
@@ -58,12 +59,14 @@ export default function CategorySetupScreen({ navigation }: { navigation: any })
     };
 
     const deleteCategory = async (id: string) => {
+        if (isBuiltInSavingsCategory(id)) return;
         const db = await getDb();
         await db.runAsync('DELETE FROM categories WHERE id = ?', id);
         loadCategories();
     };
 
     const startEdit = (cat: CategoryItem) => {
+        if (isBuiltInSavingsCategory(cat.id)) return;
         setEditingId(cat.id);
         setEditName(cat.name);
         setIsAdding(false);
@@ -137,19 +140,26 @@ export default function CategorySetupScreen({ navigation }: { navigation: any })
                     )}
                 </View>
 
-                <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                    {isBuiltInSavingsCategory(item.id) ? (
+                        <Text style={{ fontSize: 12, color: palette.muted, maxWidth: 100 }}>
+                            Always available for budgets
+                        </Text>
+                    ) : null}
                     {isEditing ? (
                         <PressableScale onPress={saveEdit}>
                             <Feather name="check" size={20} color={palette.success} />
                         </PressableScale>
-                    ) : (
+                    ) : !isBuiltInSavingsCategory(item.id) ? (
                         <PressableScale onPress={() => startEdit(item)}>
                             <Feather name="edit-2" size={18} color={palette.muted} />
                         </PressableScale>
-                    )}
-                    <PressableScale onPress={() => deleteCategory(item.id)}>
-                        <Feather name="trash-2" size={18} color={palette.danger} />
-                    </PressableScale>
+                    ) : null}
+                    {!isBuiltInSavingsCategory(item.id) ? (
+                        <PressableScale onPress={() => deleteCategory(item.id)}>
+                            <Feather name="trash-2" size={18} color={palette.danger} />
+                        </PressableScale>
+                    ) : null}
                 </View>
             </View>
         );

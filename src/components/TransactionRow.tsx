@@ -49,7 +49,7 @@ export function TransactionRow({
   return (
     <Animated.View entering={SlideInRight.duration(500)}>
       <Pressable
-        className="flex-row items-center p-4 bg-app-card dark:bg-app-card-dark rounded-2xl shadow-sm border border-app-border/50 dark:border-app-border-dark/50"
+        className="flex-row items-center p-4 bg-app-card dark:bg-app-card-dark rounded-2xl border border-app-border/50 dark:border-app-border-dark/50"
         onPress={onPress}
       >
         <View

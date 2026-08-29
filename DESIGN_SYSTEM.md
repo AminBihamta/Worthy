@@ -1,9 +1,9 @@
 # Worthy Design System
 
 ## 1. Design Philosophy
-**"Midnight Aurora – Calm, Sophisticated, and Fresh"**
+**"Warm Focus – Calm, Sophisticated, and Fresh"**
 
-The Worthy design language is built to make financial management feel approachable, modern, and trustworthy. It combines the depth and professionalism of oceanic teals with warm golden accents, creating a premium experience that works beautifully in both light and dark modes.
+The Worthy design language is built to make financial management feel approachable, modern, and trustworthy. It combines cool neutral surfaces with a vivid orange brand accent and warm golden highlights, creating an energetic experience that works in both light and dark modes.
 
 ### Core Principles
 *   **Depth & Clarity:** Deep, rich backgrounds in dark mode with crisp, clean surfaces in light mode.
@@ -15,30 +15,32 @@ The Worthy design language is built to make financial management feel approachab
 
 ## 2. Color System
 
-Our palette is based on a **"Midnight Aurora"** theme – oceanic teals meet warm golden accents. We use semantic naming (`app-*`) to ensure seamless dark mode support.
+The implementation currently uses a compact orange-and-gold palette with cool neutrals. Semantic
+`app-*` names in `tailwind.config.js` and the matching objects in `src/theme/tokens.ts` are the source
+of truth; keep both in sync when changing a token.
 
 ### Base Colors
 | Token | Light Mode | Dark Mode | Usage |
 | :--- | :--- | :--- | :--- |
-| `bg-app-bg` | `#F8FAFB` | `#0D1117` | Main screen background. Subtle cool tone. |
-| `bg-app-surface` | `#FFFFFF` | `#161B22` | Secondary backgrounds, headers, bottom sheets. |
-| `bg-app-card` | `#FFFFFF` | `#1C2432` | Main container for grouped content. |
+| `bg-app-bg` | `#F8FAFB` | `#121212` | Main screen background. Subtle cool tone. |
+| `bg-app-surface` | `#FFFFFF` | `#1E1E1E` | Secondary backgrounds, headers, bottom sheets. |
+| `bg-app-card` | `#FFFFFF` | `#1E1E1E` | Main container for grouped content. |
 
 ### Content Colors
 | Token | Light Mode | Dark Mode | Usage |
 | :--- | :--- | :--- | :--- |
-| `text-app-text` | `#0D1B2A` | `#E6EDF3` | Primary headings, body text. High contrast. |
-| `text-app-muted` | `#6B7A8F` | `#8B949E` | Secondary labels, subtitles, icons. |
-| `bg-app-soft` | `#E8F4F2` | `#243447` | Icon backgrounds, pills, subtle highlights. |
+| `text-app-text` | `#0D1B2A` | `#EAEAEA` | Primary headings, body text. High contrast. |
+| `text-app-muted` | `#6B7A8F` | `#A0A0A0` | Secondary labels, subtitles, icons. |
+| `bg-app-soft` | `#E8F4F2` | `#282828` | Icon backgrounds, pills, subtle highlights. |
 
 ### Brand & Functional
 | Token | Light Mode | Dark Mode | Usage |
 | :--- | :--- | :--- | :--- |
-| `bg-app-brand` | `#0A9396` | `#58D5D8` | Primary actions, active states, key highlights. |
-| `border-app-border`| `#D1DDE6` | `#30363D` | Subtle dividers, card borders. |
-| `text-app-accent` | `#EE9B00` | `#FFB703` | Highlights, warnings, secondary accents. |
-| `text-app-success` | `#38B000` | `#3FB950` | Positive values (Income). |
-| `text-app-danger` | `#D62828` | `#F85149` | Destructive actions, errors, expenses. |
+| `bg-app-brand` | `#FF4500` | `#FF4500` | Primary actions, active states, key highlights. |
+| `border-app-border`| `#D1DDE6` | `#333333` | Subtle dividers, card borders. |
+| `text-app-accent` | `#FFD700` | `#FFD700` | Highlights, warnings, secondary accents. |
+| `text-app-success` | `#32CD32` | `#32CD32` | Positive values (Income). |
+| `text-app-danger` | `#FF4500` | `#FF4500` | Destructive actions, errors, expenses. |
 
 ---
 
@@ -55,7 +57,7 @@ We use **Manrope** for its modern, geometric, yet friendly character.
 ### Hierarchy
 | Component | Size | Weight | Token | Usage |
 | :--- | :--- | :--- | :--- | :--- |
-| **Hero Amount** | `72px` (7xl) | SemiBold | `text-7xl font-display` | Main transaction amount. |
+| **Hero Amount** | `48px` (5xl) | SemiBold | `text-5xl font-display` | Main account or transaction amount. |
 | **Page Title** | `20px` (xl) | Medium | `text-xl font-emphasis` | Screen headers. |
 | **Body** | `16px` (base) | Regular | `text-base font-body` | Standard text, inputs. |
 | **Label** | `14px` (sm) | Medium | `text-sm font-emphasis` | Button labels, list items. |
@@ -104,17 +106,27 @@ We use **Manrope** for its modern, geometric, yet friendly character.
 
 ### PressableScale
 All interactive elements (buttons, list rows, cards) should be wrapped in `PressableScale`.
-*   **Animation:** Scales down to `0.97` on press.
-*   **Timing:** 140ms duration.
-*   **Haptics:** Triggers `Haptics.selectionAsync()` on press.
+*   **Animation:** Springs down to `0.97` on press and returns to `1` on release.
+*   **Haptics:** `PressableScale` triggers `Haptics.selectionAsync()` when its `haptic` prop is true; `Button` triggers selection haptics for enabled actions.
 
 ### Transitions
 *   **Modals:** Fade in/out for the overlay, slide up/down for the content.
 *   **Navigation:** Standard iOS/Android transitions, but custom modal presentations are preferred for "Add/Edit" flows.
 
+## 7. Implementation notes
+
+- Use `PressableScale` for interactive rows and controls where the interaction is part of the shared
+  visual language; it provides the 0.97 press scale and optional haptics.
+- Use `Card`, `Button`, `Input`, `SelectField`, `MoneyText`, and `PeriodSelector` before creating a
+  one-off equivalent.
+- The theme supports `system`, `light`, and `dark` through NativeWind's class-based dark mode.
+- Typography is loaded from `@expo-google-fonts/manrope`; avoid introducing a second font family.
+- `src/theme/tokens.ts` is used for JavaScript styles and chart/navigation colors, while Tailwind
+  classes use the duplicated values in `tailwind.config.js`.
+
 ---
 
-## 7. Iconography
+## 8. Iconography
 
 We use **Feather** icons from `@expo/vector-icons`.
 

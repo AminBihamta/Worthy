@@ -8,13 +8,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F6F5F2"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.worthy"
+      "bundleIdentifier": "com.anonymous.worthy",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,21 +26,24 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.worthy"
+      "package": "com.anonymous.worthy",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/logo.png"
     },
-    "plugins": [
-      "expo-sqlite",
-      "expo-font",
-      "@react-native-community/datetimepicker"
-    ],
+    "plugins": ["expo-sqlite", "expo-font", "@react-native-community/datetimepicker"],
     "extra": {
       "eas": {
         "projectId": "71f86a3d-fc2b-4c88-af39-723842d49868"
       }
     },
-    "owner": "amin81s-organization"
+    "owner": "amin81s-organization",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/71f86a3d-fc2b-4c88-af39-723842d49868"
+    }
   }
 }

@@ -19,6 +19,7 @@ interface SettingsState {
   completeTutorial: () => Promise<void>;
   hasSeenIntro: boolean;
   completeIntro: () => Promise<void>;
+  resetAfterDataDeletion: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -73,5 +74,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   completeIntro: async () => {
     await setSetting('has_seen_intro', 'true');
     set({ hasSeenIntro: true });
+  },
+  resetAfterDataDeletion: () => {
+    set({
+      themeMode: 'system',
+      hoursPerDay: 8,
+      baseCurrency: 'USD',
+      isOnboarded: false,
+      hasSeenTutorial: false,
+      hasSeenIntro: false,
+      loaded: true,
+    });
   },
 }));

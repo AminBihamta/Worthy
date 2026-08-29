@@ -72,37 +72,6 @@ CREATE TABLE IF NOT EXISTS budgets (
   FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
 );
 
-CREATE TABLE IF NOT EXISTS savings_buckets (
-  id TEXT PRIMARY KEY NOT NULL,
-  category_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  target_amount_minor INTEGER,
-  created_at INTEGER NOT NULL,
-  archived_at INTEGER,
-  FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
-);
-
-CREATE TABLE IF NOT EXISTS savings_contributions (
-  id TEXT PRIMARY KEY NOT NULL,
-  bucket_id TEXT NOT NULL,
-  amount_minor INTEGER NOT NULL,
-  date_ts INTEGER NOT NULL,
-  notes TEXT,
-  FOREIGN KEY (bucket_id) REFERENCES savings_buckets (id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS wishlist_items (
-  id TEXT PRIMARY KEY NOT NULL,
-  category_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  target_price_minor INTEGER,
-  link TEXT,
-  priority INTEGER,
-  created_at INTEGER NOT NULL,
-  archived_at INTEGER,
-  FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
-);
-
 CREATE TABLE IF NOT EXISTS receipt_inbox (
   id TEXT PRIMARY KEY NOT NULL,
   image_uri TEXT NOT NULL,
@@ -135,8 +104,6 @@ CREATE INDEX IF NOT EXISTS idx_expenses_account ON expenses (account_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_date ON incomes (date_ts);
 CREATE INDEX IF NOT EXISTS idx_incomes_account ON incomes (account_id);
 CREATE INDEX IF NOT EXISTS idx_receipts_status ON receipt_inbox (status);
-CREATE INDEX IF NOT EXISTS idx_wishlist_category ON wishlist_items (category_id);
-CREATE INDEX IF NOT EXISTS idx_contrib_bucket ON savings_contributions (bucket_id);
 `;
 
 export const migration001 = {

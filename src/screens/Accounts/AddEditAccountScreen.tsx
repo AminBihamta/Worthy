@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -14,6 +12,7 @@ import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
 
 import { Button } from '../../components/Button';
+import { KeyboardFormView } from '../../components/KeyboardFormView';
 import { PressableScale } from '../../components/PressableScale';
 import {
   AccountType,
@@ -180,11 +179,13 @@ export default function AddEditAccountScreen() {
   const heroSubtitle = name.trim() || 'Give your account a name';
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-app-bg dark:bg-app-bg-dark"
-    >
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+    <KeyboardFormView className="flex-1 bg-app-bg dark:bg-app-bg-dark">
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         {/* Hero Section */}
         <View className="pt-8 pb-8 px-6 items-center">
           <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
@@ -302,6 +303,6 @@ export default function AddEditAccountScreen() {
         onSelect={setCurrency}
         selectedId={currency || baseCurrency}
       />
-    </KeyboardAvoidingView>
+    </KeyboardFormView>
   );
 }

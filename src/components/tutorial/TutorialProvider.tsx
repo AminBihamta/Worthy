@@ -10,7 +10,6 @@ export type TutorialTargetId =
     | 'home_transactions_list'
     | 'transactions_header'
     | 'budgets_fab'
-    | 'goals_add_button'
     | 'insights_expenses_chart';
 
 type TutorialStep = {
@@ -59,13 +58,6 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     },
     {
         id: '6',
-        targetId: 'goals_add_button',
-        title: 'Savings Goals',
-        description: 'Create savings buckets for specific goals like "Vacation" or "Emergency Fund".',
-        screenName: 'GoalsStack',
-    },
-    {
-        id: '7',
         targetId: 'insights_expenses_chart',
         title: 'Deep Inisghts',
         description: 'Analyze your spending habits, income trends, and regret metrics over time.',
