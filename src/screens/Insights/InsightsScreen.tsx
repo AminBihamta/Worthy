@@ -22,6 +22,7 @@ import { getPeriodRange } from '../../utils/period';
 import { hasCompletedWrapWeek } from '../../utils/wrap';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { PressableScale } from '../../components/PressableScale';
+import { formatSigned } from '../../utils/money';
 
 import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 import { normalizeTimeSeries } from '../../utils/timeSeries';
@@ -122,12 +123,16 @@ export default function InsightsScreen() {
   );
 
   const lifeCostDisplay = useMemo(() => {
-    if (!hourlyRateMinor) return [] as { name: string; hours: number }[];
-    return lifeCostRows.map((row) => ({
-      name: row.category_name,
-      hours: row.total_minor / hourlyRateMinor,
-    }));
-  }, [lifeCostRows, hourlyRateMinor]);
+    if (!hourlyRateMinor) return [] as { name: string; days: number }[];
+    return lifeCostRows
+      .map((row) => ({
+        name: row.category_name,
+        days: row.total_minor / hourlyRateMinor / hoursPerDay,
+      }))
+      .sort((a, b) => b.days - a.days);
+  }, [hoursPerDay, lifeCostRows, hourlyRateMinor]);
+
+  const maxLifeCostDays = lifeCostDisplay[0]?.days ?? 0;
 
   const pieData = useMemo(() => {
     const palette = [
@@ -148,6 +153,18 @@ export default function InsightsScreen() {
         color: row.category_color || palette[index % palette.length],
       }));
   }, [categorySpend]);
+
+  const totalSpending = useMemo(() => pieData.reduce((sum, row) => sum + row.y, 0), [pieData]);
+
+  const spendingLegend = useMemo(() => {
+    const sorted = [...pieData].sort((a, b) => b.y - a.y);
+    const visible = sorted.slice(0, 5);
+    const otherTotal = sorted.slice(5).reduce((sum, row) => sum + row.y, 0);
+    if (otherTotal > 0) {
+      visible.push({ x: 'Other', y: otherTotal, color: '#6B7A8F' });
+    }
+    return visible;
+  }, [pieData]);
 
   const regretBuckets = useMemo(
     () => [
@@ -191,19 +208,6 @@ export default function InsightsScreen() {
   const regretTotal = useMemo(
     () => regretCounts.reduce((sum, bucket) => sum + bucket.count, 0),
     [regretCounts],
-  );
-
-  const regretPieData = useMemo(
-    () =>
-      regretCounts
-        .map((bucket) => ({
-          x: bucket.label,
-          y: bucket.count,
-          color: bucket.color,
-          percentage: regretTotal ? (bucket.count / regretTotal) * 100 : 0,
-        }))
-        .filter((bucket) => bucket.y > 0),
-    [regretCounts, regretTotal],
   );
 
   const topRegret = useMemo(() => {
@@ -335,27 +339,62 @@ export default function InsightsScreen() {
                 No data available
               </Text>
             ) : (
-              <VictoryPie
-                width={chartWidth}
-                height={200}
-                data={pieData}
-                colorScale={pieData.map((row) => row.color)}
-                padding={20}
-                innerRadius={pieInnerRadius}
-                padAngle={1}
-                labelRadius={90}
-                style={{
-                  data: {
-                    fillOpacity: 0.9,
-                    stroke: isDark ? '#1C2432' : '#FFFFFF',
-                    strokeWidth: 1,
-                  },
-                  labels: { fontSize: 10, fill: axisColor, fontFamily: 'Manrope_500Medium' },
-                }}
-                animate={{
-                  duration: 500,
-                }}
-              />
+              <>
+                <View className="relative items-center">
+                  <VictoryPie
+                    width={chartWidth}
+                    height={200}
+                    data={pieData}
+                    colorScale={pieData.map((row) => row.color)}
+                    padding={20}
+                    innerRadius={pieInnerRadius}
+                    padAngle={1}
+                    labels={() => ''}
+                    style={{
+                      data: {
+                        fillOpacity: 0.9,
+                        stroke: isDark ? '#1C2432' : '#FFFFFF',
+                        strokeWidth: 1,
+                      },
+                    }}
+                    animate={{ duration: 500 }}
+                  />
+                  <View
+                    pointerEvents="none"
+                    className="absolute items-center justify-center"
+                    style={{ width: chartWidth, height: 200 }}
+                  >
+                    <Text className="text-xl font-display text-app-text dark:text-app-text-dark">
+                      {formatSigned(totalSpending, baseCurrency)}
+                    </Text>
+                    <Text className="text-[10px] uppercase tracking-widest text-app-muted dark:text-app-muted-dark mt-1">
+                      Total spent
+                    </Text>
+                  </View>
+                </View>
+                <View className="mt-2">
+                  {spendingLegend.map((row) => (
+                    <View key={row.x} className="flex-row items-center justify-between mb-2">
+                      <View className="flex-1 flex-row items-center mr-3">
+                        <View
+                          className="w-2.5 h-2.5 rounded-full mr-2"
+                          style={{ backgroundColor: row.color }}
+                        />
+                        <Text
+                          numberOfLines={1}
+                          className="text-sm text-app-text dark:text-app-text-dark"
+                        >
+                          {row.x}
+                        </Text>
+                      </View>
+                      <Text className="text-xs font-medium text-app-muted dark:text-app-muted-dark">
+                        {formatSigned(row.y, baseCurrency)} ·{' '}
+                        {Math.round((row.y / totalSpending) * 100)}%
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </>
             )}
           </View>
         </Animated.View>
@@ -375,30 +414,44 @@ export default function InsightsScreen() {
                 No data available
               </Text>
             ) : (
-              <VictoryPie
-                width={chartWidth}
-                height={200}
-                data={regretPieData}
-                colorScale={regretPieData.map((row) => row.color)}
-                padding={20}
-                innerRadius={pieInnerRadius}
-                padAngle={1}
-                labelRadius={pieInnerRadius + 28}
-                labels={({ datum }) =>
-                  datum.percentage ? `${Math.round(datum.percentage)}%` : ''
-                }
-                style={{
-                  data: {
-                    fillOpacity: 0.92,
-                    stroke: isDark ? '#1C2432' : '#FFFFFF',
-                    strokeWidth: 1,
-                  },
-                  labels: { fontSize: 10, fill: axisColor, fontFamily: 'Manrope_500Medium' },
-                }}
-                animate={{
-                  duration: 500,
-                }}
-              />
+              <View>
+                <View className="h-9 flex-row overflow-hidden rounded-full bg-app-soft dark:bg-app-soft-dark">
+                  {regretCounts
+                    .filter((bucket) => bucket.count > 0)
+                    .map((bucket) => (
+                      <View
+                        key={bucket.id}
+                        style={{
+                          width: `${(bucket.count / regretTotal) * 100}%`,
+                          backgroundColor: bucket.color,
+                        }}
+                      />
+                    ))}
+                </View>
+                <View className="flex-row flex-wrap mt-4">
+                  {regretCounts
+                    .filter((bucket) => bucket.count > 0)
+                    .map((bucket) => (
+                      <View key={bucket.id} className="w-1/2 flex-row items-center mb-3 pr-2">
+                        <View
+                          className="w-2.5 h-2.5 rounded-full mr-2"
+                          style={{ backgroundColor: bucket.color }}
+                        />
+                        <View className="flex-1">
+                          <Text
+                            numberOfLines={1}
+                            className="text-xs text-app-text dark:text-app-text-dark"
+                          >
+                            {bucket.label}
+                          </Text>
+                          <Text className="text-[10px] text-app-muted dark:text-app-muted-dark mt-0.5">
+                            {Math.round((bucket.count / regretTotal) * 100)}% · {bucket.count}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                </View>
+              </View>
             )}
             <View className="mt-6">
               <View className="flex-row items-start">
@@ -475,19 +528,39 @@ export default function InsightsScreen() {
               </Text>
             </View>
             {hourlyRateMinor ? (
-              lifeCostDisplay.map((row) => (
-                <View key={row.name} className="flex-row items-center justify-between mb-3">
-                  <Text className="text-sm font-medium text-app-text dark:text-app-text-dark">
-                    {row.name}
+              <View>
+                <View className="flex-row items-center justify-between mb-4">
+                  <Text className="text-xs uppercase tracking-widest text-app-muted dark:text-app-muted-dark">
+                    Time represented by spending
                   </Text>
-                  <View className="flex-row items-center">
-                    <Text className="text-sm font-bold text-app-brand dark:text-app-brand-dark mr-1">
-                      {(row.hours / hoursPerDay).toFixed(1)}
-                    </Text>
-                    <Text className="text-xs text-app-muted dark:text-app-muted-dark">days</Text>
-                  </View>
+                  <Text className="text-xs text-app-muted dark:text-app-muted-dark">
+                    {lifeCostDisplay.length} categories
+                  </Text>
                 </View>
-              ))
+                {lifeCostDisplay.map((row) => (
+                  <View key={row.name} className="mb-4">
+                    <View className="flex-row items-center justify-between mb-2">
+                      <Text className="text-sm font-medium text-app-text dark:text-app-text-dark">
+                        {row.name}
+                      </Text>
+                      <View className="flex-row items-baseline">
+                        <Text className="text-base font-bold text-app-brand dark:text-app-brand-dark">
+                          {row.days.toFixed(1)}
+                        </Text>
+                        <Text className="text-xs text-app-muted dark:text-app-muted-dark ml-1">
+                          days
+                        </Text>
+                      </View>
+                    </View>
+                    <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden">
+                      <View
+                        className="h-full rounded-full bg-app-brand dark:bg-app-brand-dark"
+                        style={{ width: `${(row.days / maxLifeCostDays) * 100}%` }}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
             ) : (
               <Text className="text-sm text-app-muted dark:text-app-muted-dark">
                 Add income with hours worked to unlock life cost analytics.

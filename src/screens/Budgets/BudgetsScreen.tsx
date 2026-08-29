@@ -18,6 +18,14 @@ import { useSettingsStore } from '../../state/useSettingsStore';
 
 import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 
+const budgetCardShadow = {
+  shadowColor: '#0D1B2A',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 2,
+};
+
 export default function BudgetsScreen() {
   const navigation = useNavigation<any>();
   const { colorScheme } = useColorScheme();
@@ -59,13 +67,18 @@ export default function BudgetsScreen() {
         : budgetRows.filter((budget) => budget.period_type === budgetPeriod);
     const rows = await Promise.all(
       visibleRows.map(async (budget) => {
-        const periodType = (budget.period_type === 'week' || budget.period_type === 'year'
-          ? budget.period_type
-          : 'month') as Exclude<PeriodType, 'all'>;
+        const periodType = (
+          budget.period_type === 'week' || budget.period_type === 'year'
+            ? budget.period_type
+            : 'month'
+        ) as Exclude<PeriodType, 'all'>;
         const budgetRange =
-          budgetPeriod === 'all' ? getPeriodRange(date, periodType) : { start: allStart, end: range.end };
+          budgetPeriod === 'all'
+            ? getPeriodRange(date, periodType)
+            : { start: allStart, end: range.end };
         const spentRows = await sumExpensesByCategory(budgetRange.start, budgetRange.end);
-        const spent = spentRows.find((row) => row.category_id === budget.category_id)?.total_minor ?? 0;
+        const spent =
+          spentRows.find((row) => row.category_id === budget.category_id)?.total_minor ?? 0;
         return {
           id: budget.id,
           name: budget.category_name,
@@ -122,7 +135,10 @@ export default function BudgetsScreen() {
 
           {/* Summary Card */}
           {budgets.length > 0 && (
-            <View className="mb-8 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm">
+            <View
+              className="mb-8 bg-app-card dark:bg-app-card-dark p-6 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50"
+              style={budgetCardShadow}
+            >
               <Text className="text-xs font-bold text-app-muted dark:text-app-muted-dark uppercase tracking-widest mb-2">
                 Total Remaining
               </Text>
@@ -162,57 +178,66 @@ export default function BudgetsScreen() {
                 return (
                   <SwipeableRow
                     key={budget.id}
-                    onEdit={() => navigation.navigate('BudgetForm' as never, { id: budget.id } as never)}
+                    onEdit={() =>
+                      navigation.navigate('BudgetForm' as never, { id: budget.id } as never)
+                    }
                     onDelete={async () => {
                       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                       await archiveBudget(budget.id);
                       load();
                     }}
                   >
-                    <PressableScale
-                      className="bg-app-card dark:bg-app-card-dark p-5 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50 shadow-sm"
-                      onPress={() => navigation.navigate('BudgetForm' as never, { id: budget.id } as never)}
-                    >
-                      <View className="flex-row items-center mb-4">
-                        <View
-                          className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                          style={{ backgroundColor: `${budget.color}20` }}
-                        >
-                          <Feather name={budget.icon as any} size={18} color={budget.color} />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-base font-display text-app-text dark:text-app-text-dark">
-                            {budget.name}
-                          </Text>
-                          <Text className="text-xs text-app-muted dark:text-app-muted-dark">
-                            {budget.periodType === 'week'
-                              ? 'Weekly budget'
-                              : budget.periodType === 'year'
-                                ? 'Yearly budget'
-                                : 'Monthly budget'}
-                          </Text>
-                          <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-0.5">
-                            {overspent ? 'Over budget by ' : 'Left: '}
-                            <Text className={overspent ? 'text-red-500 font-bold' : ''}>
-                              {formatSigned(overspent ? budget.spent - budget.limit : remaining, baseCurrency)}
+                    <View className="rounded-3xl" style={budgetCardShadow}>
+                      <PressableScale
+                        className="bg-app-card dark:bg-app-card-dark p-5 rounded-3xl border border-app-border/50 dark:border-app-border-dark/50"
+                        onPress={() =>
+                          navigation.navigate('BudgetForm' as never, { id: budget.id } as never)
+                        }
+                      >
+                        <View className="flex-row items-center mb-4">
+                          <View
+                            className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                            style={{ backgroundColor: `${budget.color}20` }}
+                          >
+                            <Feather name={budget.icon as any} size={18} color={budget.color} />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                              {budget.name}
                             </Text>
+                            <Text className="text-xs text-app-muted dark:text-app-muted-dark">
+                              {budget.periodType === 'week'
+                                ? 'Weekly budget'
+                                : budget.periodType === 'year'
+                                  ? 'Yearly budget'
+                                  : 'Monthly budget'}
+                            </Text>
+                            <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-0.5">
+                              {overspent ? 'Over budget by ' : 'Left: '}
+                              <Text className={overspent ? 'text-red-500 font-bold' : ''}>
+                                {formatSigned(
+                                  overspent ? budget.spent - budget.limit : remaining,
+                                  baseCurrency,
+                                )}
+                              </Text>
+                            </Text>
+                          </View>
+                          <Text className="text-sm font-bold text-app-text dark:text-app-text-dark">
+                            {Math.round(progress * 100)}%
                           </Text>
                         </View>
-                        <Text className="text-sm font-bold text-app-text dark:text-app-text-dark">
-                          {Math.round(progress * 100)}%
-                        </Text>
-                      </View>
 
-                      <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden">
-                        <View
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${progress * 100}%`,
-                            backgroundColor: overspent ? '#D62828' : budget.color,
-                          }}
-                        />
-                      </View>
-                    </PressableScale>
+                        <View className="h-2 rounded-full bg-app-soft dark:bg-app-soft-dark overflow-hidden">
+                          <View
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${progress * 100}%`,
+                              backgroundColor: overspent ? '#D62828' : budget.color,
+                            }}
+                          />
+                        </View>
+                      </PressableScale>
+                    </View>
                   </SwipeableRow>
                 );
               })}
@@ -221,7 +246,12 @@ export default function BudgetsScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      <View className="absolute bottom-32 right-6 z-50" ref={fabRef} onLayout={onFabLayout} collapsable={false}>
+      <View
+        className="absolute bottom-32 right-6 z-50"
+        ref={fabRef}
+        onLayout={onFabLayout}
+        collapsable={false}
+      >
         <PressableScale
           className="h-14 w-14 rounded-full bg-app-brand dark:bg-app-brand-dark items-center justify-center shadow-lg shadow-app-brand/30"
           onPress={() => {
