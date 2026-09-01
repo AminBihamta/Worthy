@@ -12,12 +12,14 @@
 
     "preview": {
       "distribution": "internal",
+      "channel": "main",
       "android": {
         "buildType": "apk"
       }
     },
     "apk": {
       "distribution": "internal",
+      "channel": "main",
       "android": {
         "buildType": "apk"
       }

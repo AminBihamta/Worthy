@@ -32,6 +32,7 @@ import SettingsScreen from '../screens/Settings/SettingsScreen';
 import CurrenciesScreen from '../screens/Settings/CurrenciesScreen';
 import WidgetsScreen from '../screens/Settings/WidgetsScreen';
 import PrivacyScreen from '../screens/Settings/PrivacyScreen';
+import FeedbackScreen from '../screens/Settings/FeedbackScreen';
 import WrappedScreen from '../screens/Settings/WrappedScreen';
 import { colors } from '../theme/tokens';
 import { PressableScale } from '../components/PressableScale';
@@ -47,6 +48,7 @@ const TAB_CONFIG: Record<
   TransactionsStack: { label: 'Transactions', icon: 'list' },
   BudgetsStack: { label: 'Budgets', icon: 'pie-chart' },
   InsightsStack: { label: 'Insights', icon: 'bar-chart-2' },
+  FeedbackStack: { label: 'Feedback', icon: 'message-circle' },
 };
 
 const STACK_ROOTS: Record<string, string> = {
@@ -54,6 +56,7 @@ const STACK_ROOTS: Record<string, string> = {
   TransactionsStack: 'Transactions',
   BudgetsStack: 'Budgets',
   InsightsStack: 'Insights',
+  FeedbackStack: 'Feedback',
 };
 
 const createStackScreenOptions =
@@ -201,6 +204,22 @@ function InsightsStack() {
   );
 }
 
+function FeedbackStack() {
+  const { colorScheme } = useColorScheme();
+  const palette = colorScheme === 'dark' ? colors.dark : colors.light;
+  const screenOptions = createStackScreenOptions(palette);
+
+  return (
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen
+        name="Feedback"
+        component={FeedbackScreen}
+        options={{ title: 'Feedback', headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+}
+
 function TabBarItem({ route, index, state, navigation, descriptors }: {
   route: any,
   index: number,
@@ -259,7 +278,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }: {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      width: interpolate(progress.value, [0, 1], [48, 154]),
+      width: interpolate(progress.value, [0, 1], [44, 118]),
       backgroundColor: interpolateColor(
         progress.value,
         [0, 1],
@@ -274,7 +293,7 @@ function TabBarItem({ route, index, state, navigation, descriptors }: {
       style={[
         {
           borderRadius: 999,
-          marginHorizontal: 4,
+          marginHorizontal: 2,
           height: 46,
 
         },
@@ -330,8 +349,8 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     <View
       style={{
         position: 'absolute',
-        left: 20,
-        right: 20,
+        left: 12,
+        right: 12,
         bottom: 18,
         backgroundColor: navBackground,
         borderColor: navBorder,
@@ -407,6 +426,13 @@ export default function RootNavigator() {
           component={InsightsStack}
           options={{
             title: 'Insights',
+          }}
+        />
+        <Tab.Screen
+          name="FeedbackStack"
+          component={FeedbackStack}
+          options={{
+            title: 'Feedback',
           }}
         />
       </Tab.Navigator>

@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -23,6 +24,9 @@ import { formatSigned } from '../../utils/money';
 import { buildRateMap, convertMinorToBase } from '../../utils/currency';
 import { deleteAllUserData } from '../../services/dataReset';
 import { Button } from '../../components/Button';
+
+const SUPPORT_EMAIL = 'aminbihamtawork@gmail.com';
+const TERMS_URL = 'https://worthy.aminbihamta.com/terms';
 
 function SettingsSection({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
@@ -271,9 +275,20 @@ export default function SettingsScreen() {
 
           <SettingsSection title="About">
             <SettingsRow
+              icon="mail"
+              label="Support"
+              value={SUPPORT_EMAIL}
+              onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
+            />
+            <SettingsRow
               icon="shield"
               label="Privacy"
               onPress={() => navigation.navigate('Privacy' as never)}
+            />
+            <SettingsRow
+              icon="file-text"
+              label="Terms of Service"
+              onPress={() => Linking.openURL(TERMS_URL)}
               isLast
             />
           </SettingsSection>
