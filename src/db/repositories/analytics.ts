@@ -38,7 +38,7 @@ export async function getIncomeSeries(input: {
   );
 }
 
-export async function getSpendingByCategory(start: number, end: number) {
+export async function getSpendingByCategory(start: number, end: number, baseCurrency: string) {
   const db = await getDb();
   return db.getAllAsync<{
     category_id: string;
@@ -47,7 +47,10 @@ export async function getSpendingByCategory(start: number, end: number) {
     total_minor: number;
   }>(
     `SELECT e.category_id, c.name as category_name, c.color as category_color,
-      ROUND(SUM(e.amount_minor * COALESCE(cur.rate_to_base, 1))) as total_minor
+      ROUND(SUM(e.amount_minor * CASE
+        WHEN COALESCE(e.currency_code, a.currency) = ? THEN 1
+        ELSE COALESCE(cur.rate_to_base, 1)
+      END)) as total_minor
      FROM expenses e
      JOIN categories c ON c.id = e.category_id
      JOIN accounts a ON a.id = e.account_id
@@ -55,6 +58,7 @@ export async function getSpendingByCategory(start: number, end: number) {
      WHERE e.date_ts BETWEEN ? AND ?
      GROUP BY e.category_id
      ORDER BY total_minor DESC`,
+    baseCurrency,
     start,
     end,
   );

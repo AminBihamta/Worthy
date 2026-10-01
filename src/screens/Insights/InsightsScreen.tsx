@@ -89,7 +89,7 @@ export default function InsightsScreen() {
         await Promise.all([
           getExpenseSeries({ start, end, granularity: chartGranularity }),
           getIncomeSeries({ start, end, granularity: chartGranularity }),
-          getSpendingByCategory(start, end),
+          getSpendingByCategory(start, end, baseCurrency),
           getRegretByCategory(start, end),
           getRegretDistribution(start, end),
           getLifeCostByCategory(start, end),
@@ -105,7 +105,7 @@ export default function InsightsScreen() {
     } catch {
       setCanShowWrapped(false);
     }
-  }, [allTimeStart, chartGranularity, insightsPeriod, range.end, range.start]);
+  }, [allTimeStart, baseCurrency, chartGranularity, insightsPeriod, range.end, range.start]);
 
   const expenseSeries = useMemo(
     () => normalizeTimeSeries(expenseRows, effectiveRange, chartGranularity),
