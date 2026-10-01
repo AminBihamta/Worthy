@@ -1,5 +1,6 @@
 import { getDb } from '../index';
 import { createId } from '../../utils/id';
+import { scheduleHomeScreenWidgetSync } from '../../services/homeScreenWidgetSync';
 
 export type AccountType = 'cash' | 'bank' | 'ewallet' | 'credit';
 
@@ -123,6 +124,7 @@ export async function createAccount(input: {
     input.starting_balance_minor,
     Date.now(),
   );
+  scheduleHomeScreenWidgetSync();
   return id;
 }
 
@@ -136,9 +138,11 @@ export async function updateAccount(
   const assignments = fields.map((field) => `${field} = ?`).join(', ');
   const values = fields.map((field) => (input as Record<string, unknown>)[field]);
   await db.runAsync(`UPDATE accounts SET ${assignments} WHERE id = ?`, ...values, id);
+  scheduleHomeScreenWidgetSync();
 }
 
 export async function archiveAccount(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('UPDATE accounts SET archived_at = ? WHERE id = ?', Date.now(), id);
+  scheduleHomeScreenWidgetSync();
 }

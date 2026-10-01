@@ -1,4 +1,5 @@
 import { getDb } from '../index';
+import { scheduleHomeScreenWidgetSync } from '../../services/homeScreenWidgetSync';
 
 export interface CurrencyRow {
   code: string;
@@ -44,9 +45,11 @@ export async function upsertCurrency(input: {
     input.rate_to_base,
     Date.now(),
   );
+  scheduleHomeScreenWidgetSync();
 }
 
 export async function archiveCurrency(code: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('UPDATE currencies SET archived_at = ? WHERE code = ?', Date.now(), code);
+  scheduleHomeScreenWidgetSync();
 }

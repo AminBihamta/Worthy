@@ -1,5 +1,6 @@
 import { getDb } from '../index';
 import { createId } from '../../utils/id';
+import { scheduleHomeScreenWidgetSync } from '../../services/homeScreenWidgetSync';
 
 export interface TransferRow {
   id: string;
@@ -70,10 +71,12 @@ export async function createTransfer(input: {
     input.notes ?? null,
     Date.now(),
   );
+  scheduleHomeScreenWidgetSync();
   return id;
 }
 
 export async function deleteTransfer(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM transfers WHERE id = ?', id);
+  scheduleHomeScreenWidgetSync();
 }

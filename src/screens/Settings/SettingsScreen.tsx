@@ -327,7 +327,7 @@ export default function SettingsScreen() {
           )}
 
           <View className="items-center mt-4 mb-8">
-            <Text className="text-xs text-app-muted dark:text-app-muted-dark">Worthy v1.0.0</Text>
+            <Text className="text-xs text-app-muted dark:text-app-muted-dark">Worthy v1.1.0</Text>
           </View>
         </View>
       </ScrollView>

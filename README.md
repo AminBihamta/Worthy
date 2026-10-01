@@ -56,7 +56,7 @@ In development mode, Settings includes a “Generate sample data” button for a
 
 - Recurring rules are stored and can be paused, but no scheduler creates future transactions yet.
 - Backup, import, and export are not implemented, despite the Privacy screen mentioning export.
-- Widgets are reusable in-app statistic cards, not native home-screen widgets.
+- Native home-screen widgets (iOS + Android via `expo-widgets`) show total balance, monthly expenses/income, and quick-add expense. They require a native build (not OTA-only). Settings → Widgets previews the same metrics and explains how to add them.
 - Weekly budgets are labeled as coming soon; the Budgets screen applies its selected date range globally.
 - The former savings-goals, wishlist, and receipt-inbox features are being removed. Savings is now a
   protected built-in expense category.

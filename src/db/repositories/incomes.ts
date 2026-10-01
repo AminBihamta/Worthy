@@ -1,5 +1,6 @@
 import { getDb } from '../index';
 import { createId } from '../../utils/id';
+import { scheduleHomeScreenWidgetSync } from '../../services/homeScreenWidgetSync';
 
 export interface IncomeRow {
   id: string;
@@ -94,6 +95,7 @@ export async function createIncome(input: {
     now,
     now,
   );
+  scheduleHomeScreenWidgetSync();
   return id;
 }
 
@@ -112,11 +114,13 @@ export async function updateIncome(
     Date.now(),
     id,
   );
+  scheduleHomeScreenWidgetSync();
 }
 
 export async function deleteIncome(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync('DELETE FROM incomes WHERE id = ?', id);
+  scheduleHomeScreenWidgetSync();
 }
 
 export async function getIncomeTotals(start: number, end: number) {

@@ -169,7 +169,7 @@ The Home screen prompts the user when a period has not yet been viewed. Last-vie
 
 The application supports system, light, and dark modes. It uses Manrope typography, NativeWind utility classes, React Native Reanimated transitions, gesture-based/swipeable rows, and Expo Haptics.
 
-The in-app Widgets screen currently previews two reusable statistic cards—month income and today’s spending—which also appear on Home. These are application UI components, not implemented OS home-screen widgets.
+The Widgets screen previews native home-screen widgets: total balance, calendar-month expenses, calendar-month income, and quick-add expense. OS widgets are powered by `expo-widgets` (SDK 56+) and updated from a shared snapshot computed in the main app.
 
 ## Technical architecture
 
@@ -282,7 +282,7 @@ The project is a substantial working application (roughly 13,000 lines of TypeSc
 - Cross-currency transfers do not store distinct source/destination values or an applied exchange rate.
 - Recurring rules do not yet generate future transactions automatically.
 - Backup, import, and export are not implemented even though the Privacy copy anticipates export.
-- “Widgets” are reusable in-app cards, not native iOS/Android home-screen widgets.
+- Native iOS/Android home-screen widgets are supported; a new native build is required after widget or SDK changes.
 - Weekly budgets are marked as coming soon, and the current budget reporting range is selected globally rather than driven by each stored budget period.
 - The working tree is actively removing goals/wishlist functionality and consolidating savings into a built-in category. Older documentation mentioning savings goals is stale.
 

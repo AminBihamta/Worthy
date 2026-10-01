@@ -22,7 +22,7 @@ interface SettingsState {
   resetAfterDataDeletion: () => void;
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
+export const useSettingsStore = create<SettingsState>((set) => ({
   themeMode: 'system',
   hoursPerDay: 8,
   baseCurrency: 'USD',
@@ -42,7 +42,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       hasSeenIntro: settings.has_seen_intro === 'true',
       loaded: true,
     });
-    // We do NOT seed base_currency here anymore if missing, as it's part of onboarding.
   },
   setThemeMode: async (mode) => {
     await setSetting('theme_mode', mode);
@@ -56,10 +55,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const normalized = code.toUpperCase();
     await setSetting('base_currency', normalized);
     set({ baseCurrency: normalized });
+    void import('../services/homeScreenWidgetSync').then((mod) => {
+      mod.scheduleHomeScreenWidgetSync();
+    });
   },
   completeOnboarding: async () => {
     await setSetting('is_onboarded', 'true');
     set({ isOnboarded: true });
+    void import('../services/homeScreenWidgetSync').then((mod) => {
+      mod.scheduleHomeScreenWidgetSync();
+    });
   },
   resetOnboarding: async () => {
     await setSetting('is_onboarded', 'false');

@@ -1,10 +1,11 @@
 import '../global.css';
 import React, { useEffect, useRef } from 'react';
-import { Text, TextInput, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { AppState, Platform, Text, TextInput, View } from 'react-native';
+import { LinkingOptions, NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import * as Linking from 'expo-linking';
 import { useColorScheme } from 'nativewind';
 import {
   Manrope_400Regular,
@@ -18,6 +19,39 @@ import { DatabaseProvider, useDatabaseStatus } from './db/provider';
 import { useSettingsStore } from './state/useSettingsStore';
 import { getNavigationTheme } from './theme/navigation';
 import { colors } from './theme/tokens';
+import { syncHomeScreenWidgets } from './services/homeScreenWidgetSync';
+
+if (Platform.OS === 'ios') {
+  try {
+    require('./widgets');
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[widgets] failed to register', error);
+    }
+  }
+}
+
+const linking: LinkingOptions<any> = {
+  prefixes: [Linking.createURL('/'), 'worthy://'],
+  config: {
+    screens: {
+      HomeStack: {
+        screens: {
+          Home: '',
+          AddExpense: 'add-expense',
+          Settings: 'settings',
+        },
+      },
+      TransactionsStack: {
+        path: 'transactions',
+        screens: {
+          Transactions: '',
+          AddExpense: 'add-expense',
+        },
+      },
+    },
+  },
+};
 
 function AppContent() {
   const [fontsLoaded] = useFonts({
@@ -54,6 +88,19 @@ function AppContent() {
     setColorScheme(themeMode);
   }, [themeMode, loaded, setColorScheme]);
 
+  useEffect(() => {
+    if (!ready || !loaded) return;
+    void syncHomeScreenWidgets();
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void syncHomeScreenWidgets();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [ready, loaded]);
+
   const resolvedScheme = themeMode === 'system' ? (colorScheme ?? 'light') : themeMode;
 
   if (error) {
@@ -77,7 +124,10 @@ function AppContent() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['top']}>
-      <NavigationContainer theme={getNavigationTheme(resolvedScheme as 'light' | 'dark')}>
+      <NavigationContainer
+        linking={linking}
+        theme={getNavigationTheme(resolvedScheme as 'light' | 'dark')}
+      >
         <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
         <RootNavigator />
       </NavigationContainer>
