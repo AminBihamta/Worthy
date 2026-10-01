@@ -20,6 +20,7 @@ import { useSettingsStore } from './state/useSettingsStore';
 import { getNavigationTheme } from './theme/navigation';
 import { colors } from './theme/tokens';
 import { syncHomeScreenWidgets } from './services/homeScreenWidgetSync';
+import { applyThemeMode } from './theme/appearance';
 
 if (Platform.OS === 'ios') {
   try {
@@ -62,7 +63,7 @@ function AppContent() {
   });
   const { ready, error } = useDatabaseStatus();
   const { hydrate, themeMode, loaded } = useSettingsStore();
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const didSetFonts = useRef(false);
 
   useEffect(() => {
@@ -85,8 +86,8 @@ function AppContent() {
 
   useEffect(() => {
     if (!loaded) return;
-    setColorScheme(themeMode);
-  }, [themeMode, loaded, setColorScheme]);
+    applyThemeMode(themeMode);
+  }, [themeMode, loaded]);
 
   useEffect(() => {
     if (!ready || !loaded) return;
