@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, Text, View, SafeAreaView } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -114,7 +114,7 @@ export default function BudgetsScreen() {
 
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
-      <SafeAreaView className="flex-1">
+      <View className="flex-1">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ padding: 24, paddingBottom: 180 }}
@@ -244,7 +244,7 @@ export default function BudgetsScreen() {
             </View>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
       <View
         className="absolute bottom-32 right-6 z-50"

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View, SafeAreaView } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
@@ -215,7 +215,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
-      <SafeAreaView className="flex-1">
+      <View className="flex-1">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ paddingBottom: 100 }}
@@ -426,7 +426,7 @@ export default function HomeScreen() {
             </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
       {actionsOpen ? <Pressable className="absolute inset-0" onPress={closeActions} /> : null}
       <View
         pointerEvents="box-none"
