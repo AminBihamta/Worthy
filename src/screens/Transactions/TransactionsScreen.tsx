@@ -388,18 +388,6 @@ export default function TransactionsScreen() {
           getItemType={(item) => item.type}
         />
 
-        {/* Floating Action Button */}
-        <View className="absolute bottom-20 right-6">
-          <PressableScale
-            className="h-14 w-14 rounded-full bg-app-brand dark:bg-app-brand-dark items-center justify-center shadow-lg shadow-app-brand/30"
-            onPress={() => {
-              Haptics.selectionAsync();
-              navigation.navigate('AddExpense' as never);
-            }}
-          >
-            <Feather name="plus" size={28} color="#FFFFFF" />
-          </PressableScale>
-        </View>
       </View>
     </TransactionsErrorBoundary>
   );

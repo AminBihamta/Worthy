@@ -8,11 +8,6 @@
     "scheme": "worthy",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F6F5F2"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.aminbihamta.worthy",
@@ -50,6 +45,14 @@
       ],
       "expo-sqlite",
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F5F2"
+        }
+      ],
       "@react-native-community/datetimepicker",
       [
         "expo-widgets",

@@ -138,7 +138,7 @@ function SelectionModal({
               </Pressable>
             </View>
             {searchable ? (
-              <View className="px-6 pb-2">
+              <View className="px-6 pt-2 pb-2">
                 <View className="flex-row items-center gap-2 px-3 py-2 rounded-2xl border border-app-border/50 dark:border-app-border-dark/50 bg-app-bg dark:bg-app-bg-dark">
                   <Feather name="search" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
                   <TextInput

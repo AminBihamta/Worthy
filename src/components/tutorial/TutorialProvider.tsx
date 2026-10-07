@@ -32,7 +32,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
         id: '2',
         targetId: 'home_actions',
         title: 'Quick Actions',
-        description: 'Log new Expenses, Income, or Transfers specifically from here.',
+        description: 'Open the global + menu to add a transfer, budget, income, or expense.',
         screenName: 'Home',
     },
     {
@@ -53,7 +53,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
         id: '5',
         targetId: 'budgets_fab',
         title: 'Budgeting',
-        description: 'Set spending limits for categories. Tap the + button to create your first budget.',
+        description: 'Set spending limits for categories. Tap the global + button to create your first budget.',
         screenName: 'BudgetsStack',
     },
     {

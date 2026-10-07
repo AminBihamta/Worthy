@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/Card';
 import { PressableScale } from '../../components/PressableScale';
 import { AnimatedNumber } from '../../components/AnimatedNumber';
@@ -18,6 +18,12 @@ import { TransactionRow } from '../../components/TransactionRow';
 import { formatShortDate } from '../../utils/time';
 import { formatLifeCost } from '../../utils/lifeCost';
 import { buildRateMap, convertMinorToBase } from '../../utils/currency';
+import {
+  isWiseAccountName,
+  WISE_ACCOUNT_BACKGROUND,
+  WISE_ACCOUNT_BACKGROUND_END,
+  WISE_ACCOUNT_FOREGROUND,
+} from '../../utils/accountBranding';
 import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 import {
   formatWrapTitle,
@@ -25,74 +31,10 @@ import {
   getWrapPeriodRange,
   WrapPeriod,
 } from '../../utils/wrap';
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  type SharedValue,
-} from 'react-native-reanimated';
-
-type QuickAction = {
-  label: string;
-  icon: React.ComponentProps<typeof Feather>['name'];
-  color: string;
-  onPress: () => void;
-};
-
-const verticalActionOffsets = [
-  { x: 0, y: -84 },
-  { x: 0, y: -168 },
-  { x: 0, y: -252 },
-  { x: 0, y: -336 },
-];
-
-function RadialAction({
-  action,
-  index,
-  expanded,
-  progress,
-  onPress,
-}: {
-  action: QuickAction;
-  index: number;
-  expanded: boolean;
-  progress: SharedValue<number>;
-  onPress: () => void;
-}) {
-  const offset = verticalActionOffsets[index];
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [
-      { translateX: interpolate(progress.value, [0, 1], [0, offset.x]) },
-      { translateY: interpolate(progress.value, [0, 1], [0, offset.y]) },
-      { scale: interpolate(progress.value, [0, 1], [0.7, 1]) },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents={expanded ? 'auto' : 'none'}
-      className="absolute bottom-0 right-6"
-      style={animatedStyle}
-    >
-      <PressableScale onPress={onPress} haptic accessibilityLabel={action.label}>
-        <View
-          className="h-16 w-16 items-center justify-center rounded-full shadow-lg"
-          style={{ backgroundColor: action.color }}
-        >
-          <Feather name={action.icon} size={28} color="#FFFFFF" />
-        </View>
-      </PressableScale>
-    </Animated.View>
-  );
-}
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { colorScheme } = useColorScheme();
-  const insets = useSafeAreaInsets();
   const { hoursPerDay, baseCurrency } = useSettingsStore();
   const [recent, setRecent] = useState<Awaited<ReturnType<typeof listTransactions>>>([]);
   const [hourlyRateMinor, setHourlyRateMinor] = useState<number | null>(null);
@@ -104,12 +46,9 @@ export default function HomeScreen() {
     period: WrapPeriod;
     title: string;
   } | null>(null);
-  const [actionsOpen, setActionsOpen] = useState(false);
-  const actionsProgress = useSharedValue(0);
 
   // Tutorial Targets
   const balanceTarget = useTutorialTarget('home_balance');
-  const actionsTarget = useTutorialTarget('home_actions');
   const transactionsTarget = useTutorialTarget('home_transactions_list');
 
   const loadWrapPrompt = useCallback(async () => {
@@ -165,54 +104,6 @@ export default function HomeScreen() {
     () => [brandColor, accentColor, colorScheme === 'dark' ? '#3FB950' : '#38B000'],
     [accentColor, brandColor, colorScheme],
   );
-  const actions: QuickAction[] = [
-    {
-      label: 'Expense',
-      icon: 'file-text' as const,
-      color: '#D94A4A',
-      onPress: () => navigation.navigate('AddExpense' as never),
-    },
-    {
-      label: 'Income',
-      icon: 'dollar-sign' as const,
-      color: '#2EAD62',
-      onPress: () => navigation.navigate('AddIncome' as never),
-    },
-    {
-      label: 'Transfer',
-      icon: 'repeat' as const,
-      color: '#2F80ED',
-      onPress: () => navigation.navigate('AddTransfer' as never),
-    },
-    {
-      label: 'Accounts',
-      icon: 'credit-card' as const,
-      color: '#8E44AD',
-      onPress: () => navigation.navigate('Accounts' as never),
-    },
-  ];
-
-  const toggleActions = () => {
-    const nextOpen = !actionsOpen;
-    setActionsOpen(nextOpen);
-    actionsProgress.value = withTiming(nextOpen ? 1 : 0, {
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-    });
-  };
-
-  const closeActions = () => {
-    setActionsOpen(false);
-    actionsProgress.value = withTiming(0, {
-      duration: 150,
-      easing: Easing.in(Easing.cubic),
-    });
-  };
-
-  const fabStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${interpolate(actionsProgress.value, [0, 1], [0, 45])}deg` }],
-  }));
-
   return (
     <View className="flex-1 bg-app-bg dark:bg-app-bg-dark">
       <View className="flex-1">
@@ -264,6 +155,7 @@ export default function HomeScreen() {
               ) : (
                 accounts.map((account, index) => {
                   const accent = cardAccents[index % cardAccents.length];
+                  const isWiseAccount = isWiseAccountName(account.name);
                   return (
                     <PressableScale
                       key={account.id}
@@ -272,34 +164,68 @@ export default function HomeScreen() {
                       }
                       haptic
                     >
-                      <View className="w-72 h-44 rounded-[32px] bg-app-text dark:bg-app-card-dark overflow-hidden relative p-6 justify-between shadow-sm">
-                        {/* Dark card background for contrast */}
-                        <View className="absolute inset-0 bg-[#0D1B2A] dark:bg-[#1C2432]" />
-
-                        {/* Decorative Blobs */}
-                        <View
-                          className="absolute -top-10 -right-10 h-40 w-40 rounded-full blur-2xl"
-                          style={{ backgroundColor: accent, opacity: 0.3 }}
-                        />
-                        <View
-                          className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full blur-xl"
-                          style={{ backgroundColor: accent, opacity: 0.2 }}
-                        />
+                      <View
+                        className="w-72 h-44 rounded-[32px] bg-app-text dark:bg-app-card-dark overflow-hidden relative p-6 justify-between shadow-sm"
+                        style={isWiseAccount ? { backgroundColor: 'transparent' } : undefined}
+                      >
+                        {isWiseAccount ? (
+                          <LinearGradient
+                            colors={[WISE_ACCOUNT_BACKGROUND, WISE_ACCOUNT_BACKGROUND_END]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            pointerEvents="none"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              bottom: 0,
+                              left: 0,
+                              borderRadius: 32,
+                              overflow: 'hidden',
+                            }}
+                          />
+                        ) : null}
+                        {!isWiseAccount ? (
+                          <>
+                            <View className="absolute inset-0 bg-[#0D1B2A] dark:bg-[#1C2432]" />
+                            <View
+                              className="absolute -top-10 -right-10 h-40 w-40 rounded-full blur-2xl"
+                              style={{ backgroundColor: accent, opacity: 0.3 }}
+                            />
+                            <View
+                              className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full blur-xl"
+                              style={{ backgroundColor: accent, opacity: 0.2 }}
+                            />
+                          </>
+                        ) : null}
 
                         <View className="flex-row justify-between items-center">
                           <View className="flex-row items-center gap-2">
-                            <Feather name="credit-card" size={16} color="white" opacity={0.8} />
-                            <Text className="text-white/80 text-sm font-medium">
+                            <Feather
+                              name="credit-card"
+                              size={16}
+                              color={isWiseAccount ? WISE_ACCOUNT_FOREGROUND : 'white'}
+                            />
+                            <Text
+                              className="text-white/80 text-sm font-medium"
+                              style={isWiseAccount ? { color: WISE_ACCOUNT_FOREGROUND } : undefined}
+                            >
                               {account.name}
                             </Text>
                           </View>
-                          <Text className="text-white/60 text-xs font-medium">
+                          <Text
+                            className="text-white/60 text-xs font-medium"
+                            style={isWiseAccount ? { color: WISE_ACCOUNT_FOREGROUND } : undefined}
+                          >
                             {account.currency}
                           </Text>
                         </View>
 
                         <View>
-                          <Text className="text-3xl font-display font-bold text-white">
+                          <Text
+                            className="text-3xl font-display font-bold text-white"
+                            style={isWiseAccount ? { color: WISE_ACCOUNT_FOREGROUND } : undefined}
+                          >
                             {formatSigned(account.balance_minor, account.currency)}
                           </Text>
                         </View>
@@ -426,43 +352,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </ScrollView>
-      </View>
-      {actionsOpen ? <Pressable className="absolute inset-0" onPress={closeActions} /> : null}
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: insets.bottom + 64,
-          height: 420,
-        }}
-        ref={actionsTarget.ref}
-        onLayout={actionsTarget.onLayout}
-        collapsable={false}
-      >
-        {actions.map((action, index) => (
-          <RadialAction
-            key={action.label}
-            action={action}
-            index={index}
-            expanded={actionsOpen}
-            progress={actionsProgress}
-            onPress={() => {
-              closeActions();
-              action.onPress();
-            }}
-          />
-        ))}
-        <View style={{ position: 'absolute', right: 24, bottom: 0 }}>
-          <PressableScale onPress={toggleActions} haptic>
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-app-brand dark:bg-app-brand-dark shadow-lg">
-              <Animated.View style={fabStyle}>
-                <Feather name="plus" size={30} color="#FFFFFF" />
-              </Animated.View>
-            </View>
-          </PressableScale>
-        </View>
       </View>
       {/* Removed local TutorialOverlay */}
     </View>

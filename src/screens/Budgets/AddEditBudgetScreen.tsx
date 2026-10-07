@@ -13,6 +13,10 @@ import { CurrencyRow, listCurrencies } from '../../db/repositories/currencies';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { formatAmountInput, formatMinorInput, toMinor } from '../../utils/money';
 import { BudgetPeriodType } from '../../db/repositories/budgets';
+import {
+  BudgetAveragePeriod,
+  isBudgetAveragePeriodAllowed,
+} from '../../utils/budgetAverage';
 
 export default function AddEditBudgetScreen() {
   const navigation = useNavigation();
@@ -26,6 +30,7 @@ export default function AddEditBudgetScreen() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [periodType, setPeriodType] = useState<BudgetPeriodType>('month');
+  const [averagePeriod, setAveragePeriod] = useState<BudgetAveragePeriod>('off');
   const [categories, setCategories] = useState<
     { id: string; name: string; icon?: keyof typeof Feather.glyphMap; iconColor?: string }[]
   >([]);
@@ -60,6 +65,7 @@ export default function AddEditBudgetScreen() {
       setCategoryId(budget.category_id);
       setAmount(formatMinorInput(budget.amount_minor));
       setPeriodType(budget.period_type as BudgetPeriodType);
+      setAveragePeriod(budget.average_period ?? 'off');
     });
   }, [editingId]);
 
@@ -71,6 +77,7 @@ export default function AddEditBudgetScreen() {
         category_id: categoryId,
         amount_minor: amountMinor,
         period_type: periodType,
+        average_period: averagePeriod,
       });
       navigation.goBack();
       return;
@@ -80,6 +87,7 @@ export default function AddEditBudgetScreen() {
       category_id: categoryId,
       amount_minor: amountMinor,
       period_type: periodType,
+      average_period: averagePeriod,
       start_date_ts: Date.now(),
     });
     navigation.goBack();
@@ -96,6 +104,22 @@ export default function AddEditBudgetScreen() {
     { id: 'year', name: 'Yearly' },
   ];
   const selectedPeriod = periodOptions.find((p) => p.id === periodType);
+  const averageOptions: { id: BudgetAveragePeriod; label: string }[] = [
+    { id: 'off', label: 'Off' },
+    ...(periodType === 'month' || periodType === 'year'
+      ? [{ id: 'daily' as const, label: 'Daily' }]
+      : []),
+    ...(periodType === 'month' || periodType === 'year'
+      ? [{ id: 'weekly' as const, label: 'Weekly' }]
+      : []),
+    ...(periodType === 'year' ? [{ id: 'monthly' as const, label: 'Monthly' }] : []),
+  ];
+
+  const handlePeriodTypeChange = (id: string) => {
+    const nextPeriodType = id as BudgetPeriodType;
+    setPeriodType(nextPeriodType);
+    if (!isBudgetAveragePeriodAllowed(nextPeriodType, averagePeriod)) setAveragePeriod('off');
+  };
 
   return (
     <KeyboardFormView className="flex-1 bg-app-bg dark:bg-app-bg-dark">
@@ -170,6 +194,47 @@ export default function AddEditBudgetScreen() {
                 <Feather name="chevron-right" size={16} color={isDark ? '#8B949E' : '#6B7A8F'} />
               </View>
             </PressableScale>
+
+            {/* Remaining average */}
+            <View className="p-5 border-t border-app-border/30 dark:border-app-border-dark/30">
+              <Text className="text-base font-medium text-app-text dark:text-app-text-dark mb-1">
+                Remaining average
+              </Text>
+              <Text className="text-sm text-app-muted dark:text-app-muted-dark mb-3">
+                Average available to spend through this period’s end.
+              </Text>
+              <View
+                className="flex-row rounded-2xl bg-app-soft dark:bg-app-soft-dark p-1"
+                accessibilityRole="radiogroup"
+                accessibilityLabel="Remaining average period"
+              >
+                {averageOptions.map((option) => {
+                  const selected = averagePeriod === option.id;
+                  return (
+                    <PressableScale
+                      key={option.id}
+                      onPress={() => setAveragePeriod(option.id)}
+                      accessibilityRole="radio"
+                      accessibilityLabel={option.label}
+                      accessibilityState={{ checked: selected }}
+                      className={`min-h-11 flex-1 items-center justify-center rounded-xl px-2 ${
+                        selected ? 'bg-app-card dark:bg-app-card-dark' : ''
+                      }`}
+                    >
+                      <Text
+                        className={`text-sm font-medium ${
+                          selected
+                            ? 'text-app-text dark:text-app-text-dark'
+                            : 'text-app-muted dark:text-app-muted-dark'
+                        }`}
+                      >
+                        {option.label}
+                      </Text>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+            </View>
           </View>
         </View>
 
@@ -197,7 +262,7 @@ export default function AddEditBudgetScreen() {
         onClose={() => setShowPeriodModal(false)}
         title="Select Period"
         options={periodOptions}
-        onSelect={(id) => setPeriodType(id as BudgetPeriodType)}
+        onSelect={handlePeriodTypeChange}
         selectedId={periodType}
       />
     </KeyboardFormView>

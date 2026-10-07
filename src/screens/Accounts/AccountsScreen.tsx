@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useColorScheme } from 'nativewind';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { listAccountsWithBalances, archiveAccount } from '../../db/repositories/accounts';
 import { listCurrencies } from '../../db/repositories/currencies';
@@ -14,6 +15,12 @@ import { PressableScale } from '../../components/PressableScale';
 import { formatSigned } from '../../utils/money';
 import { useSettingsStore } from '../../state/useSettingsStore';
 import { buildRateMap, convertMinorToBase } from '../../utils/currency';
+import {
+  isWiseAccountName,
+  WISE_ACCOUNT_BACKGROUND,
+  WISE_ACCOUNT_BACKGROUND_END,
+  WISE_ACCOUNT_FOREGROUND,
+} from '../../utils/accountBranding';
 
 class AccountsErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -102,6 +109,7 @@ export default function AccountsScreen() {
 
   const renderAccount = (account: Awaited<ReturnType<typeof listAccountsWithBalances>>[number]) => {
     const icon = accountIcons[account.type] ?? 'credit-card';
+    const isWiseAccount = isWiseAccountName(account.name);
     const content = (
       <PressableScale
         haptic
@@ -109,26 +117,73 @@ export default function AccountsScreen() {
           navigation.navigate('AccountForm' as never, { id: account.id } as never)
         }
       >
-        <Card>
+        <Card
+          style={
+          isWiseAccount
+              ? {
+                  backgroundColor: 'transparent',
+                  borderColor: 'rgba(95,175,44,0.45)',
+                  borderRadius: 24,
+                  overflow: 'hidden',
+                }
+              : undefined
+          }
+        >
+          {isWiseAccount ? (
+            <LinearGradient
+              colors={[WISE_ACCOUNT_BACKGROUND, WISE_ACCOUNT_BACKGROUND_END]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                borderRadius: 24,
+                overflow: 'hidden',
+              }}
+            />
+          ) : null}
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-4">
-              <View className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center">
-                <Feather name={icon} size={18} color={isDark ? '#E6EDF3' : '#0D1B2A'} />
+              <View
+                className="w-10 h-10 rounded-full bg-app-soft dark:bg-app-soft-dark items-center justify-center"
+                style={isWiseAccount ? { backgroundColor: 'rgba(255,255,255,0.55)' } : undefined}
+              >
+                <Feather
+                  name={icon}
+                  size={18}
+                  color={isWiseAccount ? WISE_ACCOUNT_FOREGROUND : isDark ? '#E6EDF3' : '#0D1B2A'}
+                />
               </View>
               <View>
-                <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+                <Text
+                  className="text-base font-display text-app-text dark:text-app-text-dark"
+                  style={isWiseAccount ? { color: WISE_ACCOUNT_FOREGROUND } : undefined}
+                >
                   {account.name}
                 </Text>
-                <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
+                <Text
+                  className="text-xs text-app-muted dark:text-app-muted-dark mt-1"
+                  style={isWiseAccount ? { color: WISE_ACCOUNT_FOREGROUND } : undefined}
+                >
                   {formatType(account.type)} · {account.currency}
                 </Text>
               </View>
             </View>
             <View className="items-end">
-              <Text className="text-base font-display text-app-text dark:text-app-text-dark">
+              <Text
+                className="text-base font-display text-app-text dark:text-app-text-dark"
+                style={isWiseAccount ? { color: WISE_ACCOUNT_FOREGROUND } : undefined}
+              >
                 {formatSigned(account.balance_minor, account.currency)}
               </Text>
-              <Text className="text-xs text-app-muted dark:text-app-muted-dark mt-1">
+              <Text
+                className="text-xs text-app-muted dark:text-app-muted-dark mt-1"
+                style={isWiseAccount ? { color: WISE_ACCOUNT_FOREGROUND } : undefined}
+              >
                 Balance
               </Text>
             </View>

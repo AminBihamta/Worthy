@@ -246,11 +246,6 @@ export default function SettingsScreen() {
           {/* Management */}
           <SettingsSection title="Management">
             <SettingsRow
-              icon="grid"
-              label="Widgets"
-              onPress={() => navigation.navigate('Widgets' as never)}
-            />
-            <SettingsRow
               icon="credit-card"
               label="Accounts"
               onPress={() => navigation.navigate('Accounts' as never)}
@@ -274,6 +269,11 @@ export default function SettingsScreen() {
           </SettingsSection>
 
           <SettingsSection title="About">
+            <SettingsRow
+              icon="message-circle"
+              label="Feedback"
+              onPress={() => navigation.navigate('Feedback' as never)}
+            />
             <SettingsRow
               icon="mail"
               label="Support"

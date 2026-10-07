@@ -15,8 +15,12 @@ import { useUIStore } from '../../state/useUIStore';
 import { formatSigned } from '../../utils/money';
 import { SwipeableRow } from '../../components/SwipeableRow';
 import { useSettingsStore } from '../../state/useSettingsStore';
+import {
+  BudgetAveragePeriod,
+  getBudgetAverageMinor,
+  isCurrentBudgetPeriod,
+} from '../../utils/budgetAverage';
 
-import { useTutorialTarget } from '../../components/tutorial/TutorialProvider';
 
 const budgetCardShadow = {
   shadowColor: '#0D1B2A',
@@ -35,8 +39,6 @@ export default function BudgetsScreen() {
   const [date, setDate] = useState(new Date());
   const [allTimeStart, setAllTimeStart] = useState<number | null>(null);
 
-  const { ref: fabRef, onLayout: onFabLayout } = useTutorialTarget('budgets_fab');
-
   const [budgets, setBudgets] = useState<
     {
       id: string;
@@ -46,10 +48,13 @@ export default function BudgetsScreen() {
       color: string;
       icon: string;
       periodType: Exclude<PeriodType, 'all'>;
+      averagePeriod: BudgetAveragePeriod;
+      averageMinor: number | null;
     }[]
   >([]);
 
   const load = useCallback(async () => {
+    const now = new Date();
     const range = getPeriodRange(date, budgetPeriod);
     let allStart = range.start;
     if (budgetPeriod === 'all') {
@@ -87,6 +92,15 @@ export default function BudgetsScreen() {
           color: budget.category_color,
           icon: budget.category_icon,
           periodType,
+          averagePeriod: budget.average_period ?? 'off',
+          averageMinor: isCurrentBudgetPeriod(date, periodType, now)
+            ? getBudgetAverageMinor(
+                Math.max(0, budget.amount_minor - spent),
+                periodType,
+                budget.average_period ?? 'off',
+                now,
+              )
+            : null,
         };
       }),
     );
@@ -221,6 +235,28 @@ export default function BudgetsScreen() {
                                 )}
                               </Text>
                             </Text>
+                            {budget.averageMinor !== null && budget.averagePeriod !== 'off' ? (
+                              <Text
+                                className="text-xs text-app-muted dark:text-app-muted-dark mt-0.5"
+                                accessibilityLabel={`Average available ${formatSigned(
+                                  budget.averageMinor,
+                                  baseCurrency,
+                                )} per ${
+                                  budget.averagePeriod === 'daily'
+                                    ? 'day'
+                                    : budget.averagePeriod === 'weekly'
+                                      ? 'week'
+                                      : 'month'
+                                }`}
+                              >
+                                Average: {formatSigned(budget.averageMinor, baseCurrency)} /{' '}
+                                {budget.averagePeriod === 'daily'
+                                  ? 'day'
+                                  : budget.averagePeriod === 'weekly'
+                                    ? 'week'
+                                    : 'month'}
+                              </Text>
+                            ) : null}
                           </View>
                           <Text className="text-sm font-bold text-app-text dark:text-app-text-dark">
                             {Math.round(progress * 100)}%
@@ -246,22 +282,6 @@ export default function BudgetsScreen() {
         </ScrollView>
       </View>
 
-      <View
-        className="absolute bottom-32 right-6 z-50"
-        ref={fabRef}
-        onLayout={onFabLayout}
-        collapsable={false}
-      >
-        <PressableScale
-          className="h-14 w-14 rounded-full bg-app-brand dark:bg-app-brand-dark items-center justify-center shadow-lg shadow-app-brand/30"
-          onPress={() => {
-            Haptics.selectionAsync();
-            navigation.navigate('BudgetForm' as never);
-          }}
-        >
-          <Feather name="plus" size={24} color="#FFFFFF" />
-        </PressableScale>
-      </View>
     </View>
   );
 }

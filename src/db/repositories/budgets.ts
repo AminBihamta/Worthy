@@ -1,6 +1,7 @@
 import { getDb } from '../index';
 import { createId } from '../../utils/id';
 import { PeriodType } from '../../utils/period';
+import type { BudgetAveragePeriod } from '../../utils/budgetAverage';
 
 export type BudgetPeriodType = Exclude<PeriodType, 'all'>;
 
@@ -8,7 +9,8 @@ export interface BudgetRow {
   id: string;
   category_id: string;
   amount_minor: number;
-  period_type: string;
+  period_type: BudgetPeriodType;
+  average_period: BudgetAveragePeriod;
   start_date_ts: number;
   created_at: number;
   archived_at: number | null;
@@ -36,17 +38,19 @@ export async function createBudget(input: {
   category_id: string;
   amount_minor: number;
   period_type: BudgetPeriodType;
+  average_period: BudgetAveragePeriod;
   start_date_ts: number;
 }): Promise<string> {
   const db = await getDb();
   const id = createId('bud_');
   await db.runAsync(
-    `INSERT INTO budgets (id, category_id, amount_minor, period_type, start_date_ts, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO budgets (id, category_id, amount_minor, period_type, average_period, start_date_ts, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     id,
     input.category_id,
     input.amount_minor,
     input.period_type,
+    input.average_period,
     input.start_date_ts,
     Date.now(),
   );
